@@ -37,7 +37,7 @@ This is a TypeScript-based web application designed to help users manage their t
 
 1. Clone the repository
 ```bash
-git clone https://github.com/[your-username]/task-management-app.git
+git clone https://github.com/theonlyanish/task-management-app.git
 ```
 
 2. Navigate to the project directory
@@ -104,6 +104,6 @@ npm run test
 
 ## Contact
 
-[Your Name] - [Your Email]
+Anish Kapse - kapseanish@gmail.com
 
-Project Link: [Repository URL]
+Project Link: https://github.com/theonlyanish/Lapis-Todo
