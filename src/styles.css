@@ -1,0 +1,54 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+#taskForm {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+#taskForm input,
+#taskForm textarea,
+#taskForm select,
+#taskForm button {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.task-item {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.task-meta {
+    margin: 10px 0;
+}
+
+.status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.status.to-do { background: #ffd700; }
+.status.in-progress { background: #87ceeb; }
+.status.completed { background: #90ee90; }
+
+.task-actions button {
+    padding: 4px 8px;
+    margin-right: 5px;
+    cursor: pointer;
+}
