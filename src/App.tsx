@@ -73,7 +73,6 @@ export const App: React.FC = () => {
       </div>
       
       <div className="main-content">
-        {/* Left Column - Task Lists */}
         <div className="tasks-column">
           <button className="add-task-button" onClick={handleAddNewTask}>
             <span>+</span> Add New Task
@@ -83,7 +82,18 @@ export const App: React.FC = () => {
           <div className="task-section">
             <h2>To Do</h2>
             <TaskList 
-              tasks={tasks.filter(task => task.status !== 'Completed')}
+              tasks={tasks.filter(task => task.status === 'To Do')}
+              onTaskSelect={setSelectedTask}
+              onTaskToggle={handleTaskStatusToggle}
+              selectedTaskId={selectedTask?.id}
+            />
+          </div>
+
+          {/* In Progress Section */}
+          <div className="task-section in-progress-section">
+            <h2>In Progress</h2>
+            <TaskList 
+              tasks={tasks.filter(task => task.status === 'In Progress')}
               onTaskSelect={setSelectedTask}
               onTaskToggle={handleTaskStatusToggle}
               selectedTaskId={selectedTask?.id}
@@ -102,7 +112,6 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column - Task Details/Form */}
         <div className="task-detail-column">
           <TaskForm 
             selectedTask={selectedTask}

@@ -63,6 +63,20 @@ export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) =>
       </div>
 
       <div className="form-group">
+        <label>Status</label>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value as TaskStatus)}
+          required
+          className="form-input status-select"
+        >
+          <option value="To Do">To Do</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
+      </div>
+
+      <div className="form-group">
         <label>Due date</label>
         <input
           type="date"
