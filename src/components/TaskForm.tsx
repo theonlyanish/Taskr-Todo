@@ -47,6 +47,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) =>
           onChange={(e) => setTitle(e.target.value)}
           required
           placeholder="Enter task title"
+          className="form-input"
         />
       </div>
 
@@ -56,6 +57,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) =>
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Enter task description (optional)"
+          className="form-input description-input"
+          rows={4}
         />
       </div>
 
@@ -65,16 +68,13 @@ export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) =>
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
+          className="form-input"
+          placeholder="dd-mm-yyyy"
         />
       </div>
 
       <div className="form-actions">
-        {selectedTask && (
-          <button type="button" className="delete-button">
-            Delete Task
-          </button>
-        )}
-        <button type="submit" className="save-button">
+        <button type="submit" className="add-task-btn">
           {selectedTask ? 'Save changes' : 'Add task'}
         </button>
       </div>

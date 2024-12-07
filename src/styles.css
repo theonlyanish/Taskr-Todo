@@ -454,6 +454,23 @@ select:focus {
   border: 2px solid var(--border-color);
   border-radius: 4px;
   cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.task-checkbox.checked {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.task-checkbox.checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
 }
 
 .task-meta {
@@ -471,15 +488,104 @@ select:focus {
 
 /* Form styles */
 .task-form {
-  background: none;
-  box-shadow: none;
-  padding: 0;
+  padding: 2rem;
+}
+
+.form-group {
+  margin-bottom: 2rem;
 }
 
 .form-group label {
-  font-size: 0.9rem;
+  display: block;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.description-input {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Date input specific styles */
+input[type="date"] {
+  font-family: inherit;
+  position: relative;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  background: transparent;
+  bottom: 0;
+  color: transparent;
+  cursor: pointer;
+  height: auto;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: auto;
+}
+
+/* Add task button */
+.add-task-btn {
+  background-color: #ffd60a;
+  color: #000000;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  min-width: 120px;
+}
+
+.add-task-btn:hover {
+  background-color: #ffc107;
+}
+
+/* Placeholder styles */
+.form-input::placeholder {
+  color: #999;
+}
+
+/* Input focus state */
+.form-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+/* Date input placeholder */
+input[type="date"]::-webkit-datetime-edit-text {
   color: var(--text-secondary);
-  margin-bottom: 0.5rem;
+  padding: 0 0.3em;
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: var(--text-primary);
+}
+
+/* Empty date input */
+input[type="date"]:invalid::-webkit-datetime-edit {
+  color: #999;
 }
 
 .form-actions {
@@ -573,4 +679,14 @@ select:focus {
 
 .task-item.selected {
   background-color: var(--bg-secondary);
+}
+
+/* Task title styles */
+.task-title {
+  transition: all 0.2s ease;
+}
+
+.task-title.completed {
+  text-decoration: line-through;
+  color: var(--text-secondary);
 }

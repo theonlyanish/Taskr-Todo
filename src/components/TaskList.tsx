@@ -4,14 +4,14 @@ import { Task } from '../types/Task';
 interface TaskListProps {
   tasks: Task[];
   onTaskSelect: (task: Task) => void;
-  onTaskComplete: (taskId: string) => void;
+  onTaskToggle: (taskId: string) => void;
   selectedTaskId?: string;
 }
 
 export const TaskList: React.FC<TaskListProps> = ({ 
   tasks, 
   onTaskSelect, 
-  onTaskComplete,
+  onTaskToggle,
   selectedTaskId 
 }) => {
   return (
@@ -25,14 +25,16 @@ export const TaskList: React.FC<TaskListProps> = ({
             className={`task-checkbox ${task.status === 'Completed' ? 'checked' : ''}`}
             onClick={(e) => {
               e.stopPropagation();
-              onTaskComplete(task.id);
+              onTaskToggle(task.id);
             }}
           />
           <div 
             className="task-content"
             onClick={() => onTaskSelect(task)}
           >
-            <div className="task-title">{task.title}</div>
+            <div className={`task-title ${task.status === 'Completed' ? 'completed' : ''}`}>
+              {task.title}
+            </div>
             <div className="task-meta">
               {task.dueDate && (
                 <span className="task-date">

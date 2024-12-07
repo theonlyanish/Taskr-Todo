@@ -28,12 +28,16 @@ export const App: React.FC = () => {
     }, 0);
   };
 
-  const handleTaskComplete = (taskId: string) => {
-    const updatedTask = TaskService.updateTask(taskId, { status: 'Completed' });
-    if (updatedTask) {
-      setTasks(TaskService.getTasks());
-      if (selectedTask?.id === taskId) {
-        setSelectedTask(updatedTask);
+  const handleTaskStatusToggle = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
+      const updatedTask = TaskService.updateTask(taskId, { status: newStatus });
+      if (updatedTask) {
+        setTasks(TaskService.getTasks());
+        if (selectedTask?.id === taskId) {
+          setSelectedTask(updatedTask);
+        }
       }
     }
   };
@@ -58,7 +62,7 @@ export const App: React.FC = () => {
             <TaskList 
               tasks={tasks.filter(task => task.status !== 'Completed')}
               onTaskSelect={setSelectedTask}
-              onTaskComplete={handleTaskComplete}
+              onTaskToggle={handleTaskStatusToggle}
               selectedTaskId={selectedTask?.id}
             />
           </div>
@@ -69,7 +73,7 @@ export const App: React.FC = () => {
             <TaskList 
               tasks={tasks.filter(task => task.status === 'Completed')}
               onTaskSelect={setSelectedTask}
-              onTaskComplete={handleTaskComplete}
+              onTaskToggle={handleTaskStatusToggle}
               selectedTaskId={selectedTask?.id}
             />
           </div>
