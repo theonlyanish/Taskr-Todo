@@ -8,6 +8,8 @@ import { Task } from './types/Task';
 export const App: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
@@ -42,6 +44,27 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleTaskClick = (task: Task) => {
+    if (task.status === 'Completed') {
+      setTaskToDelete(task);
+      setShowDeleteConfirm(true);
+    } else {
+      setSelectedTask(task);
+    }
+  };
+
+  const handleDeleteTask = () => {
+    if (taskToDelete) {
+      TaskService.deleteTask(taskToDelete.id);
+      setTasks(TaskService.getTasks());
+      setTaskToDelete(null);
+      setShowDeleteConfirm(false);
+      if (selectedTask?.id === taskToDelete.id) {
+        setSelectedTask(null);
+      }
+    }
+  };
+
   return (
     <div className="app-container">
       <div className="app-header">
@@ -72,7 +95,7 @@ export const App: React.FC = () => {
             <h2>Completed</h2>
             <TaskList 
               tasks={tasks.filter(task => task.status === 'Completed')}
-              onTaskSelect={setSelectedTask}
+              onTaskSelect={handleTaskClick}
               onTaskToggle={handleTaskStatusToggle}
               selectedTaskId={selectedTask?.id}
             />
@@ -94,6 +117,33 @@ export const App: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Delete Task</h3>
+            <p>Are you sure you want to delete "{taskToDelete?.title}"?</p>
+            <div className="modal-actions">
+              <button 
+                className="cancel-btn"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setTaskToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="delete-btn"
+                onClick={handleDeleteTask}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

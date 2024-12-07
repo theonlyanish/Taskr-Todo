@@ -20,6 +20,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         <div 
           key={task.id}
           className={`task-item ${task.id === selectedTaskId ? 'selected' : ''}`}
+          onClick={() => onTaskSelect(task)}
         >
           <div 
             className={`task-checkbox ${task.status === 'Completed' ? 'checked' : ''}`}
@@ -28,10 +29,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onTaskToggle(task.id);
             }}
           />
-          <div 
-            className="task-content"
-            onClick={() => onTaskSelect(task)}
-          >
+          <div className="task-content">
             <div className={`task-title ${task.status === 'Completed' ? 'completed' : ''}`}>
               {task.title}
             </div>
