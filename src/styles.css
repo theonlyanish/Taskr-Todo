@@ -375,3 +375,202 @@ select:focus {
   padding: 0.5rem 1rem;
   cursor: pointer;
 }
+
+/* Layout styles */
+.app-container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.app-header {
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.app-header h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  height: calc(100vh - 70px);
+  padding: 2rem;
+}
+
+/* Left column styles */
+.tasks-column {
+  border-right: 1px solid var(--border-color);
+  padding-right: 2rem;
+}
+
+.add-task-button {
+  width: 100%;
+  padding: 0.75rem;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.add-task-button span {
+  font-size: 1.2rem;
+}
+
+.add-task-button:hover {
+  color: var(--text-primary);
+}
+
+/* Task list styles */
+.task-item {
+  padding: 0.75rem;
+  border: none;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.task-item.selected {
+  background-color: var(--bg-secondary);
+}
+
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Right column styles */
+.task-detail-column {
+  padding: 1rem;
+}
+
+/* Form styles */
+.task-form {
+  background: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.save-button {
+  background-color: #ffd60a;
+  color: #000000;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* Tags styles */
+.tags-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tag {
+  background-color: var(--bg-secondary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.add-tag {
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+/* Task sections */
+.task-section {
+  margin-top: 2rem;
+}
+
+.task-section h2 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.completed-section {
+  margin-top: 3rem;
+}
+
+.completed-section .task-item {
+  opacity: 0.7;
+}
+
+/* Checkbox styles */
+.task-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+}
+
+.task-checkbox.checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--accent-color);
+}
+
+/* Task item hover state */
+.task-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.task-item.selected {
+  background-color: var(--bg-secondary);
+}

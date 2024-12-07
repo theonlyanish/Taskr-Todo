@@ -7,52 +7,89 @@ import { Task } from './types/Task';
 
 export const App: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check if user has a theme preference in localStorage
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme ? savedTheme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return localStorage.getItem('theme') === 'dark';
   });
 
   useEffect(() => {
-    // Load tasks when component mounts
     setTasks(TaskService.getTasks());
-    
-    // Apply theme class to body
     document.body.classList.toggle('dark-theme', isDarkMode);
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
-  const handleCreateTask = (taskData: Omit<Task, 'id' | 'createdAt'>) => {
-    const newTask = TaskService.saveTask(taskData);
-    setTasks(TaskService.getTasks());
+  const handleAddNewTask = () => {
+    setSelectedTask(null); // Clear selected task
+    // Find the task title input and focus it
+    setTimeout(() => {
+      const titleInput = document.querySelector('.task-form input[type="text"]') as HTMLInputElement;
+      if (titleInput) {
+        titleInput.focus();
+      }
+    }, 0);
   };
 
-  const handleUpdateTask = (updatedTask: Task) => {
-    TaskService.updateTask(updatedTask.id, updatedTask);
-    setTasks(TaskService.getTasks());
-  };
-
-  const handleDeleteTask = (taskId: string) => {
-    TaskService.deleteTask(taskId);
-    setTasks(TaskService.getTasks());
-  };
-
-  const toggleTheme = () => {
-    setIsDarkMode(prev => !prev);
+  const handleTaskComplete = (taskId: string) => {
+    const updatedTask = TaskService.updateTask(taskId, { status: 'Completed' });
+    if (updatedTask) {
+      setTasks(TaskService.getTasks());
+      if (selectedTask?.id === taskId) {
+        setSelectedTask(updatedTask);
+      }
+    }
   };
 
   return (
-    <div className="container">
-      <header className="app-header">
-        <h1>Task Manager</h1>
-        <ThemeToggle isDark={isDarkMode} onToggle={toggleTheme} />
-      </header>
-      <TaskForm onSubmit={handleCreateTask} />
-      <TaskList 
-        tasks={tasks}
-        onUpdateTask={handleUpdateTask}
-        onDeleteTask={handleDeleteTask}
-      />
+    <div className="app-container">
+      <div className="app-header">
+        <h1>Today</h1>
+        <ThemeToggle isDark={isDarkMode} onToggle={() => setIsDarkMode(!isDarkMode)} />
+      </div>
+      
+      <div className="main-content">
+        {/* Left Column - Task Lists */}
+        <div className="tasks-column">
+          <button className="add-task-button" onClick={handleAddNewTask}>
+            <span>+</span> Add New Task
+          </button>
+          
+          {/* To Do Section */}
+          <div className="task-section">
+            <h2>To Do</h2>
+            <TaskList 
+              tasks={tasks.filter(task => task.status !== 'Completed')}
+              onTaskSelect={setSelectedTask}
+              onTaskComplete={handleTaskComplete}
+              selectedTaskId={selectedTask?.id}
+            />
+          </div>
+
+          {/* Completed Section */}
+          <div className="task-section completed-section">
+            <h2>Completed</h2>
+            <TaskList 
+              tasks={tasks.filter(task => task.status === 'Completed')}
+              onTaskSelect={setSelectedTask}
+              onTaskComplete={handleTaskComplete}
+              selectedTaskId={selectedTask?.id}
+            />
+          </div>
+        </div>
+
+        {/* Right Column - Task Details/Form */}
+        <div className="task-detail-column">
+          <TaskForm 
+            selectedTask={selectedTask}
+            onSubmit={(task) => {
+              if (selectedTask) {
+                TaskService.updateTask(selectedTask.id, task);
+              } else {
+                TaskService.saveTask(task);
+              }
+              setTasks(TaskService.getTasks());
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 };
