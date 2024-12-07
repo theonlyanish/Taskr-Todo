@@ -117,3 +117,107 @@
 .submit-button:hover {
   background-color: #0052a3;
 }
+
+.task-list {
+  margin-top: 2rem;
+}
+
+.task-item {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.task-description {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.task-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-btn,
+.delete-btn,
+.save-btn,
+.cancel-btn {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.edit-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.delete-btn {
+  background: #f44336;
+  color: white;
+}
+
+.status-select {
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.status-select.to-do {
+  background: #ffd700;
+}
+
+.status-select.in-progress {
+  background: #87ceeb;
+}
+
+.status-select.completed {
+  background: #90ee90;
+}
+
+.due-date {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.task-item.editing {
+  background: #f5f5f5;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+
+.no-tasks {
+  text-align: center;
+  color: #666;
+  margin-top: 2rem;
+}
