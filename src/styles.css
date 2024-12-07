@@ -681,6 +681,11 @@ input[type="date"]:invalid::-webkit-datetime-edit {
   position: relative;
 }
 
+.task-checkbox.checked {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
 .task-checkbox.checked::after {
   content: '✓';
   position: absolute;
@@ -779,7 +784,6 @@ input[type="date"]:invalid::-webkit-datetime-edit {
 /* Completed task styles */
 .completed-section .task-item {
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .completed-section .task-item:hover {
@@ -842,18 +846,18 @@ input[type="date"]:invalid::-webkit-datetime-edit {
   border-left: 3px solid #3498db;
 }
 
-.completed-section .task-item {
-  border-left: 3px solid #2ecc71;
+.task-section:not(.in-progress-section):not(.completed-section) .task-item {
+  border-left: 3px solid #f1c40f;
 }
 
-.task-section:not(.completed-section) .task-item {
-  border-left: 3px solid #f1c40f;
+.completed-section .task-item {
+  border-left: 3px solid #2ecc71;
 }
 
 /* Task item status indicators */
 .task-item {
   padding-left: calc(0.75rem - 3px);
-  transition: all 0.2s ease;
+
 }
 
 /* Section spacing */
