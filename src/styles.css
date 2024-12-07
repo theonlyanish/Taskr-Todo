@@ -253,22 +253,42 @@
   --accent-color: #3d7199;
 }
 
-/* Synchronized transitions */
+/* Base transition - apply to all elements that need to transition */
+html,
 body,
+.app-container,
 .container,
 .task-form,
 .task-item,
+.task-content,
+.task-title,
 input,
 textarea,
 select,
 .status-select,
 .theme-toggle,
-.task-list {
-  transition: 
-    background-color var(--transition-timing),
-    color var(--transition-timing),
-    border-color var(--transition-timing),
-    box-shadow var(--transition-timing);
+.task-list,
+.task-detail-column,
+.tasks-column,
+.task-checkbox,
+.task-meta,
+.form-group,
+.modal-content {
+  transition: all var(--transition-timing);
+}
+
+/* Ensure the body fills the viewport */
+body {
+  min-height: 100vh;
+  margin: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Ensure app container also transitions */
+.app-container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
 }
 
 /* Base styles */
@@ -303,7 +323,6 @@ select {
 .task-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 3px 6px var(--shadow-color);
-  transition: transform 0.3s ease, box-shadow var(--transition-timing);
 }
 
 /* Theme toggle specific transitions */
@@ -455,7 +474,6 @@ select:focus {
   border-radius: 4px;
   cursor: pointer;
   position: relative;
-  transition: all 0.2s ease;
 }
 
 .task-checkbox.checked {

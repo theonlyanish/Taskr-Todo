@@ -68,7 +68,7 @@ export const App: React.FC = () => {
   return (
     <div className="app-container">
       <div className="app-header">
-        <h1>Today</h1>
+        <h1>Task Manager</h1>
         <ThemeToggle isDark={isDarkMode} onToggle={() => setIsDarkMode(!isDarkMode)} />
       </div>
       
