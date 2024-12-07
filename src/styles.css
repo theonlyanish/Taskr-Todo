@@ -22,7 +22,7 @@
 .container {
     max-width: 800px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 2rem;
 }
 
 #taskForm {
@@ -78,13 +78,14 @@
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .form-group input,
@@ -181,15 +182,18 @@
 }
 
 .status-select.to-do {
-  background: #ffd700;
+  background: #fafafa;
+  color: #b4a100;
 }
 
 .status-select.in-progress {
-  background: #87ceeb;
+  background: #fafafa;
+  color: #007a8c;
 }
 
 .status-select.completed {
-  background: #90ee90;
+  background: #fafafa;
+  color: #2e7d32;
 }
 
 .due-date {
@@ -220,4 +224,154 @@
   text-align: center;
   color: #666;
   margin-top: 2rem;
+}
+
+/* Base theme transition settings */
+:root {
+  --transition-timing: 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Light theme colors */
+  --bg-primary: #F5F5F5;
+  --bg-secondary: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --text-primary: #2d3436;
+  --text-secondary: #636e72;
+  --border-color: #E0E0E0;
+  --shadow-color: rgba(0, 0, 0, 0.06);
+  --accent-color: #0984e3;
+}
+
+/* Dark theme colors */
+.dark-theme {
+  --bg-primary: #040406;
+  --bg-secondary: #0a0a0d;
+  --card-bg: #0d0d11;
+  --text-primary: #e4e9ed;
+  --text-secondary: #a3acb9;
+  --border-color: #1a1a1f;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --accent-color: #3d7199;
+}
+
+/* Synchronized transitions */
+body,
+.container,
+.task-form,
+.task-item,
+input,
+textarea,
+select,
+.status-select,
+.theme-toggle,
+.task-list {
+  transition: 
+    background-color var(--transition-timing),
+    color var(--transition-timing),
+    border-color var(--transition-timing),
+    box-shadow var(--transition-timing);
+}
+
+/* Base styles */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  margin: 0;
+}
+
+.task-form,
+.task-item {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px var(--shadow-color);
+}
+
+input,
+textarea,
+select {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+/* Remove any conflicting transitions */
+.task-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px var(--shadow-color);
+  transition: transform 0.3s ease, box-shadow var(--transition-timing);
+}
+
+/* Theme toggle specific transitions */
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+.theme-toggle:hover {
+  opacity: 1;
+  transform: scale(1.1);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+/* Input focus states for light theme */
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent-color);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(9, 132, 227, 0.1);
+}
+
+/* Header styling */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.app-header h1 {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Button styles */
+.edit-btn,
+.save-btn {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
 }
