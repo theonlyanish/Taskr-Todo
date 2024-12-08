@@ -16,6 +16,11 @@ export const App: React.FC = () => {
   });
 
   useEffect(() => {
+    document.body.classList.toggle('dark-theme', isDarkMode);
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+  }, [isDarkMode]);
+
+  useEffect(() => {
     // Initial load from local storage
     setTasks(TaskService.getTasks());
     
@@ -24,7 +29,6 @@ export const App: React.FC = () => {
       const supabaseTasks = await SupabaseTaskService.getTasks();
       if (supabaseTasks.length > 0) {
         setTasks(supabaseTasks);
-        // Update local storage using the public method
         TaskService.syncTasks(supabaseTasks);
       }
     };
