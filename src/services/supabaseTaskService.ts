@@ -58,10 +58,14 @@ export class SupabaseTaskService {
         .from('tasks')
         .update(updateData)
         .eq('id', taskId)
-        .select()
+        .select('*')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
+
       return data ? toTask(data) : null;
     } catch (error) {
       console.error('Error updating task:', error);

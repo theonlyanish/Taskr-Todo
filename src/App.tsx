@@ -48,15 +48,25 @@ export const App: React.FC = () => {
   };
 
   const handleTaskStatusToggle = async (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
-      const updatedTask = await SupabaseTaskService.updateTask(taskId, { status: newStatus });
-      if (updatedTask) {
-        const updatedTasks = tasks.map(t => t.id === taskId ? updatedTask : t);
-        setTasks(updatedTasks);
-        TaskService.syncTasks(updatedTasks);
+    try {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
+        const updatedTask = await SupabaseTaskService.updateTask(taskId, { 
+          status: newStatus 
+        });
+        
+        if (updatedTask) {
+          setTasks(prevTasks => 
+            prevTasks.map(t => t.id === taskId ? updatedTask : t)
+          );
+          if (selectedTask?.id === taskId) {
+            setSelectedTask(updatedTask);
+          }
+        }
       }
+    } catch (error) {
+      console.error('Error toggling task status:', error);
     }
   };
 
@@ -70,22 +80,39 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    const success = await SupabaseTaskService.deleteTask(taskId);
-    if (success) {
-      const updatedTasks = tasks.filter(t => t.id !== taskId);
-      setTasks(updatedTasks);
-      TaskService.syncTasks(updatedTasks);
+    try {
+      const success = await SupabaseTaskService.deleteTask(taskId);
+      if (success) {
+        setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
+        if (selectedTask?.id === taskId) {
+          setSelectedTask(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
     }
   };
 
   const handleSubmit = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    // Save to Supabase first
-    const savedTask = await SupabaseTaskService.saveTask(task);
-    if (savedTask) {
-      // If successful, update local storage and state
-      const updatedTasks = [savedTask, ...tasks];
-      setTasks(updatedTasks);
-      TaskService.syncTasks(updatedTasks);
+    try {
+      if (selectedTask) {
+        // Update existing task
+        const updatedTask = await SupabaseTaskService.updateTask(selectedTask.id, task);
+        if (updatedTask) {
+          setTasks(prevTasks => 
+            prevTasks.map(t => t.id === selectedTask.id ? updatedTask : t)
+          );
+          setSelectedTask(null);
+        }
+      } else {
+        // Create new task
+        const savedTask = await SupabaseTaskService.saveTask(task);
+        if (savedTask) {
+          setTasks(prevTasks => [savedTask, ...prevTasks]);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling task submit:', error);
     }
   };
 
