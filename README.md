@@ -1,109 +1,109 @@
-# Task Management Web Application
+# Lapis Todo - Task Management Application
 
 ## Project Overview
 
-This is a TypeScript-based web application designed to help users manage their tasks efficiently. The application provides a simple, intuitive interface for creating, updating, tracking, and deleting tasks across different devices.
+A modern, TypeScript-based task management web application built with React. Lapis Todo provides an intuitive interface for managing tasks with real-time synchronization across devices and a sleek dark/light mode interface.
+
+Live Demo: [https://lapis-todo.vercel.app/](https://lapis-todo.vercel.app/)
 
 ## Features
 
-### Task Management Capabilities
-- **Create Tasks**: Add new tasks with comprehensive details
-- **Update Tasks**: Modify existing task information
-- **Delete Tasks**: Remove tasks that are no longer relevant
-- **Status Tracking**: Monitor task progress through different states
+### Core Functionality
+- **Task Management**
+  - Create, update, and delete tasks
+  - Mark tasks as complete/incomplete
+  - Track task progress (To Do → In Progress → Completed)
+  - Add optional descriptions and due dates
 
-### Key Functionality
-- Create tasks with:
-  - Required title
-  - Optional description
-  - Status (To Do, In Progress, Completed)
-  - Optional due date
-- Responsive design for mobile and desktop
-- Persistent data storage across sessions and devices
+### User Experience
+- **Cross-Device Sync**: Tasks automatically sync across all devices
+- **Theme Support**: Toggle between dark and light modes
+- **Responsive Design**: Optimized for both desktop and mobile
+- **Offline Support**: Works offline with local storage backup
+- **Real-time Updates**: Instant task status updates
 
 ## Technology Stack
 
-- **Frontend**: TypeScript
-- **State Management**: [To be specified, e.g., React, Vue, Angular]
-- **Data Persistence**: [To be specified, e.g., Firebase, Local Storage, Backend API]
-- **Styling**: [To be specified, e.g., CSS Framework, Tailwind]
+- **Frontend**: React + TypeScript
+- **State Management**: React Hooks
+- **Data Persistence**: 
+  - Primary: Supabase (PostgreSQL)
+  - Backup: Local Storage
+- **Styling**: Custom CSS with CSS Variables
+- **Deployment**: Vercel
 
-## Prerequisites
-
-- Node.js (version X.X.X or higher)
-- npm (version X.X.X or higher)
-
-## Local Development Setup
+## Local Development
 
 1. Clone the repository
 ```bash
-git clone https://github.com/theonlyanish/task-management-app.git
+git clone https://github.com/theonlyanish/Lapis-Todo.git
 ```
 
-2. Navigate to the project directory
+2. Install dependencies
 ```bash
-cd task-management-app
-```
-
-3. Install dependencies
-```bash
+cd Lapis-Todo
 npm install
 ```
 
-4. Run the development server
-```bash
-npm run start
+3. Set up environment variables
+Create a `.env` file in the root directory:
+```env
+REACT_APP_SUPABASE_URL=your_supabase_url
+REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-5. Open `http://localhost:3000` in your browser
+4. Start the development server
+```bash
+npm start
+```
 
-## Deployment
-
-### Cloud Deployment
-[Specify deployment platform and steps, e.g., Vercel, Netlify, AWS]
-
-### Deployment URL
-[Insert public deployment URL]
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Project Structure
 
 ```
-task-management-app/
-│
+Lapis-Todo/
 ├── src/
 │   ├── components/
-│   ├── hooks/
-│   ├── models/
+│   │   ├── TaskForm.tsx
+│   │   ├── TaskItem.tsx
+│   │   ├── TaskList.tsx
+│   │   └── ThemeToggle.tsx
 │   ├── services/
-│   └── utils/
-│
+│   │   ├── taskService.ts
+│   │   ├── supabaseClient.ts
+│   │   └── supabaseTaskService.ts
+│   ├── types/
+│   │   └── Task.ts
+│   └── App.tsx
+│   └── index.tsx
+│   └── styles.css
 ├── public/
-├── tests/
-├── package.json
-└── README.md
+└── package.json
 ```
 
-## Testing
+## Key Features Implementation
 
-Run tests using:
-```bash
-npm run test
-```
+### Data Persistence
+- Primary storage in Supabase PostgreSQL database
+- Local storage backup for offline functionality
+- Automatic sync between devices
 
-## Contributing
+### Theme Support
+- System-based theme detection
+- Manual theme toggle
+- Persistent theme preference
+- Smooth transition animations
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## Deployment
 
-## License
+The application is deployed on Vercel with automatic deployments from the main branch.
 
-[Specify License, e.g., MIT License]
+### Production URL
+[https://lapis-todo.vercel.app/](https://lapis-todo.vercel.app/)
 
 ## Contact
 
 Anish Kapse - kapseanish@gmail.com
 
-Project Link: https://github.com/theonlyanish/Lapis-Todo
+Project Link: [https://github.com/theonlyanish/Lapis-Todo](https://github.com/theonlyanish/Lapis-Todo)
