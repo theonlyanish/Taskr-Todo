@@ -68,7 +68,10 @@ export const App: React.FC = () => {
   return (
     <div className="app-container">
       <div className="app-header">
-        <h1>Task Manager</h1>
+        <div className="header">
+          <img src={process.env.PUBLIC_URL + '/favicon_io/favicon.ico'} alt="Task Manager Logo" />
+          <h1>Task Manager</h1>
+        </div>
         <ThemeToggle isDark={isDarkMode} onToggle={() => setIsDarkMode(!isDarkMode)} />
       </div>
       
