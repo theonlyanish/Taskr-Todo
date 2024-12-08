@@ -70,7 +70,7 @@ export class TaskService {
     }
   }
 
-  private static saveTasks(tasks: Task[]): void {
+  static saveTasks(tasks: Task[]): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
       localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
@@ -78,5 +78,9 @@ export class TaskService {
       console.error('Error saving tasks to localStorage:', error);
       throw new Error('Failed to save tasks');
     }
+  }
+
+  static syncTasks(remoteTasks: Task[]): void {
+    this.saveTasks(remoteTasks);
   }
 }

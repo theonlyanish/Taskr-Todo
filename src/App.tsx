@@ -3,6 +3,7 @@ import { TaskForm } from './components/TaskForm';
 import { TaskList } from './components/TaskList';
 import { ThemeToggle } from './components/ThemeToggle';
 import { TaskService } from './services/taskService';
+import { SupabaseTaskService } from './services/supabaseTaskService';
 import { Task } from './types/Task';
 
 export const App: React.FC = () => {
@@ -15,9 +16,21 @@ export const App: React.FC = () => {
   });
 
   useEffect(() => {
+    // Initial load from local storage
     setTasks(TaskService.getTasks());
-    document.body.classList.toggle('dark-theme', isDarkMode);
-  }, [isDarkMode]);
+    
+    // Then fetch from Supabase and update
+    const fetchTasks = async () => {
+      const supabaseTasks = await SupabaseTaskService.getTasks();
+      if (supabaseTasks.length > 0) {
+        setTasks(supabaseTasks);
+        // Update local storage using the public method
+        TaskService.syncTasks(supabaseTasks);
+      }
+    };
+    
+    fetchTasks();
+  }, []);
 
   const handleAddNewTask = () => {
     setSelectedTask(null); // Clear selected task
@@ -30,16 +43,15 @@ export const App: React.FC = () => {
     }, 0);
   };
 
-  const handleTaskStatusToggle = (taskId: string) => {
+  const handleTaskStatusToggle = async (taskId: string) => {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
       const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
-      const updatedTask = TaskService.updateTask(taskId, { status: newStatus });
+      const updatedTask = await SupabaseTaskService.updateTask(taskId, { status: newStatus });
       if (updatedTask) {
-        setTasks(TaskService.getTasks());
-        if (selectedTask?.id === taskId) {
-          setSelectedTask(updatedTask);
-        }
+        const updatedTasks = tasks.map(t => t.id === taskId ? updatedTask : t);
+        setTasks(updatedTasks);
+        TaskService.syncTasks(updatedTasks);
       }
     }
   };
@@ -53,15 +65,23 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleDeleteTask = () => {
-    if (taskToDelete) {
-      TaskService.deleteTask(taskToDelete.id);
-      setTasks(TaskService.getTasks());
-      setTaskToDelete(null);
-      setShowDeleteConfirm(false);
-      if (selectedTask?.id === taskToDelete.id) {
-        setSelectedTask(null);
-      }
+  const handleDeleteTask = async (taskId: string) => {
+    const success = await SupabaseTaskService.deleteTask(taskId);
+    if (success) {
+      const updatedTasks = tasks.filter(t => t.id !== taskId);
+      setTasks(updatedTasks);
+      TaskService.syncTasks(updatedTasks);
+    }
+  };
+
+  const handleSubmit = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    // Save to Supabase first
+    const savedTask = await SupabaseTaskService.saveTask(task);
+    if (savedTask) {
+      // If successful, update local storage and state
+      const updatedTasks = [savedTask, ...tasks];
+      setTasks(updatedTasks);
+      TaskService.syncTasks(updatedTasks);
     }
   };
 
@@ -118,14 +138,7 @@ export const App: React.FC = () => {
         <div className="task-detail-column">
           <TaskForm 
             selectedTask={selectedTask}
-            onSubmit={(task) => {
-              if (selectedTask) {
-                TaskService.updateTask(selectedTask.id, task);
-              } else {
-                TaskService.saveTask(task);
-              }
-              setTasks(TaskService.getTasks());
-            }}
+            onSubmit={handleSubmit}
           />
         </div>
       </div>
@@ -148,7 +161,7 @@ export const App: React.FC = () => {
               </button>
               <button 
                 className="delete-btn"
-                onClick={handleDeleteTask}
+                onClick={() => handleDeleteTask(taskToDelete?.id || '')}
               >
                 Delete
               </button>
