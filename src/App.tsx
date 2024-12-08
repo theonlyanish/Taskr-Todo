@@ -79,18 +79,29 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleDeleteTask = async (taskId: string) => {
-    try {
-      const success = await SupabaseTaskService.deleteTask(taskId);
-      if (success) {
-        setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
-        if (selectedTask?.id === taskId) {
-          setSelectedTask(null);
+  const handleDeleteConfirm = async () => {
+    if (taskToDelete) {
+      try {
+        const success = await SupabaseTaskService.deleteTask(taskToDelete.id);
+        if (success) {
+          setTasks(prevTasks => prevTasks.filter(t => t.id !== taskToDelete.id));
+          if (selectedTask?.id === taskToDelete.id) {
+            setSelectedTask(null);
+          }
         }
+      } catch (error) {
+        console.error('Error deleting task:', error);
+      } finally {
+        // Always close the modal and clear the taskToDelete
+        setShowDeleteConfirm(false);
+        setTaskToDelete(null);
       }
-    } catch (error) {
-      console.error('Error deleting task:', error);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setTaskToDelete(null);
   };
 
   const handleSubmit = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -175,24 +186,21 @@ export const App: React.FC = () => {
       </div>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
+      {showDeleteConfirm && taskToDelete && (
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>Delete Task</h3>
-            <p>Are you sure you want to delete "{taskToDelete?.title}"?</p>
+            <p>Are you sure you want to delete "{taskToDelete.title}"?</p>
             <div className="modal-actions">
               <button 
                 className="cancel-btn"
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setTaskToDelete(null);
-                }}
+                onClick={handleCancelDelete}
               >
                 Cancel
               </button>
               <button 
                 className="delete-btn"
-                onClick={() => handleDeleteTask(taskToDelete?.id || '')}
+                onClick={handleDeleteConfirm}
               >
                 Delete
               </button>
