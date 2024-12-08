@@ -3,7 +3,7 @@ import { Task, TaskStatus } from '../types/Task';
 
 interface TaskFormProps {
   selectedTask: Task | null;
-  onSubmit: (task: Omit<Task, 'id' | 'createdAt'>) => void;
+  onSubmit: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) => {
