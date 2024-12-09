@@ -6,15 +6,19 @@ import { TaskService } from './services/taskService';
 import { SupabaseTaskService } from './services/supabaseTaskService';
 import { Task } from './types/Task';
 
+// The main application component
 export const App: React.FC = () => {
+  // State to manage tasks, selected task, delete confirmation, and dark mode
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check if dark mode is enabled based on local storage
     return localStorage.getItem('theme') === 'dark';
   });
 
+  // Effect to toggle dark mode and update local storage
   useEffect(() => {
     document.body.classList.toggle('dark-theme', isDarkMode);
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
@@ -36,6 +40,7 @@ export const App: React.FC = () => {
     fetchTasks();
   }, []);
 
+  // Function to handle adding a new task
   const handleAddNewTask = () => {
     setSelectedTask(null); // Clear selected task
     // Find the task title input and focus it
@@ -47,6 +52,7 @@ export const App: React.FC = () => {
     }, 0);
   };
 
+  // Function to handle toggling task status
   const handleTaskStatusToggle = async (taskId: string) => {
     try {
       const task = tasks.find(t => t.id === taskId);
@@ -70,6 +76,7 @@ export const App: React.FC = () => {
     }
   };
 
+  // Function to handle task click
   const handleTaskClick = (task: Task) => {
     if (task.status === 'Completed') {
       setTaskToDelete(task);
@@ -79,6 +86,7 @@ export const App: React.FC = () => {
     }
   };
 
+  // Function to handle delete confirmation
   const handleDeleteConfirm = async () => {
     if (taskToDelete) {
       try {
@@ -92,18 +100,19 @@ export const App: React.FC = () => {
       } catch (error) {
         console.error('Error deleting task:', error);
       } finally {
-        // Always close the modal and clear the taskToDelete
         setShowDeleteConfirm(false);
         setTaskToDelete(null);
       }
     }
   };
 
+  // Function to handle cancel delete
   const handleCancelDelete = () => {
     setShowDeleteConfirm(false);
     setTaskToDelete(null);
   };
 
+  // Function to handle task form submission
   const handleSubmit = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       if (selectedTask) {
@@ -127,6 +136,7 @@ export const App: React.FC = () => {
     }
   };
 
+  // JSX for the application
   return (
     <div className="app-container">
       <div className="app-header">

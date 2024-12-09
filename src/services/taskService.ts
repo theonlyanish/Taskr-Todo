@@ -5,9 +5,10 @@ const LAST_SYNC_KEY = 'lastSync';
 
 export class TaskService {
   static generateId(): string {
-    return crypto.randomUUID();
+    return crypto.randomUUID(); // Using crypto.randomUUID() to generate a unique identifier
   }
 
+  // Static method to retrieve tasks from localStorage
   static getTasks(): Task[] {
     try {
       const tasks = localStorage.getItem(STORAGE_KEY);
@@ -18,13 +19,14 @@ export class TaskService {
     }
   }
 
+  // Static method to save a new task to localStorage
   static saveTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Task {
     try {
       const newTask: Task = {
         ...task,
-        id: this.generateId(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        id: this.generateId(), // Generating a unique identifier for the task
+        createdAt: new Date(), // Setting the creation date to the current date and time
+        updatedAt: new Date(), // Setting the update date to the current date and time
       };
 
       const tasks = this.getTasks();
@@ -37,6 +39,7 @@ export class TaskService {
     }
   }
 
+  // Static method to update an existing task in localStorage
   static updateTask(taskId: string, updates: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>>): Task | null {
     try {
       const tasks = this.getTasks();
@@ -58,6 +61,7 @@ export class TaskService {
     }
   }
 
+  // Static method to delete a task from localStorage
   static deleteTask(taskId: string): boolean {
     try {
       const tasks = this.getTasks();
@@ -70,6 +74,7 @@ export class TaskService {
     }
   }
 
+  // Static method to save tasks to localStorage
   static saveTasks(tasks: Task[]): void {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
@@ -80,6 +85,7 @@ export class TaskService {
     }
   }
 
+  // Static method to synchronize tasks from a remote source
   static syncTasks(remoteTasks: Task[]): void {
     this.saveTasks(remoteTasks);
   }

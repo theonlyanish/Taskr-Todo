@@ -1,6 +1,7 @@
 import React from 'react';
 import { Task } from '../types/Task';
 
+// Define the interface for TaskListProps
 interface TaskListProps {
   tasks: Task[];
   onTaskSelect: (task: Task) => void;
@@ -8,6 +9,7 @@ interface TaskListProps {
   selectedTaskId?: string;
 }
 
+// TaskList component definition
 export const TaskList: React.FC<TaskListProps> = ({ 
   tasks, 
   onTaskSelect, 

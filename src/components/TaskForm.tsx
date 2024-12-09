@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task, TaskStatus } from '../types/Task';
 
+// Define the interface for TaskFormProps
 interface TaskFormProps {
   selectedTask: Task | null;
   onSubmit: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -12,6 +13,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) =>
   const [status, setStatus] = useState<TaskStatus>('To Do');
   const [dueDate, setDueDate] = useState('');
 
+  // useEffect hook to populate form fields with selectedTask data
   useEffect(() => {
     if (selectedTask) {
       setTitle(selectedTask.title);
@@ -27,6 +29,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) =>
     }
   }, [selectedTask]);
 
+  // Function to handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
@@ -37,6 +40,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) =>
     });
   };
 
+  // JSX for the form
   return (
     <form onSubmit={handleSubmit} className="task-form">
       <div className="form-group">

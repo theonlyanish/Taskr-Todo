@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Task, TaskStatus } from '../types/Task';
 
+// Define the interface for TaskItemProps
 interface TaskItemProps {
   task: Task;
   onUpdate: (task: Task) => void;
@@ -21,11 +22,13 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate, onDelete }) 
     setIsEditing(false);
   };
 
+  // Function to handle cancellation of edit mode
   const handleCancelEdit = () => {
     setEditedTask(task);
     setIsEditing(false);
   };
 
+  // If the task item is in edit mode, render the edit form
   if (isEditing) {
     return (
       <div className="task-item editing">
@@ -66,6 +69,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, onUpdate, onDelete }) 
     );
   }
 
+  // If not in edit mode, render the task item in its normal state
   return (
     <div className={`task-item ${task.status.toLowerCase().replace(' ', '-')}`}>
       <div className="task-header">
