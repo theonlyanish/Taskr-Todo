@@ -23,12 +23,13 @@ export class SupabaseTaskService {
   }
 
   // Static method to save a new task to the database
-  static async saveTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task | null> {
+  static async saveTask(task: Omit<Task, 'createdAt' | 'updatedAt'>): Promise<Task | null> {
     try {
       const user = await AuthService.getCurrentUser();
       if (!user) return null;
 
       const newTaskData = {
+        id: task.id,
         title: task.title,
         description: task.description || null,
         status: task.status,

@@ -44,9 +44,10 @@ export class TaskService {
   static async saveTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task | null> {
     try {
       const user = await AuthService.getCurrentUser();
+      const taskId = this.generateId();
       const newTask: Task = {
         ...task,
-        id: this.generateId(),
+        id: taskId,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -54,9 +55,13 @@ export class TaskService {
       if (user) {
         // Save to Supabase if user is logged in
         this.setSyncStatus('syncing');
-        const savedTask = await SupabaseTaskService.saveTask(task);
+        const taskWithId = {
+          ...task,
+          id: taskId
+        };
+        const savedTask = await SupabaseTaskService.saveTask(taskWithId);
         this.setSyncStatus('synced');
-        return savedTask;
+        return savedTask || newTask; // Fall back to newTask if Supabase fails
       } else {
         // Save to localStorage if user is not logged in
         const tasks = await this.getTasks();
