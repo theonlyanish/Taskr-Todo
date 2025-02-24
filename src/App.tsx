@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { TaskForm } from './components/TaskForm';
 import { TaskList } from './components/TaskList';
+import { TaskForm } from './components/TaskForm';
 import { ThemeToggle } from './components/ThemeToggle';
+import { Auth } from './components/Auth';
+import { SyncIndicator } from './components/SyncIndicator';
 import { TaskService } from './services/taskService';
-import { SupabaseTaskService } from './services/supabaseTaskService';
+import { AuthService } from './services/authService';
 import { Task } from './types/Task';
+import { User } from '@supabase/supabase-js';
+import './styles.css';
 
-// The main application component
-export const App: React.FC = () => {
-  // State to manage tasks, selected task, delete confirmation, and dark mode
+function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Check if dark mode is enabled based on local storage
     return localStorage.getItem('theme') === 'dark';
   });
+  const [user, setUser] = useState<User | null>(null);
+  const [syncStatus, setSyncStatus] = useState(TaskService.getSyncStatus());
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Effect to toggle dark mode and update local storage
   useEffect(() => {
@@ -24,134 +27,131 @@ export const App: React.FC = () => {
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
+  // Load tasks and check auth state on mount
   useEffect(() => {
-    // Initial load from local storage
-    setTasks(TaskService.getTasks());
-    
-    // Then fetch from Supabase and update
-    const fetchTasks = async () => {
-      const supabaseTasks = await SupabaseTaskService.getTasks();
-      if (supabaseTasks.length > 0) {
-        setTasks(supabaseTasks);
-        TaskService.syncTasks(supabaseTasks);
-      }
+    const loadInitialData = async () => {
+      const currentUser = await AuthService.getCurrentUser();
+      setUser(currentUser);
+      
+      const loadedTasks = await TaskService.getTasks();
+      setTasks(loadedTasks);
     };
-    
-    fetchTasks();
+
+    loadInitialData();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = AuthService.subscribeToAuthChanges((user) => {
+      setUser(user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Function to handle adding a new task
+  // Monitor sync status changes
+  useEffect(() => {
+    const checkSyncStatus = () => {
+      setSyncStatus(TaskService.getSyncStatus());
+    };
+
+    const interval = setInterval(checkSyncStatus, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleAddNewTask = () => {
-    setSelectedTask(null); // Clear selected task
-    // Find the task title input and focus it
-    setTimeout(() => {
-      const titleInput = document.querySelector('.task-form input[type="text"]') as HTMLInputElement;
-      if (titleInput) {
-        titleInput.focus();
-      }
-    }, 0);
+    setSelectedTask(null);
   };
 
-  // Function to handle toggling task status
-  const handleTaskStatusToggle = async (taskId: string) => {
-    try {
-      const task = tasks.find(t => t.id === taskId);
-      if (task) {
-        const newStatus = task.status === 'Completed' ? 'To Do' : 'Completed';
-        const updatedTask = await SupabaseTaskService.updateTask(taskId, { 
-          status: newStatus 
-        });
-        
-        if (updatedTask) {
-          setTasks(prevTasks => 
-            prevTasks.map(t => t.id === taskId ? updatedTask : t)
-          );
-          if (selectedTask?.id === taskId) {
-            setSelectedTask(updatedTask);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling task status:', error);
+  const handleTaskSubmit = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newTask = await TaskService.saveTask(task);
+    if (newTask) {
+      setTasks(prev => [newTask, ...prev]);
+      setSelectedTask(null);
     }
   };
 
-  // Function to handle task click
-  const handleTaskClick = (task: Task) => {
-    if (task.status === 'Completed') {
-      setTaskToDelete(task);
-      setShowDeleteConfirm(true);
-    } else {
-      setSelectedTask(task);
+  const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
+    const updatedTask = await TaskService.updateTask(taskId, updates);
+    if (updatedTask) {
+      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
+      setSelectedTask(null);
     }
   };
 
-  // Function to handle delete confirmation
-  const handleDeleteConfirm = async () => {
-    if (taskToDelete) {
-      try {
-        const success = await SupabaseTaskService.deleteTask(taskToDelete.id);
-        if (success) {
-          setTasks(prevTasks => prevTasks.filter(t => t.id !== taskToDelete.id));
-          if (selectedTask?.id === taskToDelete.id) {
-            setSelectedTask(null);
-          }
-        }
-      } catch (error) {
-        console.error('Error deleting task:', error);
-      } finally {
-        setShowDeleteConfirm(false);
-        setTaskToDelete(null);
-      }
+  const handleTaskDelete = async (taskId: string) => {
+    const success = await TaskService.deleteTask(taskId);
+    if (success) {
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      setSelectedTask(null);
     }
   };
 
-  // Function to handle cancel delete
-  const handleCancelDelete = () => {
-    setShowDeleteConfirm(false);
-    setTaskToDelete(null);
-  };
-
-  // Function to handle task form submission
-  const handleSubmit = async (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      if (selectedTask) {
-        // Update existing task
-        const updatedTask = await SupabaseTaskService.updateTask(selectedTask.id, task);
-        if (updatedTask) {
-          setTasks(prevTasks => 
-            prevTasks.map(t => t.id === selectedTask.id ? updatedTask : t)
-          );
-          setSelectedTask(null);
-        }
-      } else {
-        // Create new task
-        const savedTask = await SupabaseTaskService.saveTask(task);
-        if (savedTask) {
-          setTasks(prevTasks => [savedTask, ...prevTasks]);
-        }
-      }
-    } catch (error) {
-      console.error('Error handling task submit:', error);
+  const handleSync = async () => {
+    if (user) {
+      await TaskService.forceSyncWithCloud();
+      const updatedTasks = await TaskService.getTasks();
+      setTasks(updatedTasks);
     }
   };
 
-  // JSX for the application
+  const handleAuthStateChange = (isLoggedIn: boolean) => {
+    setShowAuthModal(false);
+    if (!isLoggedIn) {
+      setTasks([]);
+      setSelectedTask(null);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await AuthService.signOut();
+    // Clear tasks and reload from localStorage
+    const localTasks = await TaskService.getTasks();
+    setTasks(localTasks);
+  };
+
   return (
-    <div className="app-container">
-      <div className="app-header">
+    <div className={`app-container ${isDarkMode ? 'dark-theme' : ''}`}>
+      <header className="app-header">
         <div className="header">
-          <img src={process.env.PUBLIC_URL + '/favicon_io/favicon.ico'} alt="Task Manager Logo" />
           <h1>Task Manager</h1>
         </div>
-        <ThemeToggle isDark={isDarkMode} onToggle={() => setIsDarkMode(!isDarkMode)} />
-      </div>
-      
+        <div className="header-controls">
+          {user && (
+            <SyncIndicator
+              status={syncStatus}
+              onSync={handleSync}
+            />
+          )}
+          <ThemeToggle
+            isDark={isDarkMode}
+            onToggle={() => setIsDarkMode(!isDarkMode)}
+          />
+          {user ? (
+            <button
+              onClick={handleSignOut}
+              className="sign-out-btn"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="sign-in-btn"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
+      </header>
+
       <div className="main-content">
         <div className="tasks-column">
-          <button className="add-task-button" onClick={handleAddNewTask}>
-            <span>+</span> Add New Task
-          </button>
+          <div className="tasks-header">
+            <button className="add-task-button" onClick={handleAddNewTask}>
+              <span>+</span> Add New Task
+            </button>
+          </div>
           
           {/* To Do Section */}
           <div className="task-section">
@@ -159,7 +159,14 @@ export const App: React.FC = () => {
             <TaskList 
               tasks={tasks.filter(task => task.status === 'To Do')}
               onTaskSelect={setSelectedTask}
-              onTaskToggle={handleTaskStatusToggle}
+              onTaskToggle={(taskId) => {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                  handleTaskUpdate(taskId, {
+                    status: task.status === 'Completed' ? 'To Do' : 'Completed'
+                  });
+                }
+              }}
               selectedTaskId={selectedTask?.id}
             />
           </div>
@@ -167,10 +174,17 @@ export const App: React.FC = () => {
           {/* In Progress Section */}
           <div className="task-section in-progress-section">
             <h2>In Progress</h2>
-            <TaskList 
+            <TaskList
               tasks={tasks.filter(task => task.status === 'In Progress')}
               onTaskSelect={setSelectedTask}
-              onTaskToggle={handleTaskStatusToggle}
+              onTaskToggle={(taskId) => {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                  handleTaskUpdate(taskId, {
+                    status: task.status === 'Completed' ? 'To Do' : 'Completed'
+                  });
+                }
+              }}
               selectedTaskId={selectedTask?.id}
             />
           </div>
@@ -180,44 +194,39 @@ export const App: React.FC = () => {
             <h2>Completed</h2>
             <TaskList 
               tasks={tasks.filter(task => task.status === 'Completed')}
-              onTaskSelect={handleTaskClick}
-              onTaskToggle={handleTaskStatusToggle}
+              onTaskSelect={setSelectedTask}
+              onTaskToggle={(taskId) => {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                  handleTaskUpdate(taskId, {
+                    status: task.status === 'Completed' ? 'To Do' : 'Completed'
+                  });
+                }
+              }}
               selectedTaskId={selectedTask?.id}
             />
           </div>
         </div>
 
         <div className="task-detail-column">
-          <TaskForm 
+          <TaskForm
             selectedTask={selectedTask}
-            onSubmit={handleSubmit}
+            onSubmit={handleTaskSubmit}
+            onDelete={handleTaskDelete}
           />
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && taskToDelete && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>Delete Task</h3>
-            <p>Are you sure you want to delete "{taskToDelete.title}"?</p>
-            <div className="modal-actions">
-              <button 
-                className="cancel-btn"
-                onClick={handleCancelDelete}
-              >
-                Cancel
-              </button>
-              <button 
-                className="delete-btn"
-                onClick={handleDeleteConfirm}
-              >
-                Delete
-              </button>
-            </div>
+      {showAuthModal && (
+        <div className="modal-overlay" onClick={() => setShowAuthModal(false)}>
+          <div className="modal-content auth-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setShowAuthModal(false)}>×</button>
+            <Auth onAuthStateChange={handleAuthStateChange} />
           </div>
         </div>
       )}
     </div>
   );
-};
+}
+
+export default App;

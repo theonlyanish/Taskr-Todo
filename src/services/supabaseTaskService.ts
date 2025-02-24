@@ -1,12 +1,17 @@
 import { Task } from '../types/Task';
 import { supabase, toTask } from './supabaseClient';
+import { AuthService } from './authService';
 
 export class SupabaseTaskService {
   static async getTasks(): Promise<Task[]> {
     try {
+      const user = await AuthService.getCurrentUser();
+      if (!user) return [];
+
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -20,11 +25,15 @@ export class SupabaseTaskService {
   // Static method to save a new task to the database
   static async saveTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task | null> {
     try {
+      const user = await AuthService.getCurrentUser();
+      if (!user) return null;
+
       const newTaskData = {
         title: task.title,
         description: task.description || null,
         status: task.status,
         due_date: task.dueDate?.toISOString() || null,
+        user_id: user.id
       };
 
       // Inserting the new task into the database and selecting the inserted data
@@ -51,6 +60,9 @@ export class SupabaseTaskService {
   // Static method to update an existing task in the database
   static async updateTask(taskId: string, updates: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>>): Promise<Task | null> {
     try {
+      const user = await AuthService.getCurrentUser();
+      if (!user) return null;
+
       // Creating an update object with the provided updates
       const updateData: Record<string, any> = {};
       
@@ -64,6 +76,7 @@ export class SupabaseTaskService {
         .from('tasks')
         .update(updateData)
         .eq('id', taskId)
+        .eq('user_id', user.id) // Only update if the task belongs to the user
         .select('*')
         .single();
 
@@ -83,10 +96,14 @@ export class SupabaseTaskService {
   // Static method to delete a task from the database
   static async deleteTask(taskId: string): Promise<boolean> {
     try {
+      const user = await AuthService.getCurrentUser();
+      if (!user) return false;
+
       const { error } = await supabase
         .from('tasks')
         .delete()
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .eq('user_id', user.id); // Only delete if the task belongs to the user
 
       if (error) throw error;
       return true;

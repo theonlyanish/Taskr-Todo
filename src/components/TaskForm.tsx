@@ -5,9 +5,10 @@ import { Task, TaskStatus } from '../types/Task';
 interface TaskFormProps {
   selectedTask: Task | null;
   onSubmit: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onDelete?: (taskId: string) => void;
 }
 
-export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) => {
+export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit, onDelete }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('To Do');
@@ -91,11 +92,19 @@ export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit }) =>
         />
       </div>
 
-
       <div className="form-actions">
         <button type="submit" className="add-task-btn">
           {selectedTask ? 'Save changes' : 'Add task'}
         </button>
+        {selectedTask && onDelete && (
+          <button 
+            type="button"
+            className="delete-task-btn"
+            onClick={() => onDelete(selectedTask.id)}
+          >
+            🗑️ Delete
+          </button>
+        )}
       </div>
     </form>
   );

@@ -1,8 +1,8 @@
-# Lapis Todo - Task Management Application
+# Task Manager - Task Management Application
 
 ## Project Overview
 
-A modern, TypeScript-based task management web application built with React. Lapis Todo provides an intuitive interface for managing tasks with real-time synchronization across devices and a sleek dark/light mode interface.
+A modern, TypeScript-based task management web application built with React. Task Manager provides an intuitive interface for managing tasks with real-time synchronization across devices and a sleek dark/light mode interface.
 
 Live Demo: [https://lapis-todo.vercel.app/](https://lapis-todo.vercel.app/)
 

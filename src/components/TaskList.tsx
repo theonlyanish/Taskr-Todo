@@ -14,7 +14,7 @@ export const TaskList: React.FC<TaskListProps> = ({
   tasks, 
   onTaskSelect, 
   onTaskToggle,
-  selectedTaskId 
+  selectedTaskId
 }) => {
   return (
     <div className="tasks-list">

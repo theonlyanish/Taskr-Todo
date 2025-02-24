@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './styles.css';
-import { App } from './App';
+import App from './App';
 
 // Creating the root element for rendering the application
 const root = ReactDOM.createRoot(
