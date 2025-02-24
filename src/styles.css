@@ -17,6 +17,8 @@
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .container {
@@ -224,17 +226,31 @@ margin-top: 2rem;
 
 /* Base theme transition settings */
 :root {
---transition-timing: 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-timing: 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global transition for all elements that need theme transition */
+*, 
+*::before, 
+*::after {
+  transition: background-color var(--transition-timing),
+              color var(--transition-timing),
+              border-color var(--transition-timing),
+              box-shadow var(--transition-timing);
+}
 
 /* Light theme colors */
---bg-primary: #F5F5F5;
---bg-secondary: #FFFFFF;
---card-bg: #FFFFFF;
---text-primary: #2d3436;
---text-secondary: #636e72;
---border-color: #E0E0E0;
---shadow-color: rgba(0, 0, 0, 0.06);
---accent-color: #0984e3;
+:root {
+  --bg-primary: #F5F5F5;
+  --bg-secondary: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --text-primary: #2d3436;
+  --text-secondary: #636e72;
+  --border-color: #E0E0E0;
+  --shadow-color: rgba(0, 0, 0, 0.06);
+  --accent-color: #0984e3;
+  --scrollbar-thumb: #D4D4D4;
+  --scrollbar-track: #F5F5F5;
 }
 
 /* Dark theme colors */
@@ -247,6 +263,8 @@ margin-top: 2rem;
 --border-color: #1a1a1f;
 --shadow-color: rgba(0, 0, 0, 0.4);
 --accent-color: #3d7199;
+--scrollbar-thumb: #2D2D2D;
+--scrollbar-track: #1a1a1f;
 }
 
 /* Base transition - apply to all elements that need to transition */
@@ -497,7 +515,9 @@ color: var(--text-secondary);
 
 /* Right column styles */
 .task-detail-column {
-padding: 1rem;
+padding: 1rem 2rem;
+overflow-y: auto;
+max-height: calc(100vh - 140px);
 }
 
 /* Form styles */
@@ -934,7 +954,6 @@ flex: 0 0 auto;
   color: var(--text-primary);
   font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.2s ease;
   min-width: 150px;
 }
 
@@ -1084,54 +1103,56 @@ flex: 0 0 auto;
   text-align: center;
 }
 
-/* Custom Scrollbar */
-.tasks-column::-webkit-scrollbar {
-  width: 8px;
+/* Global scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-.tasks-column::-webkit-scrollbar-track {
+/* Webkit scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.tasks-column::-webkit-scrollbar-thumb {
-  background-color: #E0E0E0;
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
   border-radius: 20px;
-  border: 2px solid transparent;
-  background-clip: content-box;
 }
 
-.tasks-column::-webkit-scrollbar-thumb:hover {
-  background-color: #BDBDBD;
-  border: 2px solid transparent;
-  background-clip: content-box;
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb);
 }
 
-/* Dark theme scrollbar */
-.dark-theme .tasks-column::-webkit-scrollbar-thumb {
-  background-color: #404040;
-  border: 2px solid transparent;
-  background-clip: content-box;
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
+/* Hide scrollbar buttons */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Remove all the task-column specific scrollbar styles since we're using global ones */
+.tasks-column::-webkit-scrollbar,
+.tasks-column::-webkit-scrollbar-track,
+.tasks-column::-webkit-scrollbar-thumb,
+.tasks-column::-webkit-scrollbar-thumb:hover,
+.dark-theme .tasks-column::-webkit-scrollbar-thumb,
 .dark-theme .tasks-column::-webkit-scrollbar-thumb:hover {
-  background-color: #4D4D4D;
-  border: 2px solid transparent;
-  background-clip: content-box;
+  display: none;
 }
 
-/* Hide scrollbar when not needed */
-.tasks-column {
-  scrollbar-gutter: stable;
-}
-
-/* Firefox scrollbar */
-.tasks-column {
+/* Firefox scrollbar - update for consistency */
+.tasks-column,
+.kanban-container,
+.task-detail-column {
   scrollbar-width: thin;
-  scrollbar-color: #E0E0E0 transparent;
-}
-
-.dark-theme .tasks-column {
-  scrollbar-color: #404040 transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 /* Delete icon styles */
@@ -1157,13 +1178,22 @@ flex: 0 0 auto;
 /* Kanban View Styles */
 .main-content.kanban-layout {
   grid-template-columns: 3fr 1fr;
+  gap: 0;
+  padding: 0;
 }
 
 .kanban-container {
   width: 100%;
   height: 100%;
   overflow-x: auto;
-  padding: 1rem;
+  padding: 2rem;
+  border-right: 1px solid var(--border-color);
+}
+
+.task-detail-column {
+  padding: 2rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 140px);
 }
 
 .kanban-columns {
@@ -1285,4 +1315,16 @@ flex: 0 0 auto;
   font-size: 0.8rem;
   color: var(--text-secondary);
   padding-left: 0.5rem;
+}
+
+/* Remove transitions from specific elements where we don't want them */
+.kanban-task-card,
+.task-item:hover,
+.theme-toggle:hover,
+.sync-indicator,
+.auth-submit,
+.add-task-btn {
+  transition: transform 0.2s ease,
+              box-shadow 0.2s ease,
+              opacity 0.2s ease;
 }
