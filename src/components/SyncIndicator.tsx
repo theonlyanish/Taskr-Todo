@@ -1,48 +1,35 @@
 import React from 'react';
-import { SyncStatus } from '../services/taskService';
 
 interface SyncIndicatorProps {
-  status: SyncStatus;
+  isOnline: boolean;
+  isSyncing: boolean;
   onSync: () => void;
 }
 
-export const SyncIndicator: React.FC<SyncIndicatorProps> = ({ status, onSync }) => {
+export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
+  isOnline,
+  isSyncing,
+  onSync
+}) => {
   const getIcon = () => {
-    switch (status) {
-      case 'synced':
-        return '☁️'; // Cloud icon for synced
-      case 'syncing':
-        return '🔄'; // Rotating arrows for syncing
-      case 'unsynced':
-        return '📥'; // Download icon for unsynced
-      case 'error':
-        return '⚠️'; // Warning icon for error
-      default:
-        return '☁️';
-    }
+    if (!isOnline) return '📡'; // Offline icon
+    if (isSyncing) return '🔄'; // Syncing icon
+    return '☁️'; // Cloud icon for online
   };
 
-  const getTitle = () => {
-    switch (status) {
-      case 'synced':
-        return 'All changes are synced';
-      case 'syncing':
-        return 'Syncing changes...';
-      case 'unsynced':
-        return 'Click to sync changes';
-      case 'error':
-        return 'Sync error, click to retry';
-      default:
-        return 'Sync status';
-    }
+  const getClassName = () => {
+    let className = 'sync-indicator';
+    if (!isOnline) className += ' offline';
+    if (isSyncing) className += ' syncing';
+    return className;
   };
 
   return (
     <button
-      className={`sync-indicator ${status}`}
+      className={getClassName()}
       onClick={onSync}
-      title={getTitle()}
-      aria-label={getTitle()}
+      title={!isOnline ? 'Offline' : isSyncing ? 'Syncing...' : 'Sync'}
+      disabled={!isOnline || isSyncing}
     >
       {getIcon()}
     </button>

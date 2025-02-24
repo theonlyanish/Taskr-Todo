@@ -4,15 +4,23 @@ import { Task, TaskStatus } from '../types/Task';
 // Define the interface for TaskFormProps
 interface TaskFormProps {
   selectedTask: Task | null;
-  onSubmit: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  onDelete?: (taskId: string) => void;
+  onSubmit: (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  onUpdate?: (taskId: string, updates: Partial<Task>) => void;
+  onDelete: (taskId: string) => void;
+  initialDueDate?: Date | null;
 }
 
-export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit, onDelete }) => {
+export const TaskForm: React.FC<TaskFormProps> = ({
+  selectedTask,
+  onSubmit,
+  onUpdate,
+  onDelete,
+  initialDueDate
+}) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('To Do');
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState<string>('');
 
   // useEffect hook to populate form fields with selectedTask data
   useEffect(() => {
@@ -20,25 +28,41 @@ export const TaskForm: React.FC<TaskFormProps> = ({ selectedTask, onSubmit, onDe
       setTitle(selectedTask.title);
       setDescription(selectedTask.description || '');
       setStatus(selectedTask.status);
-      setDueDate(selectedTask.dueDate ? 
-        new Date(selectedTask.dueDate).toISOString().split('T')[0] : '');
+      setDueDate(selectedTask.dueDate ? new Date(selectedTask.dueDate).toISOString().split('T')[0] : '');
     } else {
+      setTitle('');
+      setDescription('');
+      setStatus('To Do');
+      setDueDate(initialDueDate ? new Date(initialDueDate).toISOString().split('T')[0] : '');
+    }
+  }, [selectedTask, initialDueDate]);
+
+  // Function to handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const formData = {
+      title,
+      description,
+      status,
+      dueDate: dueDate ? new Date(dueDate) : undefined
+    };
+
+    if (selectedTask && onUpdate) {
+      // If we have a selected task, use onUpdate
+      onUpdate(selectedTask.id, formData);
+    } else {
+      // If no selected task, use onSubmit for new task
+      onSubmit(formData);
+    }
+    
+    // Clear form if no task was selected
+    if (!selectedTask) {
       setTitle('');
       setDescription('');
       setStatus('To Do');
       setDueDate('');
     }
-  }, [selectedTask]);
-
-  // Function to handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      title,
-      description: description || undefined,
-      status,
-      dueDate: dueDate ? new Date(dueDate) : undefined,
-    });
   };
 
   // JSX for the form
