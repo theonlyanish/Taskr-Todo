@@ -89,7 +89,7 @@ function App() {
           // If user is logged in, load tasks from Supabase
           const loadedTasks = await SupabaseTaskService.getTasks();
           console.log('Tasks loaded from Supabase:', loadedTasks);
-          setTasks(loadedTasks);
+      setTasks(loadedTasks);
         } else {
           // If not logged in, try to load from local storage
           const localTasks = await loadTasks();
@@ -141,8 +141,21 @@ function App() {
 
   const handleTaskSubmit = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
     const now = new Date();
+    
+    // If this is a subtask, find the parent task to inherit its status
+    let status = taskData.status;
+    if (newSubtaskParentId || taskData.parentId) {
+      const parentId = newSubtaskParentId || taskData.parentId;
+      const parentTask = findTaskById(tasks, parentId!);
+      if (parentTask) {
+        // Inherit parent's status unless explicitly set otherwise
+        status = taskData.status === 'To Do' ? parentTask.status : taskData.status;
+      }
+    }
+    
     const newTask: Task = {
       ...taskData,
+      status,
       id: crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
@@ -179,7 +192,7 @@ function App() {
       // Handle the error (e.g., show a notification)
     }
     
-    setSelectedTask(null);
+      setSelectedTask(null);
     setNewSubtaskParentId(null); // Reset the parent ID
   };
 
@@ -420,7 +433,7 @@ function App() {
       // Handle the error (e.g., show a notification)
     }
     
-    setSelectedTask(null);
+      setSelectedTask(null);
   };
 
   // Helper function to find a task by ID (including in subtasks)
@@ -445,7 +458,7 @@ function App() {
       const success = await SupabaseTaskService.deleteTask(taskId);
       console.log('Task deleted from Supabase:', success);
       
-      if (success) {
+    if (success) {
         // Remove the task from the local state
         const updatedTasks = tasks.filter(task => task.id !== taskId);
         setTasks(updatedTasks);
@@ -499,14 +512,15 @@ function App() {
       <div className={`app-container ${isDarkMode ? 'dark-theme' : ''}`}>
         <header className="app-header">
           <div className="header">
+            <img src="/logo.png" alt="Task Manager Logo" />
             <h1>Task Manager</h1>
           </div>
           <div className="header-controls">
-            <SyncIndicator
+              <SyncIndicator
               isOnline={isOnline}
               isSyncing={isSyncing}
-              onSync={handleSync}
-            />
+                onSync={handleSync}
+              />
             <ThemeToggle
               isDark={isDarkMode}
               onToggle={() => setIsDarkMode(!isDarkMode)}

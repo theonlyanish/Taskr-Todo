@@ -29,6 +29,7 @@ const SubtaskItem: React.FC<{
   return (
     <div 
       className={`kanban-subtask-item ${subtask.id === selectedTaskId ? 'selected' : ''} ${subtask.status === 'Completed' ? 'completed' : ''}`}
+      data-status={subtask.status}
       onClick={(e) => {
         e.stopPropagation();
         onTaskSelect(subtask);

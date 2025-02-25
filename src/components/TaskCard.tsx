@@ -23,7 +23,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   return (
-    <div className={`task-item ${task.id === selectedTaskId ? 'selected' : ''} ${task.isSubtask ? 'subtask' : ''}`}>
+    <div 
+      className={`task-item ${task.id === selectedTaskId ? 'selected' : ''} ${task.isSubtask ? 'subtask' : ''}`}
+      data-status={task.status}
+    >
       <div
         className={`task-checkbox ${task.status === 'Completed' ? 'checked' : ''}`}
         onClick={handleCheckboxClick}

@@ -1539,6 +1539,19 @@ flex: 0 0 auto;
   margin-bottom: 0.25rem;
 }
 
+/* Status-specific styles for subtasks */
+.task-item.subtask[data-status="To Do"] {
+  border-left: 3px solid #f1c40f;
+}
+
+.task-item.subtask[data-status="In Progress"] {
+  border-left: 3px solid #3498db;
+}
+
+.task-item.subtask[data-status="Completed"] {
+  border-left: 3px solid #2ecc71;
+}
+
 .subtasks-container {
   margin-top: 0.5rem;
   width: 100%;
@@ -1606,6 +1619,19 @@ flex: 0 0 auto;
   cursor: pointer;
   transition: background-color 0.2s;
   border-left: 3px solid var(--accent-color);
+}
+
+/* Status-specific styles for Kanban subtasks */
+.kanban-subtask-item[data-status="To Do"] {
+  border-left: 3px solid #f1c40f;
+}
+
+.kanban-subtask-item[data-status="In Progress"] {
+  border-left: 3px solid #3498db;
+}
+
+.kanban-subtask-item[data-status="Completed"] {
+  border-left: 3px solid #2ecc71;
 }
 
 .kanban-subtask-item:hover {
