@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Task, TaskStatus } from '../types/Task';
 
 // Define the interface for TaskFormProps
@@ -21,6 +21,12 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('To Do');
   const [dueDate, setDueDate] = useState<string>('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus the input when the component mounts
+  useEffect(() => {
+    titleInputRef.current?.focus();
+  }, []);
 
   // useEffect hook to populate form fields with selectedTask data
   useEffect(() => {
@@ -34,6 +40,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       setDescription('');
       setStatus('To Do');
       setDueDate(initialDueDate ? new Date(initialDueDate).toISOString().split('T')[0] : '');
+      // Focus the title input when creating a new task
+      titleInputRef.current?.focus();
     }
   }, [selectedTask, initialDueDate]);
 
@@ -65,18 +73,23 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     }
   };
 
+  // Generate a unique key for the form to force re-render when switching between new task and edit mode
+  const formKey = selectedTask ? `edit-${selectedTask.id}` : 'new-task';
+
   // JSX for the form
   return (
-    <form onSubmit={handleSubmit} className="task-form">
+    <form key={formKey} onSubmit={handleSubmit} className="task-form">
       <div className="form-group">
         <label>Task:</label>
         <input
+          ref={titleInputRef}
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
           placeholder="Enter task title"
           className="form-input"
+          autoFocus={!selectedTask} // Add autoFocus when creating new task
         />
       </div>
 
