@@ -8,4 +8,7 @@ export interface Task {
   dueDate?: Date;
   createdAt: Date;
   updatedAt: Date;
+  parentId?: string;
+  isSubtask?: boolean;
+  subtasks?: Task[];
 }

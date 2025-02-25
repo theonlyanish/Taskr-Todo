@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './styles.css';
 import App from './App';
 import { offlineStorage } from './utils/offlineStorage';
-import { Task } from 'types';
+import { Task } from './types/Task';
 
 // Initialize offline storage
 offlineStorage.init().catch(console.error);

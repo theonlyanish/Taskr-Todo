@@ -19,6 +19,9 @@ export interface TaskRow {
   due_date: string | null;
   created_at: string;
   updated_at: string;
+  parent_id: string | null;
+  is_subtask: boolean | null;
+  subtasks: any[] | null;
 }
 
 // Helper functions to convert between our app's Task type and Supabase's format
@@ -29,5 +32,8 @@ export const toTask = (row: TaskRow): Task => ({
   status: row.status,
   dueDate: row.due_date ? new Date(row.due_date) : undefined,
   createdAt: new Date(row.created_at),
-  updatedAt: new Date(row.updated_at)
+  updatedAt: new Date(row.updated_at),
+  parentId: row.parent_id || undefined,
+  isSubtask: row.is_subtask || false,
+  subtasks: row.subtasks ? row.subtasks.map(st => toTask(st as TaskRow)) : []
 });

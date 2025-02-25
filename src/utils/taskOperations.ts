@@ -1,4 +1,4 @@
-import { Task } from '../types';
+import { Task } from '../types/Task';
 import { offlineStorage } from './offlineStorage';
 
 // You'll need to implement these backend functions according to your API

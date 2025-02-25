@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Task, TaskStatus } from '../types/Task';
 
 // Define the interface for TaskFormProps
-interface TaskFormProps {
+export interface TaskFormProps {
   selectedTask: Task | null;
   onSubmit: (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onUpdate?: (taskId: string, updates: Partial<Task>) => void;
   onDelete: (taskId: string) => void;
   initialDueDate?: Date | null;
+  parentId?: string | null;
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({
@@ -15,13 +16,17 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   onSubmit,
   onUpdate,
   onDelete,
-  initialDueDate
+  initialDueDate,
+  parentId
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('To Do');
   const [dueDate, setDueDate] = useState<string>('');
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  // Log props for debugging
+  console.log('TaskForm props:', { selectedTask, parentId, initialDueDate });
 
   // Focus the input when the component mounts
   useEffect(() => {
@@ -53,14 +58,17 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       title,
       description,
       status,
-      dueDate: dueDate ? new Date(dueDate) : undefined
+      dueDate: dueDate ? new Date(dueDate) : undefined,
+      parentId: parentId || undefined
     };
 
-    if (selectedTask && onUpdate) {
-      // If we have a selected task, use onUpdate
+    console.log('Submitting form data:', { formData, selectedTask, parentId });
+
+    if (selectedTask && selectedTask.id && onUpdate) {
+      // If we have a selected task with a valid ID, use onUpdate
       onUpdate(selectedTask.id, formData);
     } else {
-      // If no selected task, use onSubmit for new task
+      // If no selected task or empty ID, use onSubmit for new task
       onSubmit(formData);
     }
     
@@ -74,11 +82,15 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   };
 
   // Generate a unique key for the form to force re-render when switching between new task and edit mode
-  const formKey = selectedTask ? `edit-${selectedTask.id}` : 'new-task';
+  const formKey = selectedTask ? `edit-${selectedTask.id}` : parentId ? `new-subtask-${parentId}` : 'new-task';
+
+  // Determine the form title based on whether we're creating a subtask or editing a task
+  const formTitle = parentId ? 'Add Subtask' : selectedTask?.id ? 'Edit Task' : '';
 
   // JSX for the form
   return (
     <form key={formKey} onSubmit={handleSubmit} className="task-form">
+      {formTitle && <h2>{formTitle}</h2>}
       <div className="form-group">
         <label>Task:</label>
         <input
@@ -87,7 +99,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
-          placeholder="Enter task title"
+          placeholder={parentId ? "Enter subtask title" : "Enter task title"}
           className="form-input"
           autoFocus={!selectedTask} // Add autoFocus when creating new task
         />

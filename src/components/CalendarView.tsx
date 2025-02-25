@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Task } from '../types';
+import { Task } from '../types/Task';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';

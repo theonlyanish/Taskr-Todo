@@ -1,4 +1,4 @@
-import { Task } from '../types';
+import { Task } from '../types/Task';
 
 const TASKS_STORE = 'tasks';
 const PENDING_CHANGES_STORE = 'pendingChanges';

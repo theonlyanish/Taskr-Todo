@@ -15,7 +15,32 @@ export class SupabaseTaskService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data.map(toTask);
+      
+      // Convert all tasks to our Task type
+      const allTasks = data.map(toTask);
+      
+      // Create a map of parent tasks
+      const parentTasks = allTasks.filter(task => !task.isSubtask);
+      
+      // Create a map of subtasks by parent ID
+      const subtasksByParentId: Record<string, Task[]> = {};
+      allTasks.filter(task => task.isSubtask && task.parentId).forEach(subtask => {
+        if (subtask.parentId) {
+          if (!subtasksByParentId[subtask.parentId]) {
+            subtasksByParentId[subtask.parentId] = [];
+          }
+          subtasksByParentId[subtask.parentId].push(subtask);
+        }
+      });
+      
+      // Assign subtasks to their parent tasks
+      parentTasks.forEach(task => {
+        if (subtasksByParentId[task.id]) {
+          task.subtasks = subtasksByParentId[task.id];
+        }
+      });
+      
+      return parentTasks;
     } catch (error) {
       console.error('Error fetching tasks:', error);
       return [];
@@ -28,13 +53,19 @@ export class SupabaseTaskService {
       const user = await AuthService.getCurrentUser();
       if (!user) return null;
 
+      // Log the task being saved to help with debugging
+      console.log('Saving task:', task);
+
       const newTaskData = {
         id: task.id,
         title: task.title,
         description: task.description || null,
         status: task.status,
         due_date: task.dueDate?.toISOString() || null,
-        user_id: user.id
+        user_id: user.id,
+        parent_id: task.parentId || null,
+        is_subtask: task.isSubtask || false,
+        subtasks: task.subtasks && task.subtasks.length > 0 ? task.subtasks : []
       };
 
       // Inserting the new task into the database and selecting the inserted data
@@ -50,6 +81,9 @@ export class SupabaseTaskService {
         throw error;
       }
       
+      // Log the response from Supabase
+      console.log('Supabase response:', data);
+      
       // Returning the inserted task data transformed to the Task interface, or null if insertion failed
       return data ? toTask(data) : null;
     } catch (error) {
@@ -64,6 +98,9 @@ export class SupabaseTaskService {
       const user = await AuthService.getCurrentUser();
       if (!user) return null;
 
+      // Log the task updates for debugging
+      console.log('Updating task:', taskId, updates);
+
       // Creating an update object with the provided updates
       const updateData: Record<string, any> = {};
       
@@ -72,6 +109,12 @@ export class SupabaseTaskService {
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.status !== undefined) updateData.status = updates.status;
       if (updates.dueDate !== undefined) updateData.due_date = updates.dueDate?.toISOString() || null;
+      if (updates.parentId !== undefined) updateData.parent_id = updates.parentId || null;
+      if (updates.isSubtask !== undefined) updateData.is_subtask = updates.isSubtask;
+      if (updates.subtasks !== undefined) updateData.subtasks = updates.subtasks;
+
+      // Add updated_at timestamp
+      updateData.updated_at = new Date().toISOString();
 
       const { data, error } = await supabase
         .from('tasks')
@@ -85,6 +128,9 @@ export class SupabaseTaskService {
         console.error('Supabase update error:', error);
         throw error;
       }
+
+      // Log the response from Supabase
+      console.log('Supabase update response:', data);
 
       // Returning the updated task data transformed to the Task interface, or null if update failed
       return data ? toTask(data) : null;

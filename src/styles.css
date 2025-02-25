@@ -44,15 +44,15 @@
 }
 
 .task-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   padding: 0.75rem;
-  border: none;
   border-radius: 4px;
   margin-bottom: 0.5rem;
   cursor: pointer;
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  position: relative;
+  background-color: var(--card-bg);
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .task-meta {
@@ -1528,4 +1528,106 @@ flex: 0 0 auto;
 /* Event time formatting */
 .calendar-container .fc-event-time {
   display: none;
+}
+
+/* Subtask styles */
+.task-item.subtask {
+  margin-left: 2rem;
+  border-left: 2px solid var(--border-color);
+  padding-left: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.subtasks-container {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.add-subtask-btn {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-left: auto;
+  transition: opacity 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.task-item:hover .add-subtask-btn {
+  opacity: 1;
+}
+
+.add-subtask-btn:hover {
+  background-color: var(--bg-primary);
+  color: var(--accent-color);
+}
+
+.add-subtask-btn .add-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.add-subtask-btn .btn-text {
+  font-size: 0.85rem;
+}
+
+/* Ensure proper spacing between tasks and subtasks */
+.task-item + .task-item:not(.subtask) {
+  margin-top: 0.75rem;
+}
+
+/* Kanban Subtask Styles */
+.kanban-subtasks-container {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.kanban-subtasks-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.kanban-subtask-item {
+  padding: 6px 8px;
+  margin: 4px 0;
+  background-color: var(--bg-subtle);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-left: 3px solid var(--accent-color);
+}
+
+.kanban-subtask-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.kanban-subtask-item.selected {
+  background-color: var(--bg-selected);
+}
+
+.kanban-subtask-item.completed .kanban-subtask-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.kanban-subtask-title {
+  word-break: break-word;
+}
+
+.kanban-no-tasks {
+  padding: 15px;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
 }
