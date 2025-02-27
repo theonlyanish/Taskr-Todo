@@ -512,7 +512,7 @@ function App() {
       <div className={`app-container ${isDarkMode ? 'dark-theme' : ''}`}>
         <header className="app-header">
           <div className="header">
-            <img src="/logo.png" alt="Task Manager Logo" />
+            <img src="/Logo.png" alt="Task Manager Logo" />
             <h1>Task Manager</h1>
           </div>
           <div className="header-controls">
