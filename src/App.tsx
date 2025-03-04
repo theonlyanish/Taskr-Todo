@@ -13,6 +13,7 @@ import { User } from '@supabase/supabase-js';
 import { loadTasks, addTask, updateTask, deleteTask } from './utils/taskOperations';
 import { MantineProvider } from '@mantine/core';
 import './styles.css';
+import { getPresetTasks, hasSeenPresetTasks, markPresetTasksAsSeen, resetPresetTasksState } from './utils/presetTasks';
 
 // Add this type definition at the top of the file
 type ViewType = 'normal' | 'kanban' | 'calendar';
@@ -85,15 +86,42 @@ function App() {
       setUser(currentUser);
       
       try {
+        let loadedTasks: Task[] = [];
+        
         if (currentUser) {
           // If user is logged in, load tasks from Supabase
-          const loadedTasks = await SupabaseTaskService.getTasks();
+          loadedTasks = await SupabaseTaskService.getTasks();
           console.log('Tasks loaded from Supabase:', loadedTasks);
-      setTasks(loadedTasks);
         } else {
           // If not logged in, try to load from local storage
-          const localTasks = await loadTasks();
-          setTasks(localTasks);
+          loadedTasks = await loadTasks();
+        }
+
+        // If no tasks exist and user hasn't seen preset tasks, load them
+        if (loadedTasks.length === 0 && !hasSeenPresetTasks()) {
+          const parentTaskId = crypto.randomUUID();
+          const presetTasks = getPresetTasks().map(task => {
+            const taskId = crypto.randomUUID();
+            return {
+              ...task,
+              id: taskId,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              subtasks: task.subtasks?.map(subtask => ({
+                ...subtask,
+                id: crypto.randomUUID(),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                isSubtask: true,
+                parentId: taskId
+              })) || []
+            };
+          });
+          
+          setTasks(presetTasks);
+          markPresetTasksAsSeen();
+        } else {
+          setTasks(loadedTasks);
         }
       } catch (error) {
         console.error('Error loading tasks:', error);
@@ -507,15 +535,28 @@ function App() {
     setSelectedTask(null); // Clear selected task when selecting a new date
   };
 
+  const handleResetPresetTasks = () => {
+    resetPresetTasksState();
+    setTasks([]);  // Clear current tasks
+    window.location.reload();  // Reload the page to trigger initial load
+  };
+
   return (
     <MantineProvider>
       <div className={`app-container ${isDarkMode ? 'dark-theme' : ''}`}>
         <header className="app-header">
           <div className="header">
-            <img src="/Logo.png" alt="Task Manager Logo" />
-            <h1>Task Manager</h1>
+            <img src="/Logo.png" alt="Taskr Logo" />
+            <h1>Taskr</h1>
           </div>
           <div className="header-controls">
+              <button
+                onClick={handleResetPresetTasks}
+                className="sign-in-btn"
+                style={{ marginRight: '10px' }}
+              >
+                Reset Demo
+              </button>
               <SyncIndicator
               isOnline={isOnline}
               isSyncing={isSyncing}

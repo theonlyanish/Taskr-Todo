@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lapis-todo-v1';
+const CACHE_NAME = 'taskr-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

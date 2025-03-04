@@ -14,7 +14,7 @@ export class OfflineStorage {
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open('LapisTodoDB', 1);
+      const request = indexedDB.open('TaskrDB', 1);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => {

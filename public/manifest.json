@@ -1,6 +1,6 @@
 {
-  "name": "Task Manager",
-  "short_name": "Todo",
+  "name": "Taskr",
+  "short_name": "Taskr",
   "description": "A modern task management application",
   "start_url": "/",
   "display": "standalone",
