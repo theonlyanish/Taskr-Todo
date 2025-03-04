@@ -14,6 +14,7 @@ import { loadTasks, addTask, updateTask, deleteTask } from './utils/taskOperatio
 import { MantineProvider } from '@mantine/core';
 import './styles.css';
 import { getPresetTasks, hasSeenPresetTasks, markPresetTasksAsSeen, resetPresetTasksState } from './utils/presetTasks';
+import { offlineStorage } from './utils/offlineStorage';
 
 // Add this type definition at the top of the file
 type ViewType = 'normal' | 'kanban' | 'calendar';
@@ -97,9 +98,8 @@ function App() {
           loadedTasks = await loadTasks();
         }
 
-        // If no tasks exist and user hasn't seen preset tasks, load them
+        // Only load preset tasks if there are no existing tasks and they haven't been seen
         if (loadedTasks.length === 0 && !hasSeenPresetTasks()) {
-          const parentTaskId = crypto.randomUUID();
           const presetTasks = getPresetTasks().map(task => {
             const taskId = crypto.randomUUID();
             return {
@@ -120,14 +120,19 @@ function App() {
           
           setTasks(presetTasks);
           markPresetTasksAsSeen();
-        } else {
+          // Save preset tasks to offline storage to prevent them from disappearing
+          await offlineStorage.saveTasks(presetTasks);
+        } else if (loadedTasks.length > 0) {
+          // Only set tasks if we actually have tasks to set
           setTasks(loadedTasks);
         }
       } catch (error) {
         console.error('Error loading tasks:', error);
         // Fallback to local storage if Supabase fails
         const localTasks = await loadTasks();
-        setTasks(localTasks);
+        if (localTasks.length > 0) {
+          setTasks(localTasks);
+        }
       }
     };
 
@@ -535,10 +540,36 @@ function App() {
     setSelectedTask(null); // Clear selected task when selecting a new date
   };
 
-  const handleResetPresetTasks = () => {
+  const handleResetPresetTasks = async () => {
+    // Clear everything first
     resetPresetTasksState();
-    setTasks([]);  // Clear current tasks
-    window.location.reload();  // Reload the page to trigger initial load
+    setTasks([]);
+    setSelectedTask(null);
+    
+    // Generate new preset tasks
+    const presetTasks = getPresetTasks().map(task => {
+      const taskId = crypto.randomUUID();
+      return {
+        ...task,
+        id: taskId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        subtasks: task.subtasks?.map(subtask => ({
+          ...subtask,
+          id: crypto.randomUUID(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isSubtask: true,
+          parentId: taskId
+        })) || []
+      };
+    });
+    
+    // Clear local storage tasks
+    await offlineStorage.saveTasks([]);
+    
+    // Set the new preset tasks
+    setTasks(presetTasks);
   };
 
   return (
@@ -550,13 +581,6 @@ function App() {
             <h1>Taskr</h1>
           </div>
           <div className="header-controls">
-              <button
-                onClick={handleResetPresetTasks}
-                className="sign-in-btn"
-                style={{ marginRight: '10px' }}
-              >
-                Reset Demo
-              </button>
               <SyncIndicator
               isOnline={isOnline}
               isSyncing={isSyncing}
