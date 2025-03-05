@@ -653,14 +653,6 @@ function App() {
               isDark={isDarkMode}
               onToggle={() => setIsDarkMode(!isDarkMode)}
             />
-            {!user && (
-              <button
-                onClick={handleResetPresetTasks}
-                className="reset-btn"
-              >
-                Reset Demo Tasks
-              </button>
-            )}
             {user ? (
               <button
                 onClick={handleSignOut}
