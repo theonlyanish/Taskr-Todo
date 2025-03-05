@@ -118,10 +118,24 @@ function App() {
             };
           });
           
+          // Save preset tasks to offline storage first to ensure they can be edited/deleted
+          await offlineStorage.saveTasks(presetTasks);
+          
+          // For local storage mode, save the tasks using the taskOperations utilities
+          // This ensures they go through the same add/update/delete logic as user-created tasks
+          if (!currentUser) {
+            for (const task of presetTasks) {
+              await addTask(task, []);
+            }
+          } else {
+            // If user is logged in, save to Supabase
+            for (const task of presetTasks) {
+              await SupabaseTaskService.saveTask(task);
+            }
+          }
+          
           setTasks(presetTasks);
           markPresetTasksAsSeen();
-          // Save preset tasks to offline storage to prevent them from disappearing
-          await offlineStorage.saveTasks(presetTasks);
         } else if (loadedTasks.length > 0) {
           // Only set tasks if we actually have tasks to set
           setTasks(loadedTasks);
@@ -353,120 +367,56 @@ function App() {
                 };
               }
               
-              // Otherwise just update the subtasks
-              return { ...t, subtasks: updatedSubtasks };
+              // Regular subtask update (without changing parent)
+              return { ...t, subtasks: updatedSubtasks, updatedAt: new Date() };
             }
           }
           
           return t;
         });
         
-        // Update the UI immediately
+        // Update UI immediately
         setTasks(updatedTasks);
-        
-        // Then update the database asynchronously
-        setTimeout(async () => {
-          try {
-            if (taskToUpdate.isSubtask) {
-              // For subtasks, update the status
-              await SupabaseTaskService.updateTask(taskId, {
-                ...updates
-              });
-              
-              // If the subtask is being changed to "In Progress" or "Completed" and the parent is in "To Do",
-              // also update the parent task status in the database
-              const parentTask = tasks.find(t => t.subtasks?.some(subtask => subtask.id === taskId));
-              if (
-                parentTask && 
-                (updates.status === 'In Progress' || updates.status === 'Completed') && 
-                parentTask.status === 'To Do'
-              ) {
-                await SupabaseTaskService.updateTask(parentTask.id, { 
-                  status: 'In Progress' as TaskStatus 
-                });
-              }
-            } else if (updates.status === 'Completed' && taskToUpdate.subtasks && taskToUpdate.subtasks.length > 0) {
-              // For parent tasks being completed, also complete all subtasks in the database
-              await SupabaseTaskService.updateTask(taskId, {
-                ...updates
-              });
-              
-              // Update all subtasks in the database
-              const subtaskUpdatePromises = taskToUpdate.subtasks.map(subtask => 
-                SupabaseTaskService.updateTask(subtask.id, { status: 'Completed' as TaskStatus })
-              );
-              
-              await Promise.all(subtaskUpdatePromises);
-            } else {
-              // Regular update for a task without subtasks
-              await SupabaseTaskService.updateTask(taskId, {
-                ...updates
-              });
-            }
-          } catch (error) {
-            console.error('Error updating task in database:', error);
-          }
-        }, 0);
-      } else {
-        // For non-status updates or if status hasn't changed
-        if (taskToUpdate.isSubtask) {
-          console.log('Updating subtask:', taskId, updates);
-          
-          // Update the task in the local state first - ensure subtask is updated in parent's array
-          const updatedTasks = tasks.map(t => {
-            // Check if this task has the subtask we're updating
-            if (t.subtasks && t.subtasks.some(subtask => subtask.id === taskId)) {
-              return {
-                ...t,
-                subtasks: t.subtasks.map(subtask => 
-                  subtask.id === taskId 
-                    ? { ...subtask, ...updates, updatedAt: new Date() }
-                    : subtask
-                )
-              };
-            }
-            
-            // Also handle direct match (for the updateTaskAndParents function)
-            if (t.id === taskId) {
-              return { ...t, ...updates, updatedAt: new Date() };
-            }
-            
-            return t;
-          });
-          
-          setTasks(updatedTasks);
-          
-          // Then update in Supabase
-          const updatedTask = await SupabaseTaskService.updateTask(taskId, {
-            ...updates
-          });
-          console.log('Subtask updated in Supabase:', updatedTask);
-        } else if (updates.status === 'Completed' && taskToUpdate.subtasks && taskToUpdate.subtasks.length > 0) {
-          // If we're completing a parent task with subtasks, use the special function
-          await updateTaskWithSubtasks(taskId, updates);
-        } else {
-          // Regular update for a task without subtasks
-          
-          // Update the task in the local state first
-          const updatedTasks = updateTaskAndParents(tasks, taskId, {
-            ...updates,
-            updatedAt: new Date()
-          });
-          setTasks(updatedTasks);
-          
-          // Then update in Supabase
-          const updatedTask = await SupabaseTaskService.updateTask(taskId, {
-            ...updates
-          });
-          console.log('Task updated in Supabase:', updatedTask);
-        }
       }
+      
+      // For the actual async update, we need to get the complete task with the updates
+      const completeTaskWithUpdates = {
+        ...taskToUpdate,
+        ...updates,
+        updatedAt: new Date()
+      };
+      
+      // If user is logged in, update in Supabase
+      if (user) {
+        try {
+          const success = await SupabaseTaskService.updateTask(completeTaskWithUpdates.id, completeTaskWithUpdates);
+          if (!success) {
+            console.error('Failed to update task in Supabase');
+          }
+        } catch (error) {
+          console.error('Error updating task in Supabase:', error);
+          // If Supabase update fails, update in local storage
+          await updateTask(completeTaskWithUpdates, tasks);
+        }
+      } else {
+        // Update in local storage
+        await updateTask(completeTaskWithUpdates, tasks);
+      }
+      
+      // Final update if it wasn't a status change (status changes were already handled above)
+      if (!updates.status || taskToUpdate.status === updates.status) {
+        const finalUpdatedTasks = tasks.map(t => {
+          if (t.id === taskId) {
+            return { ...t, ...updates, updatedAt: new Date() };
+          }
+          return t;
+        });
+        setTasks(finalUpdatedTasks);
+      }
+      
     } catch (error) {
       console.error('Error updating task:', error);
-      // Handle the error (e.g., show a notification)
     }
-    
-      setSelectedTask(null);
   };
 
   // Helper function to find a task by ID (including in subtasks)
@@ -487,18 +437,31 @@ function App() {
 
   const handleTaskDelete = async (taskId: string) => {
     try {
-      // Delete the task from Supabase
-      const success = await SupabaseTaskService.deleteTask(taskId);
-      console.log('Task deleted from Supabase:', success);
-      
-    if (success) {
-        // Remove the task from the local state
-        const updatedTasks = tasks.filter(task => task.id !== taskId);
+      // Find the task to check if it exists
+      const taskToDelete = findTaskById(tasks, taskId);
+      if (!taskToDelete) {
+        console.error('Task not found:', taskId);
+        return;
+      }
+
+      if (user) {
+        // Delete the task from Supabase if user is logged in
+        const success = await SupabaseTaskService.deleteTask(taskId);
+        console.log('Task deleted from Supabase:', success);
+        
+        if (success) {
+          // Remove the task from the local state
+          const updatedTasks = tasks.filter(task => task.id !== taskId);
+          setTasks(updatedTasks);
+        }
+      } else {
+        // Delete from local storage if not logged in
+        const updatedTasks = await deleteTask(taskId, tasks);
         setTasks(updatedTasks);
       }
     } catch (error) {
       console.error('Error deleting task:', error);
-      // Fallback to local delete if Supabase fails
+      // Fallback to local delete
       const updatedTasks = await deleteTask(taskId, tasks);
       setTasks(updatedTasks);
     }
@@ -521,11 +484,98 @@ function App() {
     }
   };
 
-  const handleAuthStateChange = (isLoggedIn: boolean) => {
+  const handleAuthStateChange = async (isLoggedIn: boolean) => {
     setShowAuthModal(false);
     if (!isLoggedIn) {
       setTasks([]);
       setSelectedTask(null);
+    } else {
+      try {
+        // First, get the local tasks that need to be migrated
+        const localTasks = await loadTasks();
+        
+        // Then fetch existing tasks from Supabase
+        const supabaseTasks = await SupabaseTaskService.getTasks();
+        console.log('Tasks loaded after login:', supabaseTasks);
+        
+        // If there are local tasks and user just logged in, handle migration
+        if (localTasks.length > 0) {
+          console.log('Analyzing local tasks for migration:', localTasks);
+          
+          // Filter out preset tasks that shouldn't be migrated
+          const tasksToMigrate = localTasks.filter(localTask => {
+            // Check if this is a preset task by comparing title, description, and status
+            const isPresetTask = getPresetTasks().some(preset => 
+              preset.title === localTask.title && 
+              preset.description === localTask.description &&
+              preset.status === localTask.status
+            );
+
+            // Check if a similar task already exists in Supabase
+            const hasExistingTask = supabaseTasks.some(supabaseTask => 
+              supabaseTask.title === localTask.title && 
+              supabaseTask.description === localTask.description &&
+              supabaseTask.status === localTask.status
+            );
+
+            // Only migrate if:
+            // 1. It's not a preset task, OR
+            // 2. It's a modified preset task (content or status has been edited)
+            // 3. AND the task doesn't already exist in Supabase
+            const matchingPreset = getPresetTasks().find(p => p.title === localTask.title);
+            return (!isPresetTask || 
+              (isPresetTask && (
+                localTask.title !== matchingPreset?.title ||
+                localTask.description !== matchingPreset?.description ||
+                localTask.status !== matchingPreset?.status
+              ))) && !hasExistingTask;
+          });
+
+          if (tasksToMigrate.length > 0) {
+            console.log('Migrating filtered tasks to Supabase:', tasksToMigrate);
+            
+            // Save each filtered task to Supabase
+            const migrationPromises = tasksToMigrate.map(async (task) => {
+              // Generate a new ID for the task to avoid conflicts
+              const newTaskId = crypto.randomUUID();
+              const newTask = {
+                ...task,
+                id: newTaskId,
+                subtasks: task.subtasks?.map(subtask => ({
+                  ...subtask,
+                  id: crypto.randomUUID(),
+                  parentId: newTaskId
+                })) || []
+              };
+              
+              return SupabaseTaskService.saveTask(newTask);
+            });
+            
+            // Wait for all tasks to be migrated
+            await Promise.all(migrationPromises);
+          }
+          
+          // Clear local storage after handling migration
+          await offlineStorage.saveTasks([]);
+          
+          // Merge local tasks that weren't migrated with Supabase tasks
+          const mergedTasks = [...supabaseTasks];
+          
+          // Fetch the final updated task list from Supabase
+          const updatedTasks = await SupabaseTaskService.getTasks();
+          setTasks(updatedTasks);
+          
+          console.log('Task migration and merge completed');
+        } else {
+          // If no local tasks, just use the Supabase tasks
+          setTasks(supabaseTasks);
+        }
+      } catch (error) {
+        console.error('Error during task migration:', error);
+        // In case of error, fall back to local tasks
+        const localTasks = await loadTasks();
+        setTasks(localTasks);
+      }
     }
   };
 
@@ -565,10 +615,23 @@ function App() {
       };
     });
     
-    // Clear local storage tasks
+    // Clear local storage tasks first
     await offlineStorage.saveTasks([]);
     
-    // Set the new preset tasks
+    // For local storage mode, save the tasks using the taskOperations utilities
+    // This ensures they go through the same add/update/delete logic as user-created tasks
+    if (!user) {
+      for (const task of presetTasks) {
+        await addTask(task, []);
+      }
+    } else {
+      // If user is logged in, save to Supabase
+      for (const task of presetTasks) {
+        await SupabaseTaskService.saveTask(task);
+      }
+    }
+    
+    // Set the new preset tasks in the UI
     setTasks(presetTasks);
   };
 
@@ -590,6 +653,14 @@ function App() {
               isDark={isDarkMode}
               onToggle={() => setIsDarkMode(!isDarkMode)}
             />
+            {!user && (
+              <button
+                onClick={handleResetPresetTasks}
+                className="reset-btn"
+              >
+                Reset Demo Tasks
+              </button>
+            )}
             {user ? (
               <button
                 onClick={handleSignOut}

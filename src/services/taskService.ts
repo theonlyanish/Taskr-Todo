@@ -1,6 +1,7 @@
 import { Task, TaskStatus } from '../types/Task';
 import { SupabaseTaskService } from './supabaseTaskService';
 import { AuthService } from './authService';
+import { offlineStorage } from '../utils/offlineStorage';
 
 const STORAGE_KEY = 'tasks';
 const LAST_SYNC_KEY = 'lastSync';
@@ -153,19 +154,20 @@ export class TaskService {
       if (!user) return;
 
       this.setSyncStatus('syncing');
-      
-      // Get local tasks
-      const localTasks = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as Task[];
-      
+
+      // Get local tasks from IndexedDB instead of localStorage
+      const localTasks = await offlineStorage.getTasks();
+
       if (localTasks.length > 0) {
         // Upload local tasks to Supabase
         for (const task of localTasks) {
           await SupabaseTaskService.saveTask(task);
         }
+
+        // Clear IndexedDB after successful sync
+        await offlineStorage.saveTasks([]);
       }
 
-      // Clear local storage after successful sync
-      localStorage.removeItem(STORAGE_KEY);
       this.setSyncStatus('synced');
     } catch (error) {
       console.error('Error syncing tasks:', error);

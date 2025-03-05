@@ -378,16 +378,18 @@ box-shadow: 0 0 0 2px rgba(9, 132, 227, 0.1);
 
 /* Header styling */
 .app-header {
-display: flex;
-justify-content: space-between;
-align-items: center;
-margin-bottom: 2rem;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.5rem;
 }
 
 .app-header h1 {
 color: var(--text-primary);
 font-weight: 600;
-}
+}         
 
 /* Button styles */
 .edit-btn,
@@ -956,7 +958,7 @@ flex: 0 0 auto;
 
 /* View Selector */
 .view-selector-container {
-  padding: 0.5rem 2rem;
+  padding: 8px 2rem;
   background-color: var(--bg-primary);
   display: flex;
   justify-content: flex-end;
@@ -1058,7 +1060,7 @@ flex: 0 0 auto;
 
 /* Auth Modal */
 .auth-modal {
-  background: #ffffff;
+  background: var(--bg-primary);
   padding: 2rem;
   border-radius: 8px;
   max-width: 400px;
@@ -1076,10 +1078,11 @@ flex: 0 0 auto;
 .auth-container h2 {
   font-size: 1.8rem;
   margin-bottom: 0.5rem;
+  color: var(--text-primary);
 }
 
 .auth-description {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
   margin: 0.5rem 0 1.5rem;
   text-align: center;
@@ -1095,9 +1098,11 @@ flex: 0 0 auto;
 .auth-form input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 0.9rem;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .auth-submit {
@@ -1139,6 +1144,30 @@ flex: 0 0 auto;
   font-size: 0.9rem;
   margin-top: 1rem;
   text-align: center;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+  background-color: var(--border-color);
 }
 
 /* Global scrollbar styling */
@@ -1619,19 +1648,6 @@ flex: 0 0 auto;
   cursor: pointer;
   transition: background-color 0.2s;
   border-left: 3px solid var(--accent-color);
-}
-
-/* Status-specific styles for Kanban subtasks */
-.kanban-subtask-item[data-status="To Do"] {
-  border-left: 3px solid #f1c40f;
-}
-
-.kanban-subtask-item[data-status="In Progress"] {
-  border-left: 3px solid #3498db;
-}
-
-.kanban-subtask-item[data-status="Completed"] {
-  border-left: 3px solid #2ecc71;
 }
 
 .kanban-subtask-item:hover {

@@ -11,7 +11,7 @@ const generatePresetTask = (
   description,
   status,
   dueDate,
-  subtasks: [],
+  subtasks: subtasks as unknown as Task[],
   isSubtask: false
 });
 
@@ -37,16 +37,23 @@ export const getPresetTasks = (): Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[]
         {
           title: '📝 This is a subtask',
           description: 'Subtasks help break down complex tasks into smaller pieces',
-          status: 'To Do'
+          status: 'To Do',
+          isSubtask: true
         }
       ]
     ),
     generatePresetTask(
-      '🎯 Try Different Views',
+      '🎯 Try Different Views like Kanban or Calendar',
       'Use the view selector above to switch between Normal, Kanban, and Calendar views. Each view offers a different way to organize your tasks!',
       'In Progress',
       nextWeek
     ),
+    generatePresetTask(
+        '🔑 Sign up to save your tasks',
+        'Sign up to save your tasks to the cloud and access them from anywhere!',
+        'In Progress',
+        nextWeek
+      ),
     generatePresetTask(
       '🌙 Dark Mode Available',
       'Click the theme toggle in the top right corner to switch between light and dark modes.',
