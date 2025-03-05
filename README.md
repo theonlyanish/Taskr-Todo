@@ -1,10 +1,10 @@
-# Task Manager - Task Management Application
+# Taskr - Task Management Application
 
 ## Project Overview
 
 A modern, TypeScript-based task management web application built with React. Task Manager provides an intuitive interface for managing tasks with real-time synchronization across devices, featuring both Kanban and Calendar views, and a sleek dark/light mode interface.
 
-Live Demo: [https://lapis-todo.vercel.app/](https://lapis-todo.vercel.app/)
+Live Demo: [https://taskr-todo.vercel.app/](https://taskr-todo.vercel.app/)
 
 ## Features
 
