@@ -922,6 +922,17 @@ function App() {
             </div>
           </div>
         )}
+        <p className="footer-text">
+            Taskr by{' '}
+            <a
+              href="https://anishkapse.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors duration-200 hover:text-[#da4167] underline-offset-2 hover:underline"
+            >
+              Anish Kapse
+            </a>
+          </p>
       </div>
     </MantineProvider>
   );

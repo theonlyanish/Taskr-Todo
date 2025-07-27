@@ -1673,3 +1673,25 @@ flex: 0 0 auto;
   color: var(--text-muted);
   font-style: italic;
 }
+
+/* Footer styles */
+.footer-text {
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+}
+
+.footer-text a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-text a:hover {
+  color: #da4167;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
