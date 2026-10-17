@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Task, TaskStatus } from '../types/Task';
+import { describeDueDate, parseQuickAdd, useQuickAdd } from '../utils/quickAdd';
 
 // Define the interface for TaskFormProps
 export interface TaskFormProps {
@@ -24,6 +25,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   const [status, setStatus] = useState<TaskStatus>('To Do');
   const [dueDate, setDueDate] = useState<string>('');
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const quickAddReady = useQuickAdd();
+  // A date phrase the user chose to keep as plain text ("Keep as text")
+  const [keptAsText, setKeptAsText] = useState<string | null>(null);
+
+  // New tasks only: read a date out of the title ("pay rent fri") unless a due
+  // date has been picked by hand. Existing titles are never rewritten.
+  const quickAddMatch = quickAddReady && !selectedTask && !dueDate ? parseQuickAdd(title) : null;
+  const quickAdd = quickAddMatch && quickAddMatch.matchedText !== keptAsText ? quickAddMatch : null;
 
   // Log props for debugging
   console.log('TaskForm props:', { selectedTask, parentId, initialDueDate });
@@ -63,6 +72,16 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       parentId: parentId || undefined
     };
 
+    // Use the date read from the title; Taskr has no due times, so keep any
+    // time in the description rather than dropping it
+    if (quickAdd) {
+      formData.title = quickAdd.title;
+      formData.dueDate = quickAdd.dueDate;
+      if (quickAdd.timeText) {
+        formData.description = [description, `Time: ${quickAdd.timeText}`].filter(Boolean).join('\n');
+      }
+    }
+
     console.log('Submitting form data:', { formData, selectedTask, parentId });
 
     if (selectedTask && selectedTask.id && onUpdate) {
@@ -79,6 +98,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       setDescription('');
       setStatus('To Do');
       setDueDate('');
+      setKeptAsText(null);
     }
   };
 
@@ -100,9 +120,32 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
-          placeholder={parentId ? "Enter subtask title" : "Enter task title"}
+          placeholder={
+            selectedTask ? 'Enter task title'
+              : parentId ? 'Subtask title, e.g. “Book hotel tomorrow”'
+                : 'Task title, e.g. “Pay rent friday”'
+          }
           className="form-input"
+          aria-describedby={quickAdd ? 'quick-add-hint' : undefined}
         />
+        {/* Always rendered so screen readers hear the date when it appears */}
+        <div id="quick-add-hint" className="quick-add-hint" aria-live="polite">
+          {quickAdd && (
+            <>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="16" rx="2" />
+                <path d="M3 10h18M8 3v4M16 3v4" />
+              </svg>
+              <span>
+                Due <strong>{describeDueDate(quickAdd.dueDate)}</strong>
+                {quickAdd.timeText && <> · {quickAdd.timeText} goes in the description</>}
+              </span>
+              <button type="button" className="quick-add-keep" onClick={() => setKeptAsText(quickAdd.matchedText)}>
+                Keep “{quickAdd.matchedText}” as text
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="form-group">

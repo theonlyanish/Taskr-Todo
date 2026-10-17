@@ -388,8 +388,14 @@ cursor: pointer;
 }
 
 /* Layout styles */
+/* Full-height column: header, toolbar, main area (fills the rest, its
+   columns scroll on their own) and footer. Stacked layouts scroll the page. */
 .app-container {
 min-height: 100vh;
+height: 100vh;
+height: 100dvh;
+display: flex;
+flex-direction: column;
 background-color: var(--bg-primary);
 color: var(--text-primary);
 }
@@ -411,14 +417,17 @@ font-weight: 600;
 display: grid;
 grid-template-columns: 1fr 1fr;
 gap: 2rem;
-height: calc(100vh - 70px);
+flex: 1;
+min-height: 0;
 padding: 2rem;
 }
 
-/* Left column styles */
+/* Left column styles. Scrolls by itself so long lists stay above the footer. */
 .tasks-column {
 border-right: 1px solid var(--border-color);
 padding-right: 2rem;
+overflow-y: auto;
+min-height: 0;
 }
 
 .add-task-button {
@@ -1397,16 +1406,6 @@ flex: 0 0 auto;
   display: none;
 }
 
-/* Remove all the task-column specific scrollbar styles since we're using global ones */
-.tasks-column::-webkit-scrollbar,
-.tasks-column::-webkit-scrollbar-track,
-.tasks-column::-webkit-scrollbar-thumb,
-.tasks-column::-webkit-scrollbar-thumb:hover,
-.dark-theme .tasks-column::-webkit-scrollbar-thumb,
-.dark-theme .tasks-column::-webkit-scrollbar-thumb:hover {
-  display: none;
-}
-
 /* Firefox scrollbar - update for consistency */
 .tasks-column,
 .kanban-container,
@@ -1459,7 +1458,7 @@ flex: 0 0 auto;
 .kanban-columns {
   display: flex;
   gap: 1.5rem;
-  min-height: calc(100vh - 200px);
+  min-height: 100%;
   width: fit-content;
   min-width: 100%;
 }
@@ -1597,7 +1596,6 @@ flex: 0 0 auto;
   grid-template-columns: 2fr 1fr;
   gap: 0;
   padding: 0;
-  height: calc(100vh - 140px);
 }
 
 .calendar-container {
@@ -1977,6 +1975,7 @@ flex: 0 0 auto;
   font-size: 0.9rem;
   border-top: 1px solid var(--border-color);
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 .footer-text a {
@@ -2096,6 +2095,63 @@ button.kanban-subtask-item {
 /* Snapping fights the board scrolling itself during a drag */
 .kanban-container.is-dragging {
   scroll-snap-type: none;
+}
+
+/* Quick add: the due date read from a new task's title ("pay rent fri") */
+.quick-add-hint:not(:empty) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  background-color: rgba(9, 132, 227, 0.1);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.dark-theme .quick-add-hint:not(:empty) {
+  background-color: rgba(61, 113, 153, 0.25);
+}
+
+.quick-add-hint svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.quick-add-hint > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-add-keep {
+  margin-left: auto;
+  padding: 0.15rem 0.4rem;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.quick-add-keep:hover {
+  color: var(--text-primary);
+}
+
+.quick-add-keep:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
 }
 
 /* Command palette (Ctrl+K / Cmd+K) */
@@ -2349,6 +2405,15 @@ button.kanban-subtask-item {
 /* Responsive layout. Below 900px the task form stacks under the tasks
    instead of sitting beside them; App scrolls to it on select or add. */
 @media (max-width: 900px) {
+  /* Stacked: the page scrolls normally instead of each column */
+  .app-container {
+    height: auto;
+  }
+
+  .tasks-column {
+    overflow-y: visible;
+  }
+
   .main-content,
   .main-content.kanban-layout,
   .main-content.calendar-layout {

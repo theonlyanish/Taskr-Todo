@@ -11,6 +11,7 @@ import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
 import { exportFileName, parseImportFile, toMarkdown } from './utils/importExport';
+import { describeDueDate, parseQuickAdd, useQuickAdd } from './utils/quickAdd';
 import { SupabaseTaskService } from './services/supabaseTaskService';
 import { AuthService } from './services/authService';
 import { Task, TaskStatus } from './types/Task';
@@ -120,6 +121,8 @@ function App() {
   }, []);
 
   const [showPalette, setShowPalette] = useState(false);
+  // Start loading the date parser for quick add; re-renders once it's ready
+  useQuickAdd();
 
   // Ctrl+K (Cmd+K on a Mac) opens and closes the command palette from anywhere
   useEffect(() => {
@@ -810,8 +813,25 @@ function App() {
   ];
 
   // Tasks created from the palette are always top level and start in To Do
-  const createTaskFromPalette = (title: string) => {
-    handleTaskSubmit({ title, description: '', status: 'To Do' }, null);
+  // A date in the text ("pay rent fri") becomes the due date, as in the task form
+  const createTaskFromPalette = (text: string) => {
+    const quickAdd = parseQuickAdd(text);
+    handleTaskSubmit(
+      {
+        title: quickAdd?.title ?? text,
+        description: quickAdd?.timeText ? `Time: ${quickAdd.timeText}` : '',
+        status: 'To Do',
+        dueDate: quickAdd?.dueDate
+      },
+      null
+    );
+  };
+
+  const previewPaletteCreate = (text: string) => {
+    const quickAdd = parseQuickAdd(text);
+    return quickAdd
+      ? { title: quickAdd.title, hint: `Due ${describeDueDate(quickAdd.dueDate)}` }
+      : { title: text };
   };
 
   return (
@@ -1161,6 +1181,7 @@ function App() {
           <CommandPalette
             items={paletteItems}
             onCreateTask={createTaskFromPalette}
+            previewCreate={previewPaletteCreate}
             onClose={() => setShowPalette(false)}
           />
         )}

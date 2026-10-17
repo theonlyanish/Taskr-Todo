@@ -15,6 +15,8 @@ export interface PaletteItem {
 interface CommandPaletteProps {
   items: PaletteItem[];
   onCreateTask: (title: string) => void;
+  // How the "Create task" row should read, e.g. a due date found in the text
+  previewCreate?: (text: string) => { title: string; hint?: string };
   onClose: () => void;
 }
 
@@ -22,7 +24,7 @@ interface CommandPaletteProps {
 const MAX_TASK_RESULTS = 8;
 
 // Ctrl+K / Cmd+K search box for running actions and jumping to tasks
-export const CommandPalette: React.FC<CommandPaletteProps> = ({ items, onCreateTask, onClose }) => {
+export const CommandPalette: React.FC<CommandPaletteProps> = ({ items, onCreateTask, previewCreate, onClose }) => {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,15 +63,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ items, onCreateT
     // Offer to create a task from whatever was typed, unless it already exists
     const exists = items.some(item => item.group === 'Tasks' && item.label.toLowerCase() === needle);
     if (text && !exists) {
+      const preview = previewCreate?.(text) ?? { title: text };
       list.push({
         id: 'create-task',
-        label: `Create task “${text}”`,
+        label: `Create task “${preview.title}”`,
         group: 'Create',
+        hint: preview.hint,
         run: () => onCreateTask(text)
       });
     }
     return list;
-  }, [items, query, onCreateTask]);
+  }, [items, query, onCreateTask, previewCreate]);
 
   useEffect(() => {
     setActiveIndex(0);
