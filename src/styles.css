@@ -224,9 +224,10 @@ color: #666;
 margin-top: 2rem;
 }
 
-/* Base theme transition settings */
+/* Base theme transition settings. Kept short: every element fades its
+   colours, and nested text inherits mid-fade, so long values feel sluggish. */
 :root {
-  --transition-timing: 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-timing: 150ms ease-out;
 }
 
 /* Global transition for all elements that need theme transition */
@@ -265,30 +266,6 @@ margin-top: 2rem;
 --accent-color: #3d7199;
 --scrollbar-thumb: #2D2D2D;
 --scrollbar-track: #1a1a1f;
-}
-
-/* Base transition - apply to all elements that need to transition */
-html,
-body,
-.app-container,
-.container,
-.task-form,
-.task-item,
-.task-content,
-.task-title,
-input,
-textarea,
-select,
-.status-select,
-.theme-toggle,
-.task-list,
-.task-detail-column,
-.tasks-column,
-.task-checkbox,
-.task-meta,
-.form-group,
-.modal-content {
-transition: all var(--transition-timing);
 }
 
 /* Ensure the body fills the viewport */
@@ -353,7 +330,6 @@ opacity: 0.8;
 .theme-toggle:hover {
 opacity: 1;
 transform: scale(1.1);
-transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 /* Smooth scrolling */
@@ -761,10 +737,6 @@ background-color: var(--bg-secondary);
 background-color: var(--bg-secondary);
 }
 
-/* Task title styles */
-.task-title {
-transition: all 0.2s ease;
-}
 
 .task-title.completed {
 text-decoration: line-through;
@@ -1415,16 +1387,19 @@ flex: 0 0 auto;
   padding-left: 0.5rem; 
 }
 
-/* Remove transitions from specific elements where we don't want them */
+/* Elements that lift or scale on hover also animate transform and opacity */
+.task-item,
 .kanban-task-card,
-.task-item:hover,
-.theme-toggle:hover,
+.theme-toggle,
 .sync-indicator,
 .auth-submit,
 .add-task-btn {
-  transition: transform 0.2s ease,
-              box-shadow 0.2s ease,
-              opacity 0.2s ease;
+  transition: background-color var(--transition-timing),
+              color var(--transition-timing),
+              border-color var(--transition-timing),
+              box-shadow var(--transition-timing),
+              transform var(--transition-timing),
+              opacity var(--transition-timing);
 }
 
 /* Calendar View Styles */
