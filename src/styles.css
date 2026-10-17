@@ -1,11 +1,11 @@
-/* Atkinson Hyperlegible Next (bundled, see index.tsx) on every platform, in
-   Light 300 for everyday text; headings and labels keep their own weights.
-   The system font shows while it loads or if it can't. */
+/* IBM Plex Sans (bundled, see index.tsx) on every platform; headings and
+   labels set their own weights. The system font shows while it loads or if
+   it can't. */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Atkinson Hyperlegible Next Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "IBM Plex Sans Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scrollbar-width: thin;
@@ -279,16 +279,6 @@ background-color: var(--bg-primary);
 color: var(--text-primary);
 min-height: 100vh;
 margin: 0;
-font-weight: 300;
-}
-
-/* Form controls don't pick up the page's weight on their own; classes that
-   set a weight (buttons, labels) still win */
-input,
-textarea,
-select,
-button {
-font-weight: inherit;
 }
 
 .task-form,

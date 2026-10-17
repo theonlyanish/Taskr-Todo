@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// Atkinson Hyperlegible Next, bundled with the app so text looks the same on
-// every platform and works offline
-import '@fontsource-variable/atkinson-hyperlegible-next';
+// IBM Plex Sans, bundled with the app so text looks the same on every
+// platform and works offline
+import '@fontsource-variable/ibm-plex-sans';
 import './styles.css';
 import { Analytics } from '@vercel/analytics/react';
 import App from './App';
