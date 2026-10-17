@@ -15,6 +15,7 @@ import { MantineProvider } from '@mantine/core';
 import './styles.css';
 import { getPresetTasks, hasSeenPresetTasks, markPresetTasksAsSeen, resetPresetTasksState } from './utils/presetTasks';
 import { offlineStorage } from './utils/offlineStorage';
+import { CLOUD_ASLEEP_MESSAGE, isSupabaseUnavailable } from './services/supabaseErrors';
 
 // Add this type definition at the top of the file
 type ViewType = 'normal' | 'kanban' | 'calendar';
@@ -73,6 +74,13 @@ function App() {
   const [viewType, setViewType] = useState<ViewType>('normal');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [newSubtaskParentId, setNewSubtaskParentId] = useState<string | null>(null);
+  const [cloudNotice, setCloudNotice] = useState<string | null>(null);
+
+  // Show a friendly banner when Supabase is unreachable (e.g. the free-tier
+  // project is paused) instead of leaking the raw error. Guest mode is unaffected.
+  const reportCloudError = (error: unknown) => {
+    if (isSupabaseUnavailable(error)) setCloudNotice(CLOUD_ASLEEP_MESSAGE);
+  };
 
   // Effect to toggle dark mode and update local storage
   useEffect(() => {
@@ -83,10 +91,12 @@ function App() {
   // Load tasks and check auth state on mount
   useEffect(() => {
     const loadInitialData = async () => {
-      const currentUser = await AuthService.getCurrentUser();
-      setUser(currentUser);
-      
+      let currentUser: User | null = null;
+
       try {
+        currentUser = await AuthService.getCurrentUser();
+        setUser(currentUser);
+
         let loadedTasks: Task[] = [];
         
         if (currentUser) {
@@ -142,6 +152,7 @@ function App() {
         }
       } catch (error) {
         console.error('Error loading tasks:', error);
+        reportCloudError(error);
         // Fallback to local storage if Supabase fails
         const localTasks = await loadTasks();
         if (localTasks.length > 0) {
@@ -479,6 +490,7 @@ function App() {
       setTasks(loadedTasks);
     } catch (error) {
       console.error('Sync failed:', error);
+      reportCloudError(error);
     } finally {
       setIsSyncing(false);
     }
@@ -572,6 +584,7 @@ function App() {
         }
       } catch (error) {
         console.error('Error during task migration:', error);
+        reportCloudError(error);
         // In case of error, fall back to local tasks
         const localTasks = await loadTasks();
         setTasks(localTasks);
@@ -670,6 +683,20 @@ function App() {
             )}
           </div>
         </header>
+
+        {cloudNotice && (
+          <div className="cloud-notice" role="status">
+            <span>{cloudNotice}</span>
+            <button
+              type="button"
+              className="cloud-notice-dismiss"
+              onClick={() => setCloudNotice(null)}
+              aria-label="Dismiss"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <div className="view-selector-container">
           <select 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AuthService } from '../services/authService';
 import { TaskService } from '../services/taskService';
+import { CLOUD_ASLEEP_MESSAGE, isSupabaseUnavailable } from '../services/supabaseErrors';
 
 interface AuthProps {
   onAuthStateChange: (isLoggedIn: boolean) => void;
@@ -30,7 +31,11 @@ export const Auth: React.FC<AuthProps> = ({ onAuthStateChange }) => {
         setShowVerification(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (isSupabaseUnavailable(err)) {
+        setError(CLOUD_ASLEEP_MESSAGE);
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      }
     } finally {
       setLoading(false);
     }

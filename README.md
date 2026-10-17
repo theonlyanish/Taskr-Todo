@@ -132,6 +132,21 @@ Taskr-Todo/
 - Manual theme toggle
 - Smooth transitions and animations
 
+## Keeping Supabase awake
+
+Supabase pauses free-tier projects after roughly a week without API activity. While the project is paused, sign-in and cloud sync fail for every visitor until the owner restores it from the Supabase dashboard (guest mode keeps working because tasks stay on the device, and the app shows a "Cloud sync is asleep" notice instead of a raw error).
+
+The GitHub Actions workflow in `.github/workflows/supabase-keepalive.yml` runs every three days (and on demand via **Actions → Supabase keep-alive → Run workflow**). It makes one tiny read against the `tasks` table so the project never goes idle, and the job fails on any non-2xx response, so a paused project shows up as a red run.
+
+The workflow needs two repository secrets. Add them under **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Value |
+| --- | --- |
+| `SUPABASE_URL` | The project URL, e.g. `https://xxxx.supabase.co` (the same value as `REACT_APP_SUPABASE_URL`) |
+| `SUPABASE_ANON_KEY` | The project's anon (public) key (the same value as `REACT_APP_SUPABASE_ANON_KEY`) |
+
+Only the anon key is used. With row-level security on the `tasks` table the request returns an empty list, which still counts as activity. Never commit either value to the repository. Note that GitHub disables scheduled workflows in repositories with no commits for 60 days, so re-enable it from the Actions tab if that happens.
+
 ## Deployment
 
 The application is deployed on Vercel with automatic deployments from the main branch.

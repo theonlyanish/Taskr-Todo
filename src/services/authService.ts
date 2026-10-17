@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { User } from '@supabase/supabase-js';
+import { isSupabaseUnavailable } from './supabaseErrors';
 
 export class AuthService {
   static async signUp(email: string, password: string) {
@@ -26,7 +27,10 @@ export class AuthService {
   }
 
   static async getCurrentUser(): Promise<User | null> {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    // A missing session simply means "not signed in", but an unreachable
+    // backend must not be mistaken for that - let callers show a notice.
+    if (error && isSupabaseUnavailable(error)) throw error;
     return user;
   }
 

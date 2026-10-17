@@ -1,6 +1,7 @@
 import { Task } from '../types/Task';
 import { supabase, toTask } from './supabaseClient';
 import { AuthService } from './authService';
+import { isSupabaseUnavailable } from './supabaseErrors';
 
 export class SupabaseTaskService {
   static async getTasks(): Promise<Task[]> {
@@ -8,13 +9,13 @@ export class SupabaseTaskService {
       const user = await AuthService.getCurrentUser();
       if (!user) return [];
 
-      const { data, error } = await supabase
+      const { data, error, status } = await supabase
         .from('tasks')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) throw Object.assign(error, { status });
       
       // Convert all tasks to our Task type
       const allTasks = data.map(toTask);
@@ -43,6 +44,9 @@ export class SupabaseTaskService {
       return parentTasks;
     } catch (error) {
       console.error('Error fetching tasks:', error);
+      // An unreachable backend (paused project, network failure) is not an
+      // empty task list - surface it so the app can fall back to local tasks.
+      if (isSupabaseUnavailable(error)) throw error;
       return [];
     }
   }
