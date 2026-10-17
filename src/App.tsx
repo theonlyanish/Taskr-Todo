@@ -343,7 +343,13 @@ function App() {
         });
         setTasks(finalUpdatedTasks);
       }
-      
+
+      // Keep the open form in step with changes made elsewhere (e.g. dragging the
+      // selected task to another day), so saving it doesn't restore stale values.
+      setSelectedTask(current =>
+        current?.id === taskId ? { ...current, ...updates } : current
+      );
+
     } catch (error) {
       console.error('Error updating task:', error);
     }
@@ -796,6 +802,7 @@ function App() {
               <CalendarView
                 tasks={tasks}
                 onTaskSelect={handleTaskSelect}
+                onTaskUpdate={handleTaskUpdate}
                 selectedTaskId={selectedTask?.id}
                 onDateSelect={handleDateSelect}
               />

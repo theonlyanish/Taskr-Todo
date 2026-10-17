@@ -1429,7 +1429,7 @@ flex: 0 0 auto;
 
 /* Calendar View Styles */
 .main-content.calendar-layout {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: 0;
   padding: 0;
   height: calc(100vh - 140px);
@@ -1441,7 +1441,13 @@ flex: 0 0 auto;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-secondary);
+  gap: 1rem;
+  min-width: 0;
+}
+
+.calendar-grid {
+  flex: 1;
+  min-height: 0;
 }
 
 /* FullCalendar Styles */
@@ -1449,6 +1455,84 @@ flex: 0 0 auto;
   height: 100%;
   background: var(--bg-secondary);
   color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  --fc-border-color: var(--border-color);
+}
+
+/* Tray of open tasks with no due date, dragged onto the calendar to schedule */
+.calendar-unscheduled {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.calendar-unscheduled-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-unscheduled-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.calendar-unscheduled-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.calendar-unscheduled-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-height: 6.5rem;
+  overflow-y: auto;
+}
+
+.calendar-unscheduled-item {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid #f1c40f;
+  border-radius: 0 4px 4px 0;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: grab;
+  user-select: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-unscheduled-item[data-status="In Progress"] {
+  border-left-color: #3498db;
+}
+
+.calendar-unscheduled-item:hover {
+  border-color: var(--accent-color);
+}
+
+.calendar-unscheduled-item.selected {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.calendar-unscheduled-item:active {
+  cursor: grabbing;
+}
+
+/* Copy of the tray item that follows the pointer while dragging */
+.fc-event-dragging {
+  opacity: 0.9;
 }
 
 .calendar-container .fc-header-toolbar {
@@ -1755,11 +1839,15 @@ flex: 0 0 auto;
   }
 
   .calendar-container {
+    height: auto;
+    padding: 0;
+    border-right: none;
+  }
+
+  .calendar-grid {
+    flex: none;
     height: 70vh;
     min-height: 420px;
-    padding: 0.5rem;
-    border-right: none;
-    border-radius: 8px;
   }
 
   .task-detail-column {
@@ -1852,6 +1940,8 @@ flex: 0 0 auto;
 
   .calendar-container .fc-header-toolbar {
     padding: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
   .calendar-container .fc-toolbar-title {

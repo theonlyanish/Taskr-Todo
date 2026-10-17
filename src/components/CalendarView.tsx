@@ -2,39 +2,84 @@ import React, { useEffect, useRef } from 'react';
 import { Task } from '../types/Task';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
+import interactionPlugin, { Draggable, DropArg } from '@fullcalendar/interaction';
 
 interface CalendarViewProps {
   tasks: Task[];
   onTaskSelect: (task: Task) => void;
+  onTaskUpdate: (taskId: string, updates: Partial<Task>) => void;
   selectedTaskId?: string;
   onDateSelect?: (date: Date) => void;
 }
 
+// Due dates are stored as midnight UTC, so convert a calendar day (local
+// midnight) to that form before saving it.
+const toUtcDate = (date: Date) =>
+  new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+
 export const CalendarView: React.FC<CalendarViewProps> = ({
   tasks,
   onTaskSelect,
+  onTaskUpdate,
   selectedTaskId,
   onDateSelect
 }) => {
   const calendarRef = useRef<any>(null);
   const selectedDateRef = useRef<string | null>(null);
+  const unscheduledRef = useRef<HTMLDivElement>(null);
 
-  const events = tasks.map(task => ({
-    id: task.id,
-    title: task.title,
-    start: task.dueDate,
-    classNames: [
-      `calendar-task-${task.status.toLowerCase().replace(' ', '-')}`,
-      task.id === selectedTaskId ? 'selected' : ''
-    ],
-    extendedProps: {
-      task
-    }
-  }));
+  // Tasks still open with no due date; these go in the tray above the calendar
+  const unscheduledTasks = tasks.filter(
+    task => !task.dueDate && !task.isSubtask && task.status !== 'Completed'
+  );
+  const hasUnscheduled = unscheduledTasks.length > 0;
+
+  const events = tasks
+    .filter(task => task.dueDate)
+    .map(task => ({
+      id: task.id,
+      title: task.title,
+      // A plain YYYY-MM-DD all-day date keeps the task on the same day in every timezone
+      start: new Date(task.dueDate!).toISOString().split('T')[0],
+      allDay: true,
+      classNames: [
+        `calendar-task-${task.status.toLowerCase().replace(' ', '-')}`,
+        task.id === selectedTaskId ? 'selected' : ''
+      ],
+      extendedProps: {
+        task
+      }
+    }));
+
+  // Let tray items be dragged onto calendar days. create: false stops
+  // FullCalendar adding its own event; the task re-renders from state instead.
+  useEffect(() => {
+    if (!hasUnscheduled || !unscheduledRef.current) return;
+    const draggable = new Draggable(unscheduledRef.current, {
+      itemSelector: '.calendar-unscheduled-item',
+      minDistance: 5,
+      eventData: el => ({ title: el.dataset.title, create: false })
+    });
+    return () => draggable.destroy();
+  }, [hasUnscheduled]);
 
   const handleEventClick = (info: any) => {
     onTaskSelect(info.event.extendedProps.task);
+  };
+
+  // An event already on the calendar was dragged to another day
+  const handleEventDrop = (info: { event: { id: string; start: Date | null } }) => {
+    if (info.event.start) {
+      onTaskUpdate(info.event.id, { dueDate: toUtcDate(info.event.start) });
+    }
+  };
+
+  // A task from the unscheduled tray was dropped on a day
+  const handleExternalDrop = (info: DropArg) => {
+    const taskId = info.draggedEl.dataset.taskId;
+    if (taskId) {
+      onTaskUpdate(taskId, { dueDate: toUtcDate(info.date) });
+    }
   };
 
   const handleDateClick = (info: { date: Date; dayEl: HTMLElement }) => {
@@ -49,13 +94,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       info.dayEl.classList.add('selected-date');
       selectedDateRef.current = info.date.toISOString();
 
-      // Create a new Date object at midnight UTC to avoid timezone issues
-      const selectedDate = new Date(Date.UTC(
-        info.date.getFullYear(),
-        info.date.getMonth(),
-        info.date.getDate()
-      ));
-      onDateSelect(selectedDate);
+      onDateSelect(toUtcDate(info.date));
     }
   };
 
@@ -76,24 +115,57 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <div className="calendar-container">
-      <FullCalendar
-        ref={calendarRef}
-        plugins={[dayGridPlugin, interactionPlugin]}
-        initialView="dayGridMonth"
-        events={events}
-        eventClick={handleEventClick}
-        dateClick={handleDateClick}
-        headerToolbar={{
-          left: 'prev,next today',
-          center: 'title',
-          right: ''
-        }}
-        dayMaxEvents={3}
-        eventDisplay="block"
-        height="100%"
-        stickyHeaderDates={true}
-        firstDay={0}
-      />
+      {hasUnscheduled && (
+        <div className="calendar-unscheduled">
+          <div className="calendar-unscheduled-header">
+            <span className="calendar-unscheduled-title">
+              Unscheduled · {unscheduledTasks.length}
+            </span>
+            <span className="calendar-unscheduled-hint">Drag onto a day to set a due date</span>
+          </div>
+          <div className="calendar-unscheduled-list" ref={unscheduledRef}>
+            {unscheduledTasks.map(task => (
+              <div
+                key={task.id}
+                className={`calendar-unscheduled-item ${task.id === selectedTaskId ? 'selected' : ''}`}
+                data-task-id={task.id}
+                data-title={task.title}
+                data-status={task.status}
+                onClick={() => onTaskSelect(task)}
+              >
+                {task.title}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="calendar-grid">
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          events={events}
+          eventClick={handleEventClick}
+          dateClick={handleDateClick}
+          editable={true}
+          eventDurationEditable={false}
+          eventDrop={handleEventDrop}
+          droppable={true}
+          drop={handleExternalDrop}
+          headerToolbar={{
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek'
+          }}
+          buttonText={{ month: 'Month', week: 'Week', today: 'Today' }}
+          views={{ dayGridWeek: { dayMaxEvents: false } }}
+          dayMaxEvents={3}
+          eventDisplay="block"
+          height="100%"
+          stickyHeaderDates={true}
+          firstDay={0}
+        />
+      </div>
     </div>
   );
-}; 
+};
