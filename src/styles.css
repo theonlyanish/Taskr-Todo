@@ -1786,6 +1786,113 @@ flex: 0 0 auto;
   text-underline-offset: 2px;
 }
 
+/* Task rows, checkboxes, Kanban subtasks and calendar tray items are real
+   buttons so they can be reached by keyboard; strip the browser's button look. */
+button.task-checkbox,
+button.task-content,
+button.kanban-subtask-item,
+button.calendar-unscheduled-item {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+button.task-checkbox {
+  flex-shrink: 0;
+  padding: 0;
+  background-color: transparent;
+}
+
+button.task-checkbox.checked {
+  background-color: var(--accent-color);
+}
+
+button.task-content {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+button.task-content .task-title {
+  display: block;
+}
+
+button.kanban-subtask-item {
+  display: block;
+  width: 100%;
+  border: none;
+  border-left: 3px solid var(--accent-color);
+}
+
+/* Visible focus ring for keyboard users only */
+.task-checkbox:focus-visible,
+.task-content:focus-visible,
+.add-subtask-btn:focus-visible,
+.kanban-task-card:focus-visible,
+.kanban-subtask-item:focus-visible,
+.calendar-unscheduled-item:focus-visible,
+.calendar-container .fc-event:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* An "Add subtask" button only shown on hover must also show on focus */
+.task-item:focus-within > .add-subtask-btn {
+  opacity: 1;
+}
+
+/* Read by screen readers but not shown */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Kanban drag and drop (dnd-kit) */
+.kanban-task-card {
+  /* Let a long press start a drag on touch screens instead of selecting text */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+.kanban-task-card.drag-source {
+  opacity: 0.4;
+}
+
+.kanban-task-card.dragging {
+  cursor: grabbing;
+}
+
+/* The dragged copy sits outside its column, so colour its strip by status */
+.kanban-task-card.dragging[data-status="To Do"]::before {
+  background-color: #f1c40f;
+}
+
+.kanban-task-card.dragging[data-status="In Progress"]::before {
+  background-color: #3498db;
+}
+
+.kanban-task-card.dragging[data-status="Completed"]::before {
+  background-color: #2ecc71;
+}
+
+/* Snapping fights the board scrolling itself during a drag */
+.kanban-container.is-dragging {
+  scroll-snap-type: none;
+}
+
 /* Undo toast shown after deleting a task. Uses the inverse of the page
    colours so it stands out in both themes. */
 .undo-toast {

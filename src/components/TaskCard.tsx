@@ -1,5 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Task } from '../types/Task';
+
+// Ticking a task moves it to another section, which remounts its row. This
+// remembers whose checkbox had focus so the new row can take focus back.
+let checkboxToRefocus: string | null = null;
 
 interface TaskCardProps {
   task: Task;
@@ -16,33 +20,56 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onAddSubtask,
   selectedTaskId
 }) => {
+  const isCompleted = task.status === 'Completed';
+  const checkboxRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (checkboxToRefocus === task.id) {
+      checkboxToRefocus = null;
+      checkboxRef.current?.focus();
+    }
+  }, [task.id]);
+
   // Handle checkbox click
-  const handleCheckboxClick = (e: React.MouseEvent) => {
+  const handleCheckboxClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
+    if (document.activeElement === e.currentTarget) {
+      checkboxToRefocus = task.id;
+    }
     onTaskToggle(task.id);
   };
 
   return (
-    <div 
+    <div
       className={`task-item ${task.id === selectedTaskId ? 'selected' : ''} ${task.isSubtask ? 'subtask' : ''}`}
       data-status={task.status}
     >
-      <div
-        className={`task-checkbox ${task.status === 'Completed' ? 'checked' : ''}`}
+      <button
+        ref={checkboxRef}
+        type="button"
+        role="checkbox"
+        aria-checked={isCompleted}
+        aria-label={`Complete “${task.title}”`}
+        className={`task-checkbox ${isCompleted ? 'checked' : ''}`}
         onClick={handleCheckboxClick}
       />
-      <div className="task-content" onClick={() => onTaskSelect(task)}>
-        <div className={`task-title ${task.status === 'Completed' ? 'completed' : ''}`}>
+      <button
+        type="button"
+        className="task-content"
+        aria-current={task.id === selectedTaskId ? 'true' : undefined}
+        onClick={() => onTaskSelect(task)}
+      >
+        <span className={`task-title ${isCompleted ? 'completed' : ''}`}>
           {task.title}
-        </div>
+        </span>
         {task.dueDate && (
-          <div className="task-meta">
+          <span className="task-meta">
             <span className="due-date">
               Due: {new Date(task.dueDate).toLocaleDateString()}
             </span>
-          </div>
+          </span>
         )}
-      </div>
+      </button>
       {!task.isSubtask && (
         <button
           className="add-subtask-btn"

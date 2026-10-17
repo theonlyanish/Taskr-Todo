@@ -67,6 +67,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     onTaskSelect(info.event.extendedProps.task);
   };
 
+  // FullCalendar renders events as links without an href, which the keyboard
+  // skips. Make each one focusable and open it with Enter or Space.
+  const handleEventDidMount = ({ el }: { el: HTMLElement }) => {
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('role', 'button');
+    el.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        el.click();
+      }
+    });
+  };
+
   // An event already on the calendar was dragged to another day
   const handleEventDrop = (info: { event: { id: string; start: Date | null } }) => {
     if (info.event.start) {
@@ -125,7 +138,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
           <div className="calendar-unscheduled-list" ref={unscheduledRef}>
             {unscheduledTasks.map(task => (
-              <div
+              <button
+                type="button"
                 key={task.id}
                 className={`calendar-unscheduled-item ${task.id === selectedTaskId ? 'selected' : ''}`}
                 data-task-id={task.id}
@@ -134,7 +148,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 onClick={() => onTaskSelect(task)}
               >
                 {task.title}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -146,6 +160,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           initialView="dayGridMonth"
           events={events}
           eventClick={handleEventClick}
+          eventDidMount={handleEventDidMount}
           dateClick={handleDateClick}
           editable={true}
           eventDurationEditable={false}
