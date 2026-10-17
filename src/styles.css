@@ -1811,6 +1811,116 @@ flex: 0 0 auto;
   text-underline-offset: 2px;
 }
 
+/* Undo toast shown after deleting a task. Uses the inverse of the page
+   colours so it stands out in both themes. */
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 0.75rem 0.75rem 0.75rem 1rem;
+  border-radius: 8px;
+  background-color: var(--text-primary);
+  color: var(--bg-secondary);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: undo-toast-in 0.2s ease-out;
+}
+
+.undo-toast-message {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.undo-toast-undo {
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 0.35rem 0.6rem;
+  color: #74b9ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dark-theme .undo-toast-undo {
+  color: #0b5cad;
+}
+
+.undo-toast-dismiss {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.7;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.25rem 0.4rem;
+  cursor: pointer;
+}
+
+.undo-toast-undo:hover,
+.undo-toast-dismiss:hover {
+  background-color: rgba(127, 127, 127, 0.2);
+  opacity: 1;
+}
+
+.undo-toast-undo:focus-visible,
+.undo-toast-dismiss:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+/* Shrinks across the bottom edge to show how long Undo is still available */
+.undo-toast-timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background-color: #74b9ff;
+  transform-origin: left;
+  animation: undo-toast-timer linear forwards;
+}
+
+.dark-theme .undo-toast-timer {
+  background-color: #0b5cad;
+}
+
+@keyframes undo-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes undo-toast-timer {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .undo-toast {
+    animation: none;
+  }
+
+  .undo-toast-timer {
+    display: none;
+  }
+}
+
 /* Responsive layout. Below 900px the task form stacks under the tasks
    instead of sitting beside them; App scrolls to it on select or add. */
 @media (max-width: 900px) {
@@ -1975,6 +2085,15 @@ flex: 0 0 auto;
 
   .auth-modal {
     padding: 1.25rem;
+  }
+
+  .undo-toast {
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    max-width: none;
+    transform: none;
+    animation: none;
   }
 
   /* 16px stops iOS Safari zooming in when the field is focused */

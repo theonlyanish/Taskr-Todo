@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TaskList } from './components/TaskList';
 import { TaskForm } from './components/TaskForm';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -6,11 +6,12 @@ import { Auth } from './components/Auth';
 import { SyncIndicator } from './components/SyncIndicator';
 import KanbanView from './components/KanbanView';
 import { CalendarView } from './components/CalendarView';
+import { UndoToast } from './components/UndoToast';
 import { SupabaseTaskService } from './services/supabaseTaskService';
 import { AuthService } from './services/authService';
 import { Task, TaskStatus } from './types/Task';
 import { User } from '@supabase/supabase-js';
-import { loadTasks, addTask, updateTask, deleteTask } from './utils/taskOperations';
+import { loadTasks, addTask, updateTask } from './utils/taskOperations';
 import { MantineProvider } from '@mantine/core';
 import './styles.css';
 import { getPresetTasks, hasSeenPresetTasks, markPresetTasksAsSeen } from './utils/presetTasks';
@@ -22,6 +23,32 @@ type ViewType = 'normal' | 'kanban' | 'calendar';
 
 // Matches the stacked layout breakpoint in styles.css
 const STACKED_LAYOUT_QUERY = '(max-width: 900px)';
+
+// How long a deleted task can be brought back before the delete is saved
+const UNDO_WINDOW_MS = 5000;
+
+// A delete that has been applied on screen but not yet saved
+interface PendingDelete {
+  task: Task;
+  parentId?: string; // set when the deleted task is a subtask
+  index: number; // position among its siblings, so undo puts it back in place
+  commit: () => Promise<unknown>;
+}
+
+const withoutTask = (taskList: Task[], id: string): Task[] =>
+  taskList
+    .filter(task => task.id !== id)
+    .map(task =>
+      task.subtasks?.some(subtask => subtask.id === id)
+        ? { ...task, subtasks: task.subtasks.filter(subtask => subtask.id !== id) }
+        : task
+    );
+
+const withTaskRestored = (taskList: Task[], { task, parentId, index }: PendingDelete): Task[] => {
+  const insertAt = (items: Task[]) => [...items.slice(0, index), task, ...items.slice(index)];
+  if (!parentId) return insertAt(taskList);
+  return taskList.map(t => (t.id === parentId ? { ...t, subtasks: insertAt(t.subtasks || []) } : t));
+};
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([] as Task[]);
@@ -39,6 +66,27 @@ function App() {
   const [newSubtaskParentId, setNewSubtaskParentId] = useState<string | null>(null);
   const [cloudNotice, setCloudNotice] = useState<string | null>(null);
   const taskFormRef = useRef<HTMLDivElement>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const pendingDeleteRef = useRef<PendingDelete | null>(null);
+  const undoTimerRef = useRef<number | undefined>(undefined);
+  // Latest tasks, for saving a guest's list when a delayed delete is committed
+  const tasksRef = useRef(tasks);
+  tasksRef.current = tasks;
+
+  // Save the pending delete now (undo window over, toast dismissed, or another delete started)
+  const commitPendingDelete = useCallback(() => {
+    window.clearTimeout(undoTimerRef.current);
+    const pending = pendingDeleteRef.current;
+    pendingDeleteRef.current = null;
+    setPendingDelete(null);
+    pending?.commit().catch(error => console.error('Error deleting task:', error));
+  }, []);
+
+  // Don't lose a delete if the tab is closed during the undo window
+  useEffect(() => {
+    window.addEventListener('pagehide', commitPendingDelete);
+    return () => window.removeEventListener('pagehide', commitPendingDelete);
+  }, [commitPendingDelete]);
 
   // On narrow screens the form sits below the tasks, so bring it into view
   // whenever a task is picked or a new one is started.
@@ -371,38 +419,56 @@ function App() {
     return undefined;
   };
 
-  const handleTaskDelete = async (taskId: string) => {
-    try {
-      // Find the task to check if it exists
-      const taskToDelete = findTaskById(tasks, taskId);
-      if (!taskToDelete) {
-        console.error('Task not found:', taskId);
-        return;
-      }
-
-      if (user) {
-        // Delete the task from Supabase if user is logged in
-        const success = await SupabaseTaskService.deleteTask(taskId);
-        console.log('Task deleted from Supabase:', success);
-        
-        if (success) {
-          // Remove the task from the local state
-          const updatedTasks = tasks.filter(task => task.id !== taskId);
-          setTasks(updatedTasks);
-        }
-      } else {
-        // Delete from local storage if not logged in
-        const updatedTasks = await deleteTask(taskId, tasks);
-        setTasks(updatedTasks);
-      }
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      // Fallback to local delete
-      const updatedTasks = await deleteTask(taskId, tasks);
-      setTasks(updatedTasks);
+  // Remove the task from the screen straight away, but only save the delete
+  // once the undo window has passed.
+  const handleTaskDelete = (taskId: string) => {
+    const taskToDelete = findTaskById(tasks, taskId);
+    if (!taskToDelete) {
+      console.error('Task not found:', taskId);
+      return;
     }
-    
+
+    // Only one delete can be undone at a time, so save any earlier one first
+    commitPendingDelete();
+
+    const parent = tasks.find(task => task.subtasks?.some(subtask => subtask.id === taskId));
+    const index = parent
+      ? parent.subtasks!.findIndex(subtask => subtask.id === taskId)
+      : tasks.findIndex(task => task.id === taskId);
+
+    const pending: PendingDelete = {
+      task: taskToDelete,
+      parentId: parent?.id,
+      index,
+      // Signed-in deletes go to Supabase (subtasks cascade). A guest's tasks
+      // live in IndexedDB as one list, so save the list as it is by then.
+      commit: user
+        ? () => SupabaseTaskService.deleteTask(taskId)
+        : () => offlineStorage.saveTasks(tasksRef.current)
+    };
+
+    pendingDeleteRef.current = pending;
+    setPendingDelete(pending);
+    undoTimerRef.current = window.setTimeout(commitPendingDelete, UNDO_WINDOW_MS);
+
+    setTasks(withoutTask(tasks, taskId));
     setSelectedTask(null);
+  };
+
+  const handleUndoDelete = () => {
+    const pending = pendingDeleteRef.current;
+    if (!pending) return;
+    window.clearTimeout(undoTimerRef.current);
+    pendingDeleteRef.current = null;
+    setPendingDelete(null);
+    setTasks(current => withTaskRestored(current, pending));
+  };
+
+  const describeDelete = ({ task }: PendingDelete) => {
+    const subtaskCount = task.subtasks?.length ?? 0;
+    const label = task.isSubtask ? 'subtask' : 'task';
+    const extra = subtaskCount > 0 ? ` and ${subtaskCount} subtask${subtaskCount === 1 ? '' : 's'}` : '';
+    return `Deleted ${label} “${task.title}”${extra}`;
   };
 
   const handleSync = async () => {
@@ -515,6 +581,8 @@ function App() {
   };
 
   const handleSignOut = async () => {
+    // Save a pending delete while still signed in, or it would be lost
+    commitPendingDelete();
     await AuthService.signOut();
     const localTasks = await loadTasks();
     setTasks(localTasks);
@@ -839,6 +907,15 @@ function App() {
               Anish Kapse
             </a>
           </p>
+        {pendingDelete && (
+          <UndoToast
+            key={pendingDelete.task.id}
+            message={describeDelete(pendingDelete)}
+            durationMs={UNDO_WINDOW_MS}
+            onUndo={handleUndoDelete}
+            onDismiss={commitPendingDelete}
+          />
+        )}
       </div>
     </MantineProvider>
   );
