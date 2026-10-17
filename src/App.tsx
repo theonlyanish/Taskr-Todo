@@ -14,6 +14,7 @@ import { UndoToast } from './components/UndoToast';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
+import { DeleteAccountDialog, DeleteAccountState } from './components/DeleteAccountDialog';
 import { exportFileName, parseImportFile, toMarkdown } from './utils/importExport';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from './utils/quickAdd';
 import { SupabaseTaskService } from './services/supabaseTaskService';
@@ -25,8 +26,8 @@ import { MantineProvider } from '@mantine/core';
 import './styles.css';
 import { getPresetTasks, hasSeenPresetTasks, isUntouchedPresetTask, markPresetTasksAsSeen } from './utils/presetTasks';
 import { offlineStorage, OutboxChange } from './utils/offlineStorage';
-import { CLOUD_ASLEEP_MESSAGE, OFFLINE_QUEUED_MESSAGE, isSupabaseUnavailable } from './services/supabaseErrors';
-import { flushOutbox, outboxSize, queueChange } from './services/syncQueue';
+import { CLOUD_ASLEEP_MESSAGE, OFFLINE_QUEUED_MESSAGE, friendlyDeleteAccountError, isSupabaseUnavailable } from './services/supabaseErrors';
+import { discardOutbox, flushOutbox, outboxSize, queueChange } from './services/syncQueue';
 
 // Matches the stacked layout breakpoint in styles.css
 const STACKED_LAYOUT_QUERY = '(max-width: 900px)';
@@ -109,6 +110,8 @@ function App() {
   const [authMessage, setAuthMessage] = useState<string | undefined>(undefined);
   const [authMode, setAuthMode] = useState<AuthMode>('signIn');
   const [importState, setImportState] = useState<ImportState | null>(null);
+  // The email is kept so the dialog can still name the account once it's deleted
+  const [deleteAccount, setDeleteAccount] = useState<{ email: string; state: DeleteAccountState } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   // Opens in the view used last (on any device, when signed in)
   const [viewType, setViewType] = useState<ViewType>(() => savedView() ?? 'normal');
@@ -766,6 +769,36 @@ function App() {
     setTasks(localTasks);
   };
 
+  const openDeleteAccount = () => {
+    if (user) setDeleteAccount({ email: user.email ?? 'your account', state: { status: 'confirm' } });
+  };
+
+  const handleDeleteAccount = async () => {
+    const account = user;
+    if (!account) return;
+    setDeleteAccount(current => current && { ...current, state: { status: 'deleting' } });
+    // Send a delete still inside its undo window now, rather than after the account is gone
+    commitPendingDelete();
+    try {
+      await AuthService.deleteAccount();
+    } catch (error) {
+      console.error('Deleting the account failed:', error);
+      setDeleteAccount(current => current && { ...current, state: { status: 'confirm', error: friendlyDeleteAccountError(error) } });
+      return;
+    }
+    // Nothing of the account stays on this device either: its offline copy and
+    // any changes still waiting to be sent
+    try {
+      await offlineStorage.clearAccountTasks(account.id);
+      await discardOutbox(account.id);
+    } catch (error) {
+      console.error('Clearing the deleted account from this device failed:', error);
+    }
+    setSelectedTask(null);
+    setTasks(await loadTasks());
+    setDeleteAccount(current => current && { ...current, state: { status: 'done' } });
+  };
+
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setSelectedTask(null); // Clear selected task when selecting a new date
@@ -985,6 +1018,7 @@ function App() {
                 onImport={handleImportClick}
                 onExport={handleExport}
                 onSignOut={handleSignOut}
+                onDeleteAccount={openDeleteAccount}
               />
             ) : (
               <button
@@ -1283,6 +1317,17 @@ function App() {
             state={importState}
             onConfirm={handleImportConfirm}
             onClose={() => setImportState(null)}
+          />
+        )}
+        {deleteAccount && (
+          <DeleteAccountDialog
+            email={deleteAccount.email}
+            taskCount={tasks.filter(task => !task.isSubtask).length}
+            isOnline={isOnline}
+            state={deleteAccount.state}
+            onExport={handleExport}
+            onConfirm={handleDeleteAccount}
+            onClose={() => setDeleteAccount(null)}
           />
         )}
         {showPalette && (

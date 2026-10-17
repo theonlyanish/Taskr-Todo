@@ -766,6 +766,11 @@ width: 90%;
 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+/* The dimmed page is nearly as dark as the dialog, so outline its edge */
+.dark-theme .modal-content {
+border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .modal-content h3 {
 margin: 0 0 1rem 0;
 color: var(--text-primary);
@@ -1055,6 +1060,82 @@ flex: 0 0 auto;
   margin-left: auto;
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+.account-menu-item-danger {
+  color: #c82333;
+}
+
+.account-menu-item-danger:hover,
+.account-menu-item-danger:focus {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.dark-theme .account-menu-item-danger {
+  color: #ff7b86;
+}
+
+.dark-theme .account-menu-item-danger:hover,
+.dark-theme .account-menu-item-danger:focus {
+  background-color: rgba(220, 53, 69, 0.2);
+}
+
+/* Delete account dialog */
+.modal-content.delete-account-dialog {
+  max-width: 28rem;
+}
+
+.delete-account-dialog p {
+  overflow-wrap: anywhere;
+}
+
+.delete-account-dialog p.delete-account-export {
+  margin-top: -0.75rem;
+  font-size: 0.9rem;
+}
+
+.delete-account-export .link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-color);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.dark-theme .delete-account-export .link-button {
+  color: #7fb3dd;
+}
+
+.delete-account-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.delete-account-input {
+  width: 100%;
+  margin-bottom: 1.25rem;
+  padding: 0.55rem 0.7rem;
+  font-size: 1rem;
+}
+
+.delete-account-dialog .import-note,
+.delete-account-dialog .import-error {
+  margin-top: -0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Waiting for the confirmation word, not busy */
+.delete-account-dialog .delete-btn:disabled {
+  cursor: not-allowed;
+}
+
+.dark-theme .delete-account-dialog .import-error {
+  color: #ff7b86 !important;
 }
 
 /* Import preview dialog */

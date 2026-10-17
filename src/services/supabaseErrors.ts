@@ -56,3 +56,16 @@ export const isSupabaseUnavailable = (error: unknown): boolean => {
 
   return typeof message === 'string' && UNAVAILABLE_MESSAGE.test(message);
 };
+
+// Why deleting an account failed. Nothing is deleted in any of these cases.
+export const friendlyDeleteAccountError = (error: unknown): string => {
+  if (isSupabaseUnavailable(error)) {
+    return 'Couldn’t reach Taskr’s servers, so nothing was deleted. Check your connection and try again.';
+  }
+  const { code, message } = (error ?? {}) as { code?: unknown; message?: unknown };
+  // The delete_own_account function hasn't been added to the database
+  if (code === 'PGRST202' || (typeof message === 'string' && /could not find the function/i.test(message))) {
+    return 'Deleting accounts isn’t available right now, so nothing was deleted. Try again later.';
+  }
+  return 'Something went wrong, so nothing was deleted. Try again.';
+};

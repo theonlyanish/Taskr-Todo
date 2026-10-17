@@ -44,6 +44,15 @@ export class AuthService {
     if (error) throw error;
   }
 
+  // Permanently deletes the account and all its tasks on the server (see the
+  // delete_own_account migration), then forgets the session on this device
+  static async deleteAccount() {
+    const { error } = await supabase.rpc('delete_own_account');
+    if (error) throw error;
+    // The account is gone, so there's no server session left to end
+    await supabase.auth.signOut({ scope: 'local' });
+  }
+
   static async signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;

@@ -11,6 +11,13 @@ export const queueChange = (userId: string, change: OutboxChange) =>
 
 export const outboxSize = async (userId: string) => (await offlineStorage.getOutbox(userId)).length;
 
+// Drops an account's queued changes without sending them (the account was deleted)
+export const discardOutbox = async (userId: string) => {
+  for (const entry of await offlineStorage.getOutbox(userId)) {
+    await offlineStorage.removeFromOutbox(entry.seq!);
+  }
+};
+
 export interface FlushResult {
   sent: number;
   remaining: number; // still waiting because the server is unreachable
