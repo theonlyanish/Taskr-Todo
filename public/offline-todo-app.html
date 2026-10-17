@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How Taskr works offline and without an account</title>
+    <meta name="description" content="Taskr is a free todo app that works offline and needs no sign-up. Here is exactly where your tasks are stored, what happens when you sign in, and the honest limits." />
+    <link rel="canonical" href="https://taskr-todo.vercel.app/offline-todo-app.html" />
+    <meta name="theme-color" content="#3d7199" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://taskr-todo.vercel.app/offline-todo-app.html" />
+    <meta property="og:site_name" content="Taskr" />
+    <meta property="og:title" content="How Taskr works offline and without an account" />
+    <meta property="og:description" content="Where a free, no-sign-up todo app keeps your tasks: in your browser's IndexedDB, and in Supabase only once you choose to sign in." />
+    <meta property="og:image" content="https://taskr-todo.vercel.app/Logo.png" />
+    <meta property="og:image:alt" content="Taskr logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="How Taskr works offline and without an account" />
+    <meta name="twitter:description" content="Where a free, no-sign-up todo app keeps your tasks: in your browser's IndexedDB, and in Supabase only once you choose to sign in." />
+    <meta name="twitter:image" content="https://taskr-todo.vercel.app/Logo.png" />
+
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+        color: #1a1a1f;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+      }
+      main { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+      h1 { font-size: 2rem; margin: 0 0 0.5rem; line-height: 1.2; }
+      h2 { font-size: 1.25rem; margin: 2rem 0 0.5rem; }
+      p, li { margin-bottom: 0.5rem; }
+      ol, ul { padding-left: 1.25rem; }
+      a { color: #3d7199; }
+      code { background: #f1f3f5; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.95em; }
+      table { border-collapse: collapse; width: 100%; margin: 0.75rem 0 1rem; font-size: 0.95rem; }
+      th, td { text-align: left; vertical-align: top; padding: 0.4rem 0.5rem; border-bottom: 1px solid #e3e6ea; }
+      th { font-weight: 600; }
+      .lede { font-size: 1.1rem; color: #3a3a44; }
+      .cta { display: inline-block; margin: 0.5rem 0 1rem; padding: 0.6rem 1.1rem; background: #3d7199; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; }
+      .meta { color: #6b6f78; font-size: 0.9rem; }
+      footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e3e6ea; color: #6b6f78; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="meta"><a href="https://taskr-todo.vercel.app/">Taskr</a> &rsaquo; Guides</p>
+      <h1>How Taskr works offline and without an account</h1>
+      <p class="lede">
+        Taskr is a free todo app with Kanban and Calendar views that works offline and needs no
+        sign-up. Most todo apps ask for an email address before you can add your first task.
+        Taskr does not, and this page explains what that means in practice: where your tasks
+        live, what changes if you sign in, and what the limits are.
+      </p>
+      <a class="cta" href="https://taskr-todo.vercel.app/">Open Taskr</a>
+
+      <h2>Using Taskr without an account</h2>
+      <p>
+        Open <a href="https://taskr-todo.vercel.app/">taskr-todo.vercel.app</a> and start typing.
+        Every view and feature is available straight away: the list, the Kanban board, the
+        Calendar with its week view and Unscheduled tray, subtasks, natural language due dates,
+        the Ctrl+K command palette, undo after delete, dark mode and the 1, 2, 3 keyboard
+        shortcuts. There is no trial, no sign-up wall and no "upgrade" button.
+      </p>
+      <p>
+        Your tasks are saved on your own device as you go. Close the tab, come back tomorrow, and
+        they are still there.
+      </p>
+
+      <h2>Where your data is stored</h2>
+      <table>
+        <thead>
+          <tr><th>What</th><th>Without an account</th><th>Signed in</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Your tasks, subtasks, statuses, descriptions and due dates</td>
+            <td>In your browser's IndexedDB, in a database called <code>TaskrDB</code>, on this device only</td>
+            <td>In Taskr's Supabase (PostgreSQL) database, under your user ID, and cached in the browser</td>
+          </tr>
+          <tr>
+            <td>Light or dark theme</td>
+            <td>In your browser's localStorage</td>
+            <td>In your browser's localStorage</td>
+          </tr>
+          <tr>
+            <td>The app itself (HTML, scripts, styles)</td>
+            <td>Cached by a service worker after your first visit</td>
+            <td>Cached by a service worker after your first visit</td>
+          </tr>
+          <tr>
+            <td>Your email address and password</td>
+            <td>Nothing is collected</td>
+            <td>Held by Supabase Auth; Taskr stores no passwords itself</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Nothing you type as a guest is sent to a server. Taskr uses Vercel Web Analytics for
+        anonymous page-view counts, which does not include your tasks.
+      </p>
+
+      <h2>How offline works</h2>
+      <ol>
+        <li>On your first visit, a service worker caches the app so it can load again without a network connection.</li>
+        <li>Every change you make is written to IndexedDB on your device as it happens, so there is no "save" step and nothing to lose if the connection drops.</li>
+        <li>If you are signed in, each change is saved straight to Supabase and a sync indicator in the header shows whether you are online. Offline mode is a guest feature: see the limits below.</li>
+      </ol>
+      <p>
+        This is the same approach used by most installable web apps: the app shell is cached,
+        the data is local first, and the network is optional.
+      </p>
+
+      <h2>What changes when you sign in</h2>
+      <p>
+        Signing in is optional and free. It takes an email address and a password. When you
+        create an account, the tasks you already have on this device come with you: they are
+        uploaded to your account and then kept in sync on every device where you sign in.
+      </p>
+      <p>Three things need an account, because they need somewhere durable to store or fetch tasks:</p>
+      <ul>
+        <li><strong>Cross-device sync</strong>, so your phone and laptop show the same list.</li>
+        <li><strong>Import</strong> from Todoist or a CSV file. See <a href="https://taskr-todo.vercel.app/import-from-todoist.html">the import guide</a>.</li>
+        <li><strong>Export</strong> to a Markdown file.</li>
+      </ul>
+
+      <h2>Honest limits</h2>
+      <ul>
+        <li><strong>Guest tasks live in one browser profile.</strong> They are not available in another browser, another profile, a private window or another device. Sign in if you want that.</li>
+        <li><strong>Clearing site data deletes guest tasks.</strong> If you clear your browser's storage for taskr-todo.vercel.app, or your browser evicts storage because the disk is full, tasks that were never synced are gone. There is no server-side copy to restore from.</li>
+        <li><strong>The first load needs a connection.</strong> The app is cached after you have opened it once online. Before that, there is nothing on your device to run.</li>
+        <li><strong>Signed-in users need a connection to save.</strong> When you are signed in, changes go straight to the cloud and are not queued for later. If you edit while offline, the change can fail to save; the sync indicator turns to an offline state so you know. Full offline use is for guest mode today.</li>
+        <li><strong>Guests cannot export yet.</strong> Export to Markdown and import from CSV currently require signing in.</li>
+        <li><strong>Sync depends on a free-tier database.</strong> Taskr's cloud runs on Supabase's free tier. If that project is paused, sign-in and sync are unavailable until it is woken, and the app shows a "Cloud sync is asleep" notice. Guest mode keeps working regardless.</li>
+        <li><strong>No reminders or notifications.</strong> Taskr shows due dates in the list and the Calendar but does not send push notifications or emails.</li>
+      </ul>
+
+      <h2>Deleting your data</h2>
+      <p>
+        As a guest, clearing site data for taskr-todo.vercel.app in your browser removes everything.
+        If you have an account, delete your tasks in the app, then contact the author at the
+        address in the <a href="https://github.com/theonlyanish/Taskr-Todo#contact">README</a> to
+        have the account removed.
+      </p>
+
+      <footer>
+        <p>Taskr is open source on <a href="https://github.com/theonlyanish/Taskr-Todo">GitHub</a>, so you can check every claim on this page against the code. Made by <a href="https://anishkapse.com">Anish Kapse</a>. Last updated 17 October 2026.</p>
+        <p><a href="https://taskr-todo.vercel.app/">Open Taskr</a> &middot; <a href="https://taskr-todo.vercel.app/import-from-todoist.html">Import from Todoist</a> &middot; <a href="https://taskr-todo.vercel.app/changelog.html">Changelog</a></p>
+      </footer>
+    </main>
+  </body>
+</html>

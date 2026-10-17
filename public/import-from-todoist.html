@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Import your tasks from Todoist into Taskr</title>
+    <meta name="description" content="How to export a Todoist project as CSV and import it into Taskr, a free todo app with Kanban and Calendar views. What each Todoist field becomes, and what Taskr does differently." />
+    <link rel="canonical" href="https://taskr-todo.vercel.app/import-from-todoist.html" />
+    <meta name="theme-color" content="#3d7199" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://taskr-todo.vercel.app/import-from-todoist.html" />
+    <meta property="og:site_name" content="Taskr" />
+    <meta property="og:title" content="Import your tasks from Todoist into Taskr" />
+    <meta property="og:description" content="Export a Todoist project as CSV, then import it into Taskr in a few clicks. Tasks, subtasks, descriptions, comments and due dates come across." />
+    <meta property="og:image" content="https://taskr-todo.vercel.app/Logo.png" />
+    <meta property="og:image:alt" content="Taskr logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Import your tasks from Todoist into Taskr" />
+    <meta name="twitter:description" content="Export a Todoist project as CSV, then import it into Taskr in a few clicks. Tasks, subtasks, descriptions, comments and due dates come across." />
+    <meta name="twitter:image" content="https://taskr-todo.vercel.app/Logo.png" />
+
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+        color: #1a1a1f;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+      }
+      main { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+      h1 { font-size: 2rem; margin: 0 0 0.5rem; line-height: 1.2; }
+      h2 { font-size: 1.25rem; margin: 2rem 0 0.5rem; }
+      p, li { margin-bottom: 0.5rem; }
+      ol, ul { padding-left: 1.25rem; }
+      a { color: #3d7199; }
+      code { background: #f1f3f5; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.95em; }
+      table { border-collapse: collapse; width: 100%; margin: 0.75rem 0 1rem; font-size: 0.95rem; }
+      th, td { text-align: left; vertical-align: top; padding: 0.4rem 0.5rem; border-bottom: 1px solid #e3e6ea; }
+      th { font-weight: 600; }
+      .lede { font-size: 1.1rem; color: #3a3a44; }
+      .cta { display: inline-block; margin: 0.5rem 0 1rem; padding: 0.6rem 1.1rem; background: #3d7199; color: #fff; border-radius: 8px; text-decoration: none; font-weight: 600; }
+      .meta { color: #6b6f78; font-size: 0.9rem; }
+      footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e3e6ea; color: #6b6f78; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="meta"><a href="https://taskr-todo.vercel.app/">Taskr</a> &rsaquo; Guides</p>
+      <h1>Import your tasks from Todoist into Taskr</h1>
+      <p class="lede">
+        Taskr is a free todo app with Kanban and Calendar views that works offline and needs no
+        sign-up. If you are leaving Todoist, you can bring a project across in a few clicks:
+        export it as a CSV file, then import that file into Taskr.
+      </p>
+      <a class="cta" href="https://taskr-todo.vercel.app/">Open Taskr</a>
+
+      <h2>Step 1: export from Todoist</h2>
+      <ol>
+        <li>In Todoist, open the project you want to move.</li>
+        <li>Open the project menu (the three dots next to the project name).</li>
+        <li>Choose <strong>Export as CSV</strong> (sometimes labelled <em>Export as a template</em>).</li>
+        <li>Save the <code>.csv</code> file somewhere you can find it.</li>
+      </ol>
+      <p>
+        Todoist exports one project at a time, so repeat this for each project you want in Taskr.
+        Any CSV file under 5 MB and 1,000 tasks can be imported in one go.
+      </p>
+
+      <h2>Step 2: import into Taskr</h2>
+      <ol>
+        <li>Open <a href="https://taskr-todo.vercel.app/">taskr-todo.vercel.app</a> and sign in. Import needs a free account, because imported tasks are saved to your account so they are not lost if your browser data is cleared. Creating one takes an email address and a password.</li>
+        <li>Open the account menu in the top right and choose <strong>Import tasks</strong>. You can also press <strong>Ctrl+K</strong> and type <em>import</em>.</li>
+        <li>Pick the CSV file you exported.</li>
+        <li>Taskr shows a preview: how many tasks and subtasks it found and whether any dates could not be read. Click <strong>Import</strong> to add them to your list.</li>
+      </ol>
+      <p>Imported tasks are added to the tasks you already have. Nothing is deleted or replaced.</p>
+
+      <h2>What each Todoist field becomes</h2>
+      <p>Taskr reads the standard Todoist template columns. This is the exact mapping:</p>
+      <table>
+        <thead>
+          <tr><th>Todoist column</th><th>In Taskr</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>TYPE</code> = task</td><td>A task. Every imported task starts in the <strong>To Do</strong> column, because the Todoist export does not say whether a task is complete.</td></tr>
+          <tr><td><code>CONTENT</code></td><td>The task title.</td></tr>
+          <tr><td><code>DESCRIPTION</code></td><td>The task description.</td></tr>
+          <tr><td><code>INDENT</code></td><td>1 is a top-level task. 2 or more makes the row a subtask of the nearest top-level task above it. Taskr has one level of subtasks, so deeper levels are flattened onto that task.</td></tr>
+          <tr><td><code>DATE</code></td><td>The due date, when it is a plain date such as <code>2026-11-03</code>, <code>Nov 3</code>, <code>3 November 2026</code>, <code>today</code> or <code>tomorrow</code>. Times are dropped, because Taskr stores dates only. A date without a year is taken as the next time it comes round.</td></tr>
+          <tr><td><code>TYPE</code> = section</td><td>Taskr has no sections. The section name is added to the description of each task in it as <code>Section: &lt;name&gt;</code>, so nothing is lost.</td></tr>
+          <tr><td><code>TYPE</code> = note</td><td>Comments are appended to the description of the task they belong to.</td></tr>
+          <tr><td><code>PRIORITY</code>, labels, assignees</td><td>Not imported. Taskr does not have priorities, labels or assignees.</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Recurring dates such as <em>every Monday</em>, and ambiguous ones such as <code>03/04/2026</code>,
+        cannot be turned into a single due date. Those tasks are imported without a due date and
+        the original text is kept in the description as <code>Todoist date: every Monday</code>,
+        so you can set a date yourself. The import preview tells you how many dates this affected.
+      </p>
+
+      <h2>Importing from other apps</h2>
+      <p>
+        The same importer accepts any CSV file with a title column, so exports from spreadsheets,
+        TickTick, Microsoft To Do (via Excel) or your own scripts work too. Column names are matched
+        case-insensitively:
+      </p>
+      <ul>
+        <li><strong>Title</strong> (required): <code>title</code>, <code>task</code>, <code>name</code>, <code>content</code>, <code>summary</code>, <code>subject</code> or <code>task name</code></li>
+        <li><strong>Description</strong>: <code>description</code>, <code>notes</code>, <code>note</code>, <code>details</code> or <code>body</code></li>
+        <li><strong>Status</strong>: <code>status</code>, <code>state</code>, <code>completed</code>, <code>done</code> or <code>complete</code>. Values like <em>done</em>, <em>completed</em>, <em>true</em>, <em>yes</em> or <em>x</em> become Completed; <em>in progress</em>, <em>doing</em>, <em>started</em> or <em>wip</em> become In Progress; anything else is To Do.</li>
+        <li><strong>Due date</strong>: <code>due date</code>, <code>due</code>, <code>date</code>, <code>deadline</code> or <code>due_date</code>, read the same way as Todoist dates</li>
+        <li><strong>Parent</strong>: <code>parent</code>, <code>parent task</code> or <code>parent title</code>, holding the title of another row, makes the row a subtask of it</li>
+      </ul>
+      <p>Commas, semicolons and tabs all work as separators, and quoted fields may contain line breaks.</p>
+
+      <h2>What Taskr does differently from Todoist</h2>
+      <ul>
+        <li><strong>Free, with nothing locked.</strong> Every view and feature is free. There is no Pro tier, no task limit and no ads.</li>
+        <li><strong>No account to get started.</strong> You can use Taskr without signing up, and your tasks stay in your browser. A free account is only needed for cross-device sync, import and export.</li>
+        <li><strong>Works offline.</strong> Without an account, Taskr keeps working with no connection at all. Read more in <a href="https://taskr-todo.vercel.app/offline-todo-app.html">how Taskr works offline</a>.</li>
+        <li><strong>Kanban and Calendar built in.</strong> The same tasks appear as a list, a board with To Do, In Progress and Done columns, or a month or week calendar with an Unscheduled tray.</li>
+        <li><strong>Simpler on purpose.</strong> There are no projects, labels, filters, priorities, reminders or shared workspaces. If you rely on those, Taskr may be too small for you.</li>
+        <li><strong>Your data leaves as easily as it arrived.</strong> Export everything to a Markdown file at any time from the account menu.</li>
+      </ul>
+
+      <h2>Frequently asked questions</h2>
+      <p><strong>Will my completed tasks come across as completed?</strong><br />
+        No. The Todoist CSV export does not include completed tasks or a completion flag, so every imported task starts in To Do. A generic CSV with a status column keeps its statuses.</p>
+      <p><strong>Can I import the same file twice?</strong><br />
+        Yes, but the tasks will be duplicated. Taskr does not de-duplicate on import.</p>
+      <p><strong>Is my file uploaded anywhere?</strong><br />
+        The file is read in your browser. Only the resulting tasks are saved to your account, in the same way as a task you type by hand.</p>
+
+      <footer>
+        <p>Taskr is open source on <a href="https://github.com/theonlyanish/Taskr-Todo">GitHub</a> and made by <a href="https://anishkapse.com">Anish Kapse</a>. Last updated 17 October 2026.</p>
+        <p><a href="https://taskr-todo.vercel.app/">Open Taskr</a> &middot; <a href="https://taskr-todo.vercel.app/offline-todo-app.html">Offline and no-account guide</a> &middot; <a href="https://taskr-todo.vercel.app/changelog.html">Changelog</a></p>
+      </footer>
+    </main>
+  </body>
+</html>
