@@ -4,7 +4,6 @@ import './styles.css';
 import { Analytics } from '@vercel/analytics/react';
 import App from './App';
 import { offlineStorage } from './utils/offlineStorage';
-import { Task } from './types/Task';
 
 // Initialize offline storage
 offlineStorage.init().catch(console.error);

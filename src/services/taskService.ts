@@ -1,4 +1,4 @@
-import { Task, TaskStatus } from '../types/Task';
+import { Task } from '../types/Task';
 import { SupabaseTaskService } from './supabaseTaskService';
 import { AuthService } from './authService';
 import { offlineStorage } from '../utils/offlineStorage';
@@ -182,7 +182,7 @@ export class TaskService {
 
     try {
       this.setSyncStatus('syncing');
-      const cloudTasks = await SupabaseTaskService.getTasks();
+      await SupabaseTaskService.getTasks();
       this.setSyncStatus('synced');
       return;
     } catch (error) {

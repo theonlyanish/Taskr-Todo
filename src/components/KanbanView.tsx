@@ -49,15 +49,12 @@ const KanbanView: React.FC<KanbanViewProps> = ({
   // Add local state to track tasks for optimistic UI updates
   const [localTasks, setLocalTasks] = useState<Task[]>(tasks);
   
-  // Update local tasks when props change, but avoid infinite loops
+  // Update local tasks when props change. The functional update reads the
+  // previous value without adding localTasks to the dependency array, and the
+  // deep comparison avoids a re-render when an equal array arrives.
   useEffect(() => {
-    // Only update if the tasks have actually changed (deep comparison)
-    // We need to be careful with the dependency array to avoid infinite loops
-    const tasksChanged = !isEqual(tasks, localTasks);
-    if (tasksChanged) {
-      setLocalTasks(tasks);
-    }
-  }, [tasks]); // Only depend on tasks, not localTasks to avoid loops
+    setLocalTasks(prev => (isEqual(tasks, prev) ? prev : tasks));
+  }, [tasks]);
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('text/plain', taskId);

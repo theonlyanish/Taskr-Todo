@@ -13,52 +13,12 @@ import { User } from '@supabase/supabase-js';
 import { loadTasks, addTask, updateTask, deleteTask } from './utils/taskOperations';
 import { MantineProvider } from '@mantine/core';
 import './styles.css';
-import { getPresetTasks, hasSeenPresetTasks, markPresetTasksAsSeen, resetPresetTasksState } from './utils/presetTasks';
+import { getPresetTasks, hasSeenPresetTasks, markPresetTasksAsSeen } from './utils/presetTasks';
 import { offlineStorage } from './utils/offlineStorage';
 import { CLOUD_ASLEEP_MESSAGE, isSupabaseUnavailable } from './services/supabaseErrors';
 
 // Add this type definition at the top of the file
 type ViewType = 'normal' | 'kanban' | 'calendar';
-
-// Add this function before the App component
-const updateTaskAndParents = (tasks: Task[], taskId: string, updates: Partial<Task>): Task[] => {
-  return tasks.map(task => {
-    if (task.subtasks) {
-      const updatedSubtasks = updateTaskAndParents(task.subtasks, taskId, updates);
-      
-      // Check if any subtask was updated
-      const updatedSubtask = updatedSubtasks.find(st => st.id === taskId);
-      
-      if (updatedSubtask) {
-        // If the updated task is a subtask being changed to "In Progress" or "Completed", 
-        // and the parent is in "To Do", move the parent to "In Progress"
-        if ((updates.status === 'In Progress' || updates.status === 'Completed') && task.status === 'To Do') {
-          return {
-            ...task,
-            subtasks: updatedSubtasks,
-            status: 'In Progress' as TaskStatus
-          };
-        }
-        
-        // Don't change the parent's section, just update its subtasks
-        return {
-          ...task,
-          subtasks: updatedSubtasks
-        };
-      }
-      
-      return {
-        ...task,
-        subtasks: updatedSubtasks
-      };
-    }
-    
-    if (task.id === taskId) {
-      return { ...task, ...updates };
-    }
-    return task;
-  });
-};
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([] as Task[]);
@@ -252,67 +212,6 @@ function App() {
     
       setSelectedTask(null);
     setNewSubtaskParentId(null); // Reset the parent ID
-  };
-
-  // Helper function to update a task and all its subtasks
-  const updateTaskWithSubtasks = async (taskId: string, updates: Partial<Task>) => {
-    try {
-      // Find the task
-      const taskToUpdate = findTaskById(tasks, taskId);
-      if (!taskToUpdate) return;
-      
-      // If we're completing a parent task, also complete all subtasks
-      if (updates.status === 'Completed' && taskToUpdate.subtasks && taskToUpdate.subtasks.length > 0) {
-        console.log('Completing parent task and all subtasks:', taskId);
-        
-        // First update the parent task
-        await SupabaseTaskService.updateTask(taskId, {
-          ...updates
-        });
-        
-        // Then update all subtasks
-        const subtaskUpdatePromises = taskToUpdate.subtasks.map(subtask => 
-          SupabaseTaskService.updateTask(subtask.id, { status: 'Completed' as TaskStatus })
-        );
-        
-        await Promise.all(subtaskUpdatePromises);
-        
-        // Update local state
-        const updatedTasks = tasks.map(task => {
-          if (task.id === taskId) {
-            // Update the parent task
-            const updatedTask = { 
-              ...task, 
-              ...updates,
-              updatedAt: new Date(),
-              subtasks: task.subtasks?.map(subtask => ({
-                ...subtask,
-                status: 'Completed' as TaskStatus,
-                updatedAt: new Date()
-              }))
-            };
-            return updatedTask;
-          }
-          return task;
-        });
-        
-        setTasks(updatedTasks);
-      } else {
-        // Regular update for a single task
-        await SupabaseTaskService.updateTask(taskId, {
-          ...updates
-        });
-        
-        // Update the task in the local state
-        const updatedTasks = updateTaskAndParents(tasks, taskId, {
-          ...updates,
-          updatedAt: new Date()
-        });
-        setTasks(updatedTasks);
-      }
-    } catch (error) {
-      console.error('Error updating task with subtasks:', error);
-    }
   };
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
@@ -570,9 +469,6 @@ function App() {
           // Clear local storage after handling migration
           await offlineStorage.saveTasks([]);
           
-          // Merge local tasks that weren't migrated with Supabase tasks
-          const mergedTasks = [...supabaseTasks];
-          
           // Fetch the final updated task list from Supabase
           const updatedTasks = await SupabaseTaskService.getTasks();
           setTasks(updatedTasks);
@@ -601,51 +497,6 @@ function App() {
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setSelectedTask(null); // Clear selected task when selecting a new date
-  };
-
-  const handleResetPresetTasks = async () => {
-    // Clear everything first
-    resetPresetTasksState();
-    setTasks([]);
-    setSelectedTask(null);
-    
-    // Generate new preset tasks
-    const presetTasks = getPresetTasks().map(task => {
-      const taskId = crypto.randomUUID();
-      return {
-        ...task,
-        id: taskId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        subtasks: task.subtasks?.map(subtask => ({
-          ...subtask,
-          id: crypto.randomUUID(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          isSubtask: true,
-          parentId: taskId
-        })) || []
-      };
-    });
-    
-    // Clear local storage tasks first
-    await offlineStorage.saveTasks([]);
-    
-    // For local storage mode, save the tasks using the taskOperations utilities
-    // This ensures they go through the same add/update/delete logic as user-created tasks
-    if (!user) {
-      for (const task of presetTasks) {
-        await addTask(task, []);
-      }
-    } else {
-      // If user is logged in, save to Supabase
-      for (const task of presetTasks) {
-        await SupabaseTaskService.saveTask(task);
-      }
-    }
-    
-    // Set the new preset tasks in the UI
-    setTasks(presetTasks);
   };
 
   return (
