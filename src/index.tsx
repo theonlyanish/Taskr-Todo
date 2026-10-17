@@ -29,23 +29,10 @@ const checkOnlineStatus = () => {
   syncIndicator?.classList.toggle('offline', !isOnline);
 };
 
-window.addEventListener('online', async () => {
-  checkOnlineStatus();
-  const pendingChanges = await offlineStorage.getPendingChanges();
-  if (pendingChanges.length > 0) {
-    const syncIndicator = document.querySelector('.sync-indicator');
-    syncIndicator?.classList.add('syncing');
-    try {
-      // Here you would sync with your backend
-      // After successful sync:
-      await offlineStorage.clearPendingChanges();
-      syncIndicator?.classList.remove('syncing');
-    } catch (error) {
-      console.error('Sync failed:', error);
-      syncIndicator?.classList.add('error');
-    }
-  }
-});
+// Signed-in changes made offline are sent when the connection returns by App
+// (see syncWithServer and services/syncQueue). This used to clear the queue
+// here without sending anything, which threw those changes away.
+window.addEventListener('online', checkOnlineStatus);
 
 window.addEventListener('offline', checkOnlineStatus);
 

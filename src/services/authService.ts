@@ -44,8 +44,15 @@ export class AuthService {
   static async getCurrentUser(): Promise<User | null> {
     const { data: { user }, error } = await supabase.auth.getUser();
     // A missing session simply means "not signed in", but an unreachable
-    // backend must not be mistaken for that - let callers show a notice.
-    if (error && isSupabaseUnavailable(error)) throw error;
+    // backend must not be mistaken for that.
+    if (error && isSupabaseUnavailable(error)) {
+      // Offline or asleep: getUser() needs the network, but the session saved
+      // on this device still says who is signed in, so offline work can carry
+      // on (changes are queued and synced later). With no session, report it.
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) return session.user;
+      throw error;
+    }
     return user;
   }
 

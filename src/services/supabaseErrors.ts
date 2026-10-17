@@ -12,6 +12,10 @@
 export const CLOUD_ASLEEP_MESSAGE =
   'Cloud sync is asleep right now. Your tasks are still saved on this device.';
 
+// Shown when a signed-in change is queued in the outbox instead of sent
+export const OFFLINE_QUEUED_MESSAGE =
+  'You’re offline. Your changes are saved on this device and will sync when you reconnect.';
+
 // Browser fetch() failure messages (Chrome, Firefox, Safari, Node) and the
 // wording Supabase uses for a paused project.
 const UNAVAILABLE_MESSAGE =

@@ -21,8 +21,9 @@ import { loadTasks } from './utils/taskOperations';
 import { MantineProvider } from '@mantine/core';
 import './styles.css';
 import { getPresetTasks, hasSeenPresetTasks, isUntouchedPresetTask, markPresetTasksAsSeen } from './utils/presetTasks';
-import { offlineStorage } from './utils/offlineStorage';
-import { CLOUD_ASLEEP_MESSAGE, isSupabaseUnavailable } from './services/supabaseErrors';
+import { offlineStorage, OutboxChange } from './utils/offlineStorage';
+import { CLOUD_ASLEEP_MESSAGE, OFFLINE_QUEUED_MESSAGE, isSupabaseUnavailable } from './services/supabaseErrors';
+import { flushOutbox, outboxSize, queueChange } from './services/syncQueue';
 
 // Matches the stacked layout breakpoint in styles.css
 const STACKED_LAYOUT_QUERY = '(max-width: 900px)';
@@ -62,6 +63,16 @@ const withoutTask = (taskList: Task[], id: string): Task[] =>
         ? { ...task, subtasks: task.subtasks.filter(subtask => subtask.id !== id) }
         : task
     );
+
+// Tasks other than the edited one whose status changed as a knock-on effect,
+// e.g. subtasks completed along with their parent
+const cascadedStatusChanges = (before: Task[], after: Task[], editedId: string): Task[] => {
+  const flatten = (taskList: Task[]) => taskList.flatMap(task => [task, ...(task.subtasks || [])]);
+  const previousStatus = new Map(flatten(before).map(task => [task.id, task.status]));
+  return flatten(after).filter(
+    task => task.id !== editedId && previousStatus.has(task.id) && previousStatus.get(task.id) !== task.status
+  );
+};
 
 // Apply updates to a task wherever it sits, top level or as a subtask
 const withTaskUpdated = (taskList: Task[], id: string, updates: Partial<Task>): Task[] =>
@@ -161,6 +172,45 @@ function App() {
     if (isSupabaseUnavailable(error)) setCloudNotice(CLOUD_ASLEEP_MESSAGE);
   };
 
+  // Latest signed-in user, for listeners registered once on mount
+  const userRef = useRef(user);
+  userRef.current = user;
+
+  // Keep a copy on this device: signed-in users' tasks go in their own cache
+  // (shown when offline), guests' in the guest store
+  const saveOnDevice = (taskList: Task[], userId = userRef.current?.id) =>
+    userId ? offlineStorage.saveAccountTasks(userId, taskList) : offlineStorage.saveTasks(taskList);
+
+  // A signed-in write that failed because Supabase couldn't be reached goes in
+  // the outbox to be sent later. Returns false for any other kind of failure.
+  const queueIfOffline = async (error: unknown, userId: string | undefined, change: OutboxChange) => {
+    if (!userId || !isSupabaseUnavailable(error)) return false;
+    await queueChange(userId, change);
+    setCloudNotice(OFFLINE_QUEUED_MESSAGE);
+    return true;
+  };
+
+  // Send queued changes, then load the account's tasks fresh from Supabase.
+  // If anything is still queued (still offline), keep what's on screen.
+  const syncWithServer = async (userId: string) => {
+    const { remaining } = await flushOutbox(userId);
+    if (remaining > 0) {
+      setCloudNotice(OFFLINE_QUEUED_MESSAGE);
+      return;
+    }
+    let fresh = await SupabaseTaskService.getTasks();
+    // A delete still inside its undo window hasn't been sent yet; keep it hidden
+    const pending = pendingDeleteRef.current;
+    if (pending) fresh = withoutTask(fresh, pending.task.id);
+    tasksRef.current = fresh;
+    setTasks(fresh);
+    await saveOnDevice(fresh, userId);
+    setCloudNotice(current => (current === OFFLINE_QUEUED_MESSAGE || current === CLOUD_ASLEEP_MESSAGE ? null : current));
+  };
+  // For the "online" listener, which is registered once on mount
+  const syncWithServerRef = useRef(syncWithServer);
+  syncWithServerRef.current = syncWithServer;
+
   // Effect to toggle dark mode and update local storage
   useEffect(() => {
     document.body.classList.toggle('dark-theme', isDarkMode);
@@ -179,9 +229,17 @@ function App() {
         let loadedTasks: Task[] = [];
         
         if (currentUser) {
+          // Send anything queued while offline first, so the server copy is current
+          const { remaining } = await flushOutbox(currentUser.id);
+          if (remaining > 0) {
+            // Still unreachable: show this account's tasks as last saved here.
+            // status 0 marks it as "backend unreachable" for isSupabaseUnavailable.
+            throw Object.assign(new Error('Changes are still waiting to sync'), { status: 0 });
+          }
           // If user is logged in, load tasks from Supabase
           loadedTasks = await SupabaseTaskService.getTasks();
           console.log('Tasks loaded from Supabase:', loadedTasks);
+          await saveOnDevice(loadedTasks, currentUser.id);
         } else {
           // If not logged in, try to load from local storage
           loadedTasks = await loadTasks();
@@ -213,10 +271,10 @@ function App() {
             };
           });
           
-          // Save all welcome tasks to offline storage in one go. (This used to be
-          // followed by addTask(task, []) for each one, which rewrote storage with
+          // Save all welcome tasks on this device in one go. (Guests used to get
+          // addTask(task, []) for each one afterwards, which rewrote storage with
           // just that task, so only the last welcome task survived a reload.)
-          await offlineStorage.saveTasks(presetTasks);
+          await saveOnDevice(presetTasks, currentUser?.id);
 
           if (currentUser) {
             // If user is logged in, save to Supabase
@@ -232,11 +290,18 @@ function App() {
         }
       } catch (error) {
         console.error('Error loading tasks:', error);
-        reportCloudError(error);
-        // Fallback to local storage if Supabase fails
-        const localTasks = await loadTasks();
-        if (localTasks.length > 0) {
-          setTasks(localTasks);
+        // Fall back to what's saved on this device: the signed-in user's own
+        // cache (with any queued edits applied), or the guest's tasks
+        const savedTasks = currentUser
+          ? await offlineStorage.getAccountTasks(currentUser.id)
+          : await loadTasks();
+        if (savedTasks && savedTasks.length > 0) {
+          setTasks(savedTasks);
+        }
+        if (currentUser && isSupabaseUnavailable(error) && (await outboxSize(currentUser.id)) > 0) {
+          setCloudNotice(OFFLINE_QUEUED_MESSAGE);
+        } else {
+          reportCloudError(error);
         }
       }
     };
@@ -255,7 +320,17 @@ function App() {
     });
 
     // Set up online/offline listeners
-    const handleOnline = () => setIsOnline(true);
+    // Back online: send changes queued while offline, then refresh
+    const handleOnline = () => {
+      setIsOnline(true);
+      const signedIn = userRef.current;
+      if (signedIn) {
+        syncWithServerRef.current(signedIn.id).catch(error => {
+          console.error('Sync after reconnecting failed:', error);
+          reportCloudError(error);
+        });
+      }
+    };
     const handleOffline = () => setIsOnline(false);
     
     window.addEventListener('online', handleOnline);
@@ -317,9 +392,15 @@ function App() {
     };
 
     try {
-      // Save the task to Supabase (does nothing for guests)
-      const savedTask = await SupabaseTaskService.saveTask(newTask);
-      console.log('Task saved to Supabase:', savedTask);
+      // Save the task to Supabase (does nothing for guests). Offline, it's
+      // queued instead and still added below.
+      const userId = user?.id;
+      try {
+        const savedTask = await SupabaseTaskService.saveTask(newTask);
+        console.log('Task saved to Supabase:', savedTask);
+      } catch (error) {
+        if (!(await queueIfOffline(error, userId, { type: 'add', task: newTask }))) throw error;
+      }
 
       // Start from the latest list, not the `tasks` this call began with: a
       // second task added while the save above was in flight would otherwise
@@ -346,11 +427,9 @@ function App() {
       tasksRef.current = updatedTasks;
       setTasks(updatedTasks);
 
-      // Guests keep their tasks in IndexedDB; without this a new task was only
-      // on screen and disappeared on reload unless something else saved the list
-      if (!user) {
-        await offlineStorage.saveTasks(updatedTasks);
-      }
+      // Keep the list on this device too (guests' only copy; signed-in users'
+      // offline copy). Without this a guest's new task vanished on reload.
+      await saveOnDevice(updatedTasks, userId);
     } catch (error) {
       console.error('Error saving task:', error);
       // Handle the error (e.g., show a notification)
@@ -448,23 +527,27 @@ function App() {
         updatedAt: new Date()
       };
       
-      // If user is logged in, update in Supabase
-      if (user) {
-        try {
-          const success = await SupabaseTaskService.updateTask(completeTaskWithUpdates.id, completeTaskWithUpdates);
-          if (!success) {
-            console.error('Failed to update task in Supabase');
+      // If user is logged in, update in Supabase: the edited task plus any
+      // knock-on status changes (subtasks completed with their parent, a parent
+      // moved to In Progress), which previously never reached the server.
+      // Offline, each change is queued to be sent later.
+      const userId = user?.id;
+      if (userId) {
+        const changedTasks = [completeTaskWithUpdates, ...cascadedStatusChanges(tasks, nextTasks, taskId)];
+        for (const changed of changedTasks) {
+          try {
+            const success = await SupabaseTaskService.updateTask(changed.id, changed);
+            if (!success) console.error('Failed to update task in Supabase');
+          } catch (error) {
+            if (!(await queueIfOffline(error, userId, { type: 'update', task: changed }))) {
+              console.error('Error updating task in Supabase:', error);
+            }
           }
-        } catch (error) {
-          console.error('Error updating task in Supabase:', error);
-          // If Supabase update fails, update in local storage
-          await offlineStorage.saveTasks(nextTasks);
         }
-      } else {
-        // Guest tasks are stored as one list (subtasks nested in their parent),
-        // so save the whole updated list rather than just the changed task
-        await offlineStorage.saveTasks(nextTasks);
       }
+      // Save the whole updated list on this device (subtasks are nested in
+      // their parent): the guest's only copy, or the signed-in offline copy
+      await saveOnDevice(nextTasks, userId);
 
       // Final update if it wasn't a status change (status changes were already handled above)
       if (!updates.status || taskToUpdate.status === updates.status) {
@@ -515,15 +598,24 @@ function App() {
       ? parent.subtasks!.findIndex(subtask => subtask.id === taskId)
       : tasks.findIndex(task => task.id === taskId);
 
+    // Whoever is signed in now, even if the delete is only sent after the undo window
+    const deletingUserId = user?.id;
     const pending: PendingDelete = {
       task: taskToDelete,
       parentId: parent?.id,
       index,
-      // Signed-in deletes go to Supabase (subtasks cascade). A guest's tasks
-      // live in IndexedDB as one list, so save the list as it is by then.
-      commit: user
-        ? () => SupabaseTaskService.deleteTask(taskId)
-        : () => offlineStorage.saveTasks(tasksRef.current)
+      // Signed-in deletes go to Supabase (subtasks cascade), or the outbox when
+      // offline. Either way the list as it is by then is saved on this device.
+      commit: async () => {
+        if (deletingUserId) {
+          try {
+            await SupabaseTaskService.deleteTask(taskId);
+          } catch (error) {
+            if (!(await queueIfOffline(error, deletingUserId, { type: 'delete', taskId }))) throw error;
+          }
+        }
+        await saveOnDevice(tasksRef.current, deletingUserId);
+      }
     };
 
     pendingDeleteRef.current = pending;
@@ -555,9 +647,8 @@ function App() {
     
     setIsSyncing(true);
     try {
-      const loadedTasks = await SupabaseTaskService.getTasks();
-      console.log('Tasks synced from Supabase:', loadedTasks);
-      setTasks(loadedTasks);
+      // Send anything queued offline, then load the latest from Supabase
+      await syncWithServer(user.id);
     } catch (error) {
       console.error('Sync failed:', error);
       reportCloudError(error);
@@ -573,6 +664,10 @@ function App() {
       setSelectedTask(null);
     } else {
       try {
+        // Send anything this account left queued on this device while offline
+        const signedInUser = await AuthService.getCurrentUser();
+        if (signedInUser) await flushOutbox(signedInUser.id);
+
         // First, get the local tasks that need to be migrated
         const localTasks = await loadTasks();
         
@@ -643,11 +738,13 @@ function App() {
           // Fetch the final updated task list from Supabase
           const updatedTasks = await SupabaseTaskService.getTasks();
           setTasks(updatedTasks);
-          
+          if (signedInUser) await saveOnDevice(updatedTasks, signedInUser.id);
+
           console.log('Task migration and merge completed');
         } else {
           // If no local tasks, just use the Supabase tasks
           setTasks(supabaseTasks);
+          if (signedInUser) await saveOnDevice(supabaseTasks, signedInUser.id);
         }
       } catch (error) {
         console.error('Error during task migration:', error);
@@ -662,6 +759,18 @@ function App() {
   const handleSignOut = async () => {
     // Save a pending delete while still signed in, or it would be lost
     commitPendingDelete();
+    // Try to send anything queued offline. Once nothing is left waiting, remove
+    // this account's offline copy so the next person on this device can't see it;
+    // unsent changes (and their copy) stay until this user signs in again.
+    const signedOutUser = user;
+    if (signedOutUser) {
+      try {
+        const { remaining } = await flushOutbox(signedOutUser.id);
+        if (remaining === 0) await offlineStorage.clearAccountTasks(signedOutUser.id);
+      } catch (error) {
+        console.error('Sync before signing out failed:', error);
+      }
+    }
     await AuthService.signOut();
     const localTasks = await loadTasks();
     setTasks(localTasks);
