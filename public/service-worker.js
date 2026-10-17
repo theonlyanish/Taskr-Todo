@@ -1,12 +1,10 @@
-const CACHE_NAME = 'taskr-v1';
+const CACHE_NAME = 'taskr-v2';
+// Only precache files that exist at stable paths. CRA emits hashed bundle
+// names, so those are picked up at runtime by the fetch handler below.
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
-  '/static/js/main.js',
-  '/static/css/main.css',
-  '/icon-192x192.png',
-  '/icon-512x512.png'
+  '/favicon_io/site.webmanifest'
 ];
 
 // Install service worker and cache static assets
@@ -48,4 +46,4 @@ self.addEventListener('fetch', (event) => {
         return caches.match(event.request);
       })
   );
-}); 
+});

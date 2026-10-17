@@ -1,0 +1,45 @@
+# Taskr
+
+> Taskr is a free todo app with Kanban, Calendar and list views. It works offline, needs no sign-up, and keeps your tasks in your browser until you choose to sync.
+
+Taskr is a free todo app that works offline and needs no sign-up. Open https://taskr-todo.vercel.app/ and start adding tasks straight away. Your list is saved in your browser, so it is still there when you come back, with or without an internet connection.
+
+Switch between a Kanban board, a Calendar and a simple list to see the same tasks the way that suits the moment. Break big tasks into subtasks, drag cards between columns, and flip to dark mode when you like. If you ever want your tasks on more than one device, you can create a free account and sync them, but you never have to.
+
+## Features
+
+- Kanban board with drag and drop between To Do, In Progress and Done
+- Calendar view to see tasks by due date
+- List view for a plain, fast checklist
+- Subtasks to break work into smaller steps
+- Works offline, with changes kept locally until you are back online
+- Dark mode and light mode, following your system or your choice
+- No account needed to start; optional free sign-up for cross-device sync
+
+## FAQ
+
+### Is Taskr free?
+
+Yes. Taskr is completely free to use, with no paid tier, trial period or ads.
+
+### Do I need an account?
+
+No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices.
+
+### Does it work offline?
+
+Yes. Taskr keeps your tasks in your browser and keeps working without a connection. If you are signed in, changes made offline are synced when you are back online.
+
+### Can I sync across devices?
+
+Yes, if you want to. Create a free account and your tasks are stored in the cloud and kept in sync on every device where you sign in.
+
+### Where is my data stored?
+
+Without an account, your tasks live only in your browser's local storage on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced.
+
+## Links
+
+- App: https://taskr-todo.vercel.app/
+- Source code: https://github.com/theonlyanish/Taskr-Todo
+- Tech: React 18, TypeScript, Mantine UI, Supabase, deployed on Vercel

@@ -62,3 +62,7 @@ root.render(
     <App />
   </React.StrictMode>
 );
+
+// Hide the static landing section in public/index.html once the app has mounted.
+// The section exists so crawlers and no-JS visitors get real text; it is not part of the UI.
+document.body.classList.add('app-mounted');

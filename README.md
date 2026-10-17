@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-A modern, TypeScript-based task management web application built with React. Task Manager provides an intuitive interface for managing tasks with real-time synchronization across devices, featuring both Kanban and Calendar views, and a sleek dark/light mode interface.
+Taskr is a free todo app with Kanban, Calendar and list views that works offline and needs no sign-up. Open it and start adding tasks straight away: your list is saved in your browser, so it is still there when you come back, with or without an internet connection. Break big tasks into subtasks, drag cards between columns, and switch to dark mode when you like. If you want your tasks on more than one device, you can create a free account and sync them, but you never have to.
+
+A modern, TypeScript-based task management web application built with React. Taskr provides an intuitive interface for managing tasks with real-time synchronization across devices, featuring both Kanban and Calendar views, and a sleek dark/light mode interface.
 
 Live Demo: [https://taskr-todo.vercel.app/](https://taskr-todo.vercel.app/)
 
@@ -54,12 +56,12 @@ Live Demo: [https://taskr-todo.vercel.app/](https://taskr-todo.vercel.app/)
 
 1. Clone the repository
 ```bash
-git clone https://github.com/theonlyanish/Lapis-Todo.git
+git clone https://github.com/theonlyanish/Taskr-Todo.git
 ```
 
 2. Install dependencies
 ```bash
-cd Lapis-Todo
+cd Taskr-Todo
 npm install
 ```
 
@@ -80,7 +82,7 @@ npm start
 ## Project Structure
 
 ```
-Lapis-Todo/
+Taskr-Todo/
 ├── src/
 │   ├── components/
 │   │   ├── Auth.tsx
@@ -135,10 +137,10 @@ Lapis-Todo/
 The application is deployed on Vercel with automatic deployments from the main branch.
 
 ### Production URL
-[https://lapis-todo.vercel.app/](https://lapis-todo.vercel.app/)
+[https://taskr-todo.vercel.app/](https://taskr-todo.vercel.app/)
 
 ## Contact
 
 Anish Kapse - kapseanish@gmail.com
 
-Project Link: [https://github.com/theonlyanish/Lapis-Todo](https://github.com/theonlyanish/Lapis-Todo)
+Project Link: [https://github.com/theonlyanish/Taskr-Todo](https://github.com/theonlyanish/Taskr-Todo)

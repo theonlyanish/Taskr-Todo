@@ -3,14 +3,109 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Taskr: free todo app with Kanban and Calendar, no sign-up needed</title>
+    <meta name="description" content="Taskr is a free todo app with Kanban, Calendar and list views. It works offline, needs no sign-up, and keeps your tasks in your browser until you choose to sync." />
+    <link rel="canonical" href="https://taskr-todo.vercel.app/" />
+    <meta name="theme-color" content="#3d7199" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://taskr-todo.vercel.app/" />
+    <meta property="og:site_name" content="Taskr" />
+    <meta property="og:title" content="Taskr: free todo app with Kanban and Calendar, no sign-up needed" />
+    <meta property="og:description" content="A free todo app with Kanban, Calendar and list views that works offline and needs no account. Open it and start adding tasks." />
+    <meta property="og:image" content="https://taskr-todo.vercel.app/Logo.png" />
+    <meta property="og:image:alt" content="Taskr logo" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Taskr: free todo app with Kanban and Calendar, no sign-up needed" />
+    <meta name="twitter:description" content="A free todo app with Kanban, Calendar and list views that works offline and needs no account. Open it and start adding tasks." />
+    <meta name="twitter:image" content="https://taskr-todo.vercel.app/Logo.png" />
+
     <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/favicon_io/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon_io/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon_io/favicon-16x16.png">
     <link rel="manifest" href="%PUBLIC_URL%/favicon_io/site.webmanifest">
     <link rel="shortcut icon" href="%PUBLIC_URL%/favicon_io/favicon.ico">
-    <title>Task Manager</title>
+
+    <style>
+      /* Plain-HTML landing content for crawlers and no-JS visitors.
+         Hidden once React mounts (body.app-mounted is set in src/index.tsx). */
+      #landing {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 2rem 1rem 3rem;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+        color: #1a1a1f;
+      }
+      #landing h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+      #landing h2 { font-size: 1.25rem; margin: 1.5rem 0 0.5rem; }
+      #landing h3 { font-size: 1rem; margin: 1rem 0 0.25rem; }
+      #landing p, #landing li { margin-bottom: 0.5rem; }
+      #landing ul { padding-left: 1.25rem; }
+      #landing a { color: #3d7199; }
+      body.app-mounted #landing { display: none; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+
+    <section id="landing" aria-label="About Taskr">
+      <h1>Taskr: a free todo app with Kanban and Calendar views</h1>
+      <p>
+        Taskr is a free todo app that works offline and needs no sign-up. Open
+        <a href="https://taskr-todo.vercel.app/">taskr-todo.vercel.app</a> and start adding
+        tasks straight away. Your list is saved in your browser, so it is still there when you
+        come back, with or without an internet connection.
+      </p>
+      <p>
+        Switch between a Kanban board, a Calendar and a simple list to see the same tasks the
+        way that suits the moment. Break big tasks into subtasks, drag cards between columns,
+        and flip to dark mode when you like. If you ever want your tasks on more than one
+        device, you can create a free account and sync them, but you never have to.
+      </p>
+
+      <h2>Features</h2>
+      <ul>
+        <li><strong>Kanban board</strong> with drag and drop between To Do, In Progress and Done</li>
+        <li><strong>Calendar view</strong> to see tasks by due date</li>
+        <li><strong>List view</strong> for a plain, fast checklist</li>
+        <li><strong>Subtasks</strong> to break work into smaller steps</li>
+        <li><strong>Works offline</strong>, with changes kept locally until you are back online</li>
+        <li><strong>Dark mode</strong> and light mode, following your system or your choice</li>
+        <li><strong>No account needed</strong> to start; optional free sign-up for cross-device sync</li>
+      </ul>
+
+      <h2>Frequently asked questions</h2>
+
+      <h3>Is Taskr free?</h3>
+      <p>Yes. Taskr is completely free to use, with no paid tier, trial period or ads.</p>
+
+      <h3>Do I need an account?</h3>
+      <p>
+        No. You can use every view and feature without signing up. Creating an account is
+        optional and only needed if you want to sync your tasks across devices.
+      </p>
+
+      <h3>Does it work offline?</h3>
+      <p>
+        Yes. Taskr keeps your tasks in your browser and keeps working without a connection.
+        If you are signed in, changes made offline are synced when you are back online.
+      </p>
+
+      <h3>Can I sync across devices?</h3>
+      <p>
+        Yes, if you want to. Create a free account and your tasks are stored in the cloud and
+        kept in sync on every device where you sign in.
+      </p>
+
+      <h3>Where is my data stored?</h3>
+      <p>
+        Without an account, your tasks live only in your browser's local storage on your own
+        device. With an account, they are also stored in Taskr's Supabase database so they can
+        be synced. Taskr is open source on
+        <a href="https://github.com/theonlyanish/Taskr-Todo">GitHub</a>.
+      </p>
+    </section>
   </body>
 </html>
