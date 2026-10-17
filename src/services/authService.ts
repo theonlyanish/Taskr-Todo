@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { AuthChangeEvent, User } from '@supabase/supabase-js';
 import { isSupabaseUnavailable } from './supabaseErrors';
+import type { Preferences } from '../utils/preferences';
 
 export class AuthService {
   static async signUp(email: string, password: string) {
@@ -34,6 +35,13 @@ export class AuthService {
     const { data, error } = await supabase.auth.updateUser({ password });
     if (error) throw error;
     return data;
+  }
+
+  // Settings that follow the user between devices, kept on the account itself
+  // (Supabase user metadata), so they need no table of their own
+  static async savePreferences(preferences: Preferences) {
+    const { error } = await supabase.auth.updateUser({ data: { preferences } });
+    if (error) throw error;
   }
 
   static async signOut() {

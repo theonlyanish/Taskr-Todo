@@ -8,6 +8,8 @@ import KanbanView from './components/KanbanView';
 import { CalendarView } from './components/CalendarView';
 import { ViewSwitcher, ViewType } from './components/ViewSwitcher';
 import { useTheme } from './utils/theme';
+import { CalendarLayout, Preferences, saveCalendarLayout, savedCalendarLayout, savedView, saveView } from './utils/preferences';
+import { useAccountPreferences } from './utils/useAccountPreferences';
 import { UndoToast } from './components/UndoToast';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
@@ -98,7 +100,7 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([] as Task[]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   // Starts in the device's light or dark mode until the user picks one
-  const { isDark: isDarkMode, toggleTheme } = useTheme();
+  const { isDark: isDarkMode, theme, setTheme, toggleTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -108,7 +110,9 @@ function App() {
   const [authMode, setAuthMode] = useState<AuthMode>('signIn');
   const [importState, setImportState] = useState<ImportState | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const [viewType, setViewType] = useState<ViewType>('normal');
+  // Opens in the view used last (on any device, when signed in)
+  const [viewType, setViewType] = useState<ViewType>(() => savedView() ?? 'normal');
+  const [calendarLayout, setCalendarLayout] = useState<CalendarLayout>(() => savedCalendarLayout() ?? 'dayGridMonth');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [newSubtaskParentId, setNewSubtaskParentId] = useState<string | null>(null);
   const [cloudNotice, setCloudNotice] = useState<string | null>(null);
@@ -210,6 +214,21 @@ function App() {
   const syncWithServerRef = useRef(syncWithServer);
   syncWithServerRef.current = syncWithServer;
 
+
+  useEffect(() => saveView(viewType), [viewType]);
+  useEffect(() => saveCalendarLayout(calendarLayout), [calendarLayout]);
+
+  // Theme, view and calendar layout follow a signed-in user between devices
+  const applyAccountPreferences = (preferences: Preferences) => {
+    if (preferences.theme) setTheme(preferences.theme);
+    if (preferences.view) setViewType(preferences.view);
+    if (preferences.calendarLayout) setCalendarLayout(preferences.calendarLayout);
+  };
+  useAccountPreferences(
+    user?.id,
+    { theme: theme ?? undefined, view: viewType, calendarLayout },
+    applyAccountPreferences
+  );
 
   // Load tasks and check auth state on mount
   useEffect(() => {
@@ -1222,6 +1241,8 @@ function App() {
                 onTaskUpdate={handleTaskUpdate}
                 selectedTaskId={selectedTask?.id}
                 onDateSelect={handleDateSelect}
+                layout={calendarLayout}
+                onLayoutChange={setCalendarLayout}
               />
               <div className="task-detail-column" ref={taskFormRef}>
                 <TaskForm

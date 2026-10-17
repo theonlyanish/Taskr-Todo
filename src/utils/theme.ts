@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ThemeChoice } from './preferences';
 
 // Light or dark theme. Until the user picks one with the toggle, the app
 // follows the device's setting, including when it changes while open. Once
@@ -9,7 +10,7 @@ const STORAGE_KEY = 'theme';
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 // Storage can be unavailable (private windows, blocked site data)
-const savedTheme = (): 'dark' | 'light' | null => {
+const savedTheme = (): ThemeChoice | null => {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
     return value === 'dark' || value === 'light' ? value : null;
@@ -18,9 +19,9 @@ const savedTheme = (): 'dark' | 'light' | null => {
   }
 };
 
-const saveTheme = (dark: boolean) => {
+const saveTheme = (theme: ThemeChoice) => {
   try {
-    localStorage.setItem(STORAGE_KEY, dark ? 'dark' : 'light');
+    localStorage.setItem(STORAGE_KEY, theme);
   } catch {
     // Not saved; the toggle still works for this visit
   }
@@ -29,6 +30,8 @@ const saveTheme = (dark: boolean) => {
 const systemPrefersDark = () => window.matchMedia?.(DARK_QUERY).matches ?? false;
 
 export const useTheme = () => {
+  // The user's explicit choice, or null while following the device
+  const [theme, setChosenTheme] = useState<ThemeChoice | null>(savedTheme);
   const [isDark, setIsDark] = useState(() => {
     const saved = savedTheme();
     return saved ? saved === 'dark' : systemPrefersDark();
@@ -51,12 +54,15 @@ export const useTheme = () => {
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
   }, [isDark]);
 
-  // An explicit choice: save it so it wins over the system setting from now on
-  const toggleTheme = () => {
-    const next = !isDark;
+  // An explicit choice (the toggle, or the account's saved theme): save it so
+  // it wins over the system setting from now on
+  const setTheme = (next: ThemeChoice) => {
     saveTheme(next);
-    setIsDark(next);
+    setChosenTheme(next);
+    setIsDark(next === 'dark');
   };
 
-  return { isDark, toggleTheme };
+  const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
+
+  return { isDark, theme, setTheme, toggleTheme };
 };

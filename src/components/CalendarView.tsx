@@ -3,6 +3,7 @@ import { Task } from '../types/Task';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable, DropArg } from '@fullcalendar/interaction';
+import type { CalendarLayout } from '../utils/preferences';
 
 interface CalendarViewProps {
   tasks: Task[];
@@ -10,6 +11,9 @@ interface CalendarViewProps {
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => void;
   selectedTaskId?: string;
   onDateSelect?: (date: Date) => void;
+  // Month or Week, remembered between visits
+  layout?: CalendarLayout;
+  onLayoutChange?: (layout: CalendarLayout) => void;
 }
 
 // Due dates are stored as midnight UTC, so convert a calendar day (local
@@ -22,11 +26,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onTaskSelect,
   onTaskUpdate,
   selectedTaskId,
-  onDateSelect
+  onDateSelect,
+  layout = 'dayGridMonth',
+  onLayoutChange
 }) => {
   const calendarRef = useRef<any>(null);
   const selectedDateRef = useRef<string | null>(null);
   const unscheduledRef = useRef<HTMLDivElement>(null);
+
+  // The layout can also change from outside, when the account's saved setting arrives
+  useEffect(() => {
+    const api = calendarRef.current?.getApi();
+    if (api && api.view.type !== layout) api.changeView(layout);
+  }, [layout]);
 
   // Every task and subtask, each subtask straight after its parent
   const allTasks = tasks
@@ -181,7 +193,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
+          initialView={layout}
+          datesSet={arg => onLayoutChange?.(arg.view.type as CalendarLayout)}
           events={events}
           eventClick={handleEventClick}
           eventDidMount={handleEventDidMount}
