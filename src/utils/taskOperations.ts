@@ -24,9 +24,10 @@ export const loadTasks = async (): Promise<Task[]> => {
     await offlineStorage.saveTasks(tasks);
     return tasks;
   } catch (error) {
-    // If offline or error, load from local storage
+    // If offline or error, load from local storage. IndexedDB returns them in
+    // id order, which is random, so put them back in the order they were added.
     const tasks = await offlineStorage.getTasks();
-    return tasks;
+    return tasks.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 };
 

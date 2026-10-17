@@ -17,7 +17,7 @@ import { SupabaseTaskService } from './services/supabaseTaskService';
 import { AuthService } from './services/authService';
 import { Task, TaskStatus } from './types/Task';
 import { User } from '@supabase/supabase-js';
-import { loadTasks, addTask } from './utils/taskOperations';
+import { loadTasks } from './utils/taskOperations';
 import { MantineProvider } from '@mantine/core';
 import './styles.css';
 import { getPresetTasks, hasSeenPresetTasks, isUntouchedPresetTask, markPresetTasksAsSeen } from './utils/presetTasks';
@@ -189,13 +189,19 @@ function App() {
 
         // Only load preset tasks if there are no existing tasks and they haven't been seen
         if (loadedTasks.length === 0 && !hasSeenPresetTasks()) {
-          const presetTasks = getPresetTasks().map(task => {
+          // Mark straight away so a second run of this effect (React StrictMode
+          // in development) can't seed the welcome tasks twice
+          markPresetTasksAsSeen();
+          const seededAt = Date.now();
+          const presetTasks = getPresetTasks().map((task, index) => {
             const taskId = crypto.randomUUID();
+            // A millisecond apart so sorting by creation time keeps the tour in order
+            const createdAt = new Date(seededAt + index);
             return {
               ...task,
               id: taskId,
-              createdAt: new Date(),
-              updatedAt: new Date(),
+              createdAt,
+              updatedAt: createdAt,
               subtasks: task.subtasks?.map(subtask => ({
                 ...subtask,
                 id: crypto.randomUUID(),
@@ -207,24 +213,19 @@ function App() {
             };
           });
           
-          // Save preset tasks to offline storage first to ensure they can be edited/deleted
+          // Save all welcome tasks to offline storage in one go. (This used to be
+          // followed by addTask(task, []) for each one, which rewrote storage with
+          // just that task, so only the last welcome task survived a reload.)
           await offlineStorage.saveTasks(presetTasks);
-          
-          // For local storage mode, save the tasks using the taskOperations utilities
-          // This ensures they go through the same add/update/delete logic as user-created tasks
-          if (!currentUser) {
-            for (const task of presetTasks) {
-              await addTask(task, []);
-            }
-          } else {
+
+          if (currentUser) {
             // If user is logged in, save to Supabase
             for (const task of presetTasks) {
               await SupabaseTaskService.saveTask(task);
             }
           }
-          
+
           setTasks(presetTasks);
-          markPresetTasksAsSeen();
         } else if (loadedTasks.length > 0) {
           // Only set tasks if we actually have tasks to set
           setTasks(loadedTasks);
