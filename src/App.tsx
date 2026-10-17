@@ -238,7 +238,6 @@ function App() {
           }
           // If user is logged in, load tasks from Supabase
           loadedTasks = await SupabaseTaskService.getTasks();
-          console.log('Tasks loaded from Supabase:', loadedTasks);
           await saveOnDevice(loadedTasks, currentUser.id);
         } else {
           // If not logged in, try to load from local storage
@@ -352,7 +351,6 @@ function App() {
     const parentTask = tasks.find(t => t.id === parentId);
     if (!parentTask) return;
 
-    console.log('Adding subtask for parent:', parentId, parentTask);
     
     // Clear selected task and set the parent ID for the new subtask
     setSelectedTask(null);
@@ -396,8 +394,7 @@ function App() {
       // queued instead and still added below.
       const userId = user?.id;
       try {
-        const savedTask = await SupabaseTaskService.saveTask(newTask);
-        console.log('Task saved to Supabase:', savedTask);
+        await SupabaseTaskService.saveTask(newTask);
       } catch (error) {
         if (!(await queueIfOffline(error, userId, { type: 'add', task: newTask }))) throw error;
       }
@@ -453,7 +450,6 @@ function App() {
 
       // Always update the UI immediately for any status change
       if (updates.status && taskToUpdate.status !== updates.status) {
-        console.log('Updating task status immediately:', taskId, updates.status);
         
         // Create an optimistic update for the UI
         const updatedTasks = tasks.map(t => {
@@ -673,11 +669,9 @@ function App() {
         
         // Then fetch existing tasks from Supabase
         const supabaseTasks = await SupabaseTaskService.getTasks();
-        console.log('Tasks loaded after login:', supabaseTasks);
         
         // If there are local tasks and user just logged in, handle migration
         if (localTasks.length > 0) {
-          console.log('Analyzing local tasks for migration:', localTasks);
           
           // Filter out preset tasks that shouldn't be migrated
           const tasksToMigrate = localTasks.filter(localTask => {
@@ -709,7 +703,6 @@ function App() {
           });
 
           if (tasksToMigrate.length > 0) {
-            console.log('Migrating filtered tasks to Supabase:', tasksToMigrate);
             
             // Save each filtered task to Supabase
             const migrationPromises = tasksToMigrate.map(async (task) => {
@@ -740,7 +733,6 @@ function App() {
           setTasks(updatedTasks);
           if (signedInUser) await saveOnDevice(updatedTasks, signedInUser.id);
 
-          console.log('Task migration and merge completed');
         } else {
           // If no local tasks, just use the Supabase tasks
           setTasks(supabaseTasks);

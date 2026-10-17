@@ -34,9 +34,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   const quickAddMatch = quickAddReady && !selectedTask && !dueDate ? parseQuickAdd(title) : null;
   const quickAdd = quickAddMatch && quickAddMatch.matchedText !== keptAsText ? quickAddMatch : null;
 
-  // Log props for debugging
-  console.log('TaskForm props:', { selectedTask, parentId, initialDueDate });
-
   // Focus the input when the component mounts. preventScroll keeps phones,
   // where the form sits below the task list, from jumping past the tasks.
   useEffect(() => {
@@ -81,8 +78,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         formData.description = [description, `Time: ${quickAdd.timeText}`].filter(Boolean).join('\n');
       }
     }
-
-    console.log('Submitting form data:', { formData, selectedTask, parentId });
 
     if (selectedTask && selectedTask.id && onUpdate) {
       // If we have a selected task with a valid ID, use onUpdate
