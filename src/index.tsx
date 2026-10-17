@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './styles.css';
+import { Analytics } from '@vercel/analytics/react';
 import App from './App';
 import { offlineStorage } from './utils/offlineStorage';
 import { Task } from './types/Task';
@@ -60,6 +61,7 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <App />
+    <Analytics />
   </React.StrictMode>
 );
 
