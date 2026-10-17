@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TaskList } from './components/TaskList';
 import { TaskForm } from './components/TaskForm';
 import { ThemeToggle } from './components/ThemeToggle';
@@ -20,6 +20,9 @@ import { CLOUD_ASLEEP_MESSAGE, isSupabaseUnavailable } from './services/supabase
 // Add this type definition at the top of the file
 type ViewType = 'normal' | 'kanban' | 'calendar';
 
+// Matches the stacked layout breakpoint in styles.css
+const STACKED_LAYOUT_QUERY = '(max-width: 900px)';
+
 function App() {
   const [tasks, setTasks] = useState<Task[]>([] as Task[]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -35,6 +38,21 @@ function App() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [newSubtaskParentId, setNewSubtaskParentId] = useState<string | null>(null);
   const [cloudNotice, setCloudNotice] = useState<string | null>(null);
+  const taskFormRef = useRef<HTMLDivElement>(null);
+
+  // On narrow screens the form sits below the tasks, so bring it into view
+  // whenever a task is picked or a new one is started.
+  const revealTaskForm = () => {
+    if (!window.matchMedia(STACKED_LAYOUT_QUERY).matches) return;
+    requestAnimationFrame(() => {
+      taskFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const handleTaskSelect = (task: Task) => {
+    setSelectedTask(task);
+    revealTaskForm();
+  };
 
   // Show a friendly banner when Supabase is unreachable (e.g. the free-tier
   // project is paused) instead of leaking the raw error. Guest mode is unaffected.
@@ -144,6 +162,7 @@ function App() {
 
   const handleAddNewTask = () => {
     setSelectedTask(null);
+    revealTaskForm();
   };
 
   const handleAddSubtask = async (parentId: string) => {
@@ -155,6 +174,7 @@ function App() {
     // Clear selected task and set the parent ID for the new subtask
     setSelectedTask(null);
     setNewSubtaskParentId(parentId);
+    revealTaskForm();
   };
 
   const handleTaskSubmit = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -497,6 +517,7 @@ function App() {
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setSelectedTask(null); // Clear selected task when selecting a new date
+    revealTaskForm();
   };
 
   return (
@@ -579,7 +600,7 @@ function App() {
                   <h2>To Do</h2>
                   <TaskList 
                     tasks={tasks.filter(task => task.status === 'To Do')}
-                    onTaskSelect={setSelectedTask}
+                    onTaskSelect={handleTaskSelect}
                     onTaskToggle={(taskId) => {
                       const task = findTaskById(tasks, taskId);
                       if (task) {
@@ -640,7 +661,7 @@ function App() {
                   <h2>In Progress</h2>
                   <TaskList
                     tasks={tasks.filter(task => task.status === 'In Progress')}
-                    onTaskSelect={setSelectedTask}
+                    onTaskSelect={handleTaskSelect}
                     onTaskToggle={(taskId) => {
                       const task = findTaskById(tasks, taskId);
                       if (task) {
@@ -698,7 +719,7 @@ function App() {
                   <h2>Completed</h2>
                   <TaskList 
                     tasks={tasks.filter(task => task.status === 'Completed')}
-                    onTaskSelect={setSelectedTask}
+                    onTaskSelect={handleTaskSelect}
                     onTaskToggle={(taskId) => {
                       const task = findTaskById(tasks, taskId);
                       if (task) {
@@ -740,7 +761,7 @@ function App() {
                 </div>
               </div>
 
-              <div className="task-detail-column">
+              <div className="task-detail-column" ref={taskFormRef}>
                 <TaskForm
                   selectedTask={selectedTask}
                   onSubmit={handleTaskSubmit}
@@ -755,11 +776,11 @@ function App() {
             <>
               <KanbanView
                 tasks={tasks}
-                onTaskSelect={setSelectedTask}
+                onTaskSelect={handleTaskSelect}
                 onTaskUpdate={handleTaskUpdate}
                 selectedTaskId={selectedTask?.id}
               />
-              <div className="task-detail-column">
+              <div className="task-detail-column" ref={taskFormRef}>
                 <TaskForm
                   selectedTask={selectedTask}
                   onSubmit={handleTaskSubmit}
@@ -774,11 +795,11 @@ function App() {
             <>
               <CalendarView
                 tasks={tasks}
-                onTaskSelect={setSelectedTask}
+                onTaskSelect={handleTaskSelect}
                 selectedTaskId={selectedTask?.id}
                 onDateSelect={handleDateSelect}
               />
-              <div className="task-detail-column">
+              <div className="task-detail-column" ref={taskFormRef}>
                 <TaskForm
                   selectedTask={selectedTask}
                   onSubmit={handleTaskSubmit}

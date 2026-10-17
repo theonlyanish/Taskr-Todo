@@ -28,9 +28,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   // Log props for debugging
   console.log('TaskForm props:', { selectedTask, parentId, initialDueDate });
 
-  // Focus the input when the component mounts
+  // Focus the input when the component mounts. preventScroll keeps phones,
+  // where the form sits below the task list, from jumping past the tasks.
   useEffect(() => {
-    titleInputRef.current?.focus();
+    titleInputRef.current?.focus({ preventScroll: true });
   }, []);
 
   // useEffect hook to populate form fields with selectedTask data
@@ -46,7 +47,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       setStatus('To Do');
       setDueDate(initialDueDate ? new Date(initialDueDate).toISOString().split('T')[0] : '');
       // Focus the title input when creating a new task
-      titleInputRef.current?.focus();
+      titleInputRef.current?.focus({ preventScroll: true });
     }
   }, [selectedTask, initialDueDate]);
 
@@ -101,7 +102,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           required
           placeholder={parentId ? "Enter subtask title" : "Enter task title"}
           className="form-input"
-          autoFocus={!selectedTask} // Add autoFocus when creating new task
         />
       </div>
 

@@ -1726,3 +1726,181 @@ flex: 0 0 auto;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* Responsive layout. Below 900px the task form stacks under the tasks
+   instead of sitting beside them; App scrolls to it on select or add. */
+@media (max-width: 900px) {
+  .main-content,
+  .main-content.kanban-layout,
+  .main-content.calendar-layout {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+
+  .tasks-column {
+    border-right: none;
+    padding-right: 0;
+  }
+
+  .kanban-container {
+    height: auto;
+    padding: 0;
+    border-right: none;
+  }
+
+  .kanban-columns {
+    min-height: 0;
+  }
+
+  .calendar-container {
+    height: 70vh;
+    min-height: 420px;
+    padding: 0.5rem;
+    border-right: none;
+    border-radius: 8px;
+  }
+
+  .task-detail-column {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+    scroll-margin-top: 1rem;
+  }
+
+  .task-form {
+    max-width: none;
+    margin: 0;
+    padding: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-actions {
+    margin-top: 1.5rem;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .header {
+    gap: 0.75rem;
+  }
+
+  .header img {
+    height: 28px;
+  }
+
+  .app-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .header-controls {
+    gap: 0.25rem;
+  }
+
+  .sign-in-btn,
+  .sign-out-btn {
+    white-space: nowrap;
+  }
+
+  .view-selector-container {
+    padding: 0.75rem 1rem 0;
+  }
+
+  .task-item {
+    gap: 0.75rem;
+  }
+
+  .task-checkbox {
+    flex-shrink: 0;
+  }
+
+  .task-item.subtask {
+    margin-left: 1rem;
+  }
+
+  .add-subtask-btn .btn-text {
+    display: none;
+  }
+
+  /* Swipe between Kanban columns, one column per screen */
+  .kanban-container {
+    scroll-snap-type: x mandatory;
+  }
+
+  .kanban-columns {
+    gap: 0.75rem;
+  }
+
+  .kanban-column {
+    min-width: 80vw;
+    scroll-snap-align: start;
+  }
+
+  .calendar-container .fc-header-toolbar {
+    padding: 0.5rem;
+  }
+
+  .calendar-container .fc-toolbar-title {
+    font-size: 1rem !important;
+  }
+
+  .calendar-container .fc-button {
+    padding: 0.35rem 0.6rem;
+  }
+
+  .calendar-container .fc-col-header-cell-cushion {
+    font-size: 0.7rem;
+  }
+
+  .calendar-container .fc-daygrid-day-number {
+    padding: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  .calendar-container .fc-event.calendar-task-to-do,
+  .calendar-container .fc-event.calendar-task-in-progress,
+  .calendar-container .fc-event.calendar-task-completed {
+    margin: 1px !important;
+    padding: 0 2px !important;
+    font-size: 0.7rem;
+  }
+
+  .task-form {
+    padding: 1.25rem;
+  }
+
+  .auth-modal {
+    padding: 1.25rem;
+  }
+
+  /* 16px stops iOS Safari zooming in when the field is focused */
+  .auth-form input {
+    font-size: 1rem;
+  }
+}
+
+/* Touch screens have no hover, so show controls that otherwise appear on hover */
+@media (hover: none) {
+  .add-subtask-btn {
+    opacity: 1;
+  }
+
+  .task-item:hover,
+  .kanban-task-card:hover {
+    transform: none;
+  }
+}
