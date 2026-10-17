@@ -2553,6 +2553,77 @@ button.kanban-subtask-item {
   color: var(--text-secondary);
 }
 
+/* Status colour sweep. After a status change the card's colour strip travels
+   around the colour wheel from the old status colour to the new one
+   (blue -> cyan -> green -> yellow) instead of snapping. --morph-from and
+   --morph-to are set by useStatusMorph; registering --morph-progress as a
+   number lets the browser animate it, and color-mix blends by hue. Browsers
+   without these features simply show the new colour straight away. */
+:root {
+  --status-todo: #f1c40f;
+  --status-progress: #3498db;
+  --status-done: #2ecc71;
+}
+
+@property --morph-progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+.status-morph {
+  animation-duration: 900ms;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+
+/* The usual 150ms colour fade would trail behind the sweep on every frame */
+.status-morph,
+.status-morph::before {
+  transition: none;
+}
+
+/* Two identical animations so a second change mid-sweep restarts it */
+.status-morph-0 {
+  animation-name: status-morph-a;
+}
+
+.status-morph-1 {
+  animation-name: status-morph-b;
+}
+
+@keyframes status-morph-a {
+  from { --morph-progress: 0; }
+  to { --morph-progress: 1; }
+}
+
+@keyframes status-morph-b {
+  from { --morph-progress: 0; }
+  to { --morph-progress: 1; }
+}
+
+.task-section .task-list .task-item.status-morph {
+  border-left-color: color-mix(
+    in hsl shorter hue,
+    var(--morph-to) calc(var(--morph-progress) * 100%),
+    var(--morph-from)
+  );
+}
+
+.kanban-columns .kanban-column .kanban-task-card.status-morph::before {
+  background-color: color-mix(
+    in hsl shorter hue,
+    var(--morph-to) calc(var(--morph-progress) * 100%),
+    var(--morph-from)
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-morph {
+    animation: none;
+  }
+}
+
 /* Undo toast shown after deleting a task. Uses the inverse of the page
    colours so it stands out in both themes. */
 .undo-toast {

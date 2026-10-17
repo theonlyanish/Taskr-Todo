@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Task } from '../types/Task';
+import { useStatusMorph } from '../utils/statusMorph';
 
 // Ticking a task moves it to another section, which remounts its row. This
 // remembers whose checkbox had focus so the new row can take focus back.
@@ -22,6 +23,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 }) => {
   const isCompleted = task.status === 'Completed';
   const checkboxRef = useRef<HTMLButtonElement>(null);
+  // Sweeps the colour strip from the old status colour after a status change
+  const morph = useStatusMorph(task.id, task.status);
 
   useEffect(() => {
     if (checkboxToRefocus === task.id) {
@@ -41,7 +44,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
   return (
     <div
-      className={`task-item ${task.id === selectedTaskId ? 'selected' : ''} ${task.isSubtask ? 'subtask' : ''}`}
+      className={`task-item ${task.id === selectedTaskId ? 'selected' : ''} ${task.isSubtask ? 'subtask' : ''} ${morph.className}`}
+      style={morph.style}
+      onAnimationEnd={morph.onAnimationEnd}
       data-status={task.status}
       data-task-id={task.id}
     >

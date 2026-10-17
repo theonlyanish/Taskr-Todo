@@ -17,6 +17,7 @@ import {
 } from '@dnd-kit/core';
 import { Task, TaskStatus } from '../types/Task';
 import { isEqual } from 'lodash';
+import { useStatusMorph } from '../utils/statusMorph';
 
 interface KanbanViewProps {
   tasks: Task[];
@@ -113,6 +114,8 @@ const KanbanCard: React.FC<{
     data: { status: task.status, title: task.title }
   });
   const cardRef = useRef<HTMLDivElement | null>(null);
+  // Sweeps the colour strip from the old column's colour after a move
+  const morph = useStatusMorph(task.id, task.status);
 
   useEffect(() => {
     if (cardToRefocus === task.id) {
@@ -144,7 +147,9 @@ const KanbanCard: React.FC<{
       }}
       className={`kanban-task-card ${
         task.id === selectedTaskId ? 'selected' : ''
-      } ${task.status === 'Completed' ? 'completed' : ''} ${isDragging ? 'drag-source' : ''}`}
+      } ${task.status === 'Completed' ? 'completed' : ''} ${isDragging ? 'drag-source' : ''} ${morph.className}`}
+      style={morph.style}
+      onAnimationEnd={morph.onAnimationEnd}
       onClick={() => onTaskSelect(task)}
     >
       <KanbanCardContent task={task} onTaskSelect={onTaskSelect} selectedTaskId={selectedTaskId} />
