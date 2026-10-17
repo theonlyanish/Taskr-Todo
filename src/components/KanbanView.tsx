@@ -89,7 +89,7 @@ const KanbanCardContent: React.FC<{
     {/* Display subtasks if they exist */}
     {task.subtasks && task.subtasks.length > 0 && (
       <div className="kanban-subtasks-container">
-        <div className="kanban-subtasks-header">Subtasks:</div>
+        <div className="kanban-subtasks-header">Subtasks</div>
         {task.subtasks.map(subtask => (
           <SubtaskItem
             key={subtask.id}

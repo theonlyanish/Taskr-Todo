@@ -28,7 +28,7 @@ export const SyncIndicator: React.FC<SyncIndicatorProps> = ({
     <button
       className={getClassName()}
       onClick={onSync}
-      title={!isOnline ? 'Offline' : isSyncing ? 'Syncing...' : 'Sync'}
+      title={!isOnline ? 'Offline' : isSyncing ? 'Syncing…' : 'Sync now'}
       disabled={!isOnline || isSyncing}
     >
       {getIcon()}

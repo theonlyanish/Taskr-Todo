@@ -101,16 +101,17 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   const formKey = selectedTask ? `edit-${selectedTask.id}` : parentId ? `new-subtask-${parentId}` : 'new-task';
 
   // Determine the form title based on whether we're creating a subtask or editing a task
-  const formTitle = parentId ? 'Add Subtask' : selectedTask?.id ? 'Edit Task' : '';
+  const formTitle = parentId ? 'Add subtask' : selectedTask?.id ? 'Edit task' : '';
 
   // JSX for the form
   return (
     <form key={formKey} onSubmit={handleSubmit} className="task-form">
       {formTitle && <h2>{formTitle}</h2>}
       <div className="form-group">
-        <label>Task:</label>
+        <label htmlFor="task-title">Title</label>
         <input
           ref={titleInputRef}
+          id="task-title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -144,8 +145,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       </div>
 
       <div className="form-group">
-        <label>Description</label>
+        <label htmlFor="task-description">Description</label>
         <textarea
+          id="task-description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Enter task description (optional)"
@@ -155,8 +157,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       </div>
 
       <div className="form-group">
-        <label>Status</label>
+        <label htmlFor="task-status">Status</label>
         <select
+          id="task-status"
           value={status}
           onChange={(e) => setStatus(e.target.value as TaskStatus)}
           required
@@ -169,13 +172,13 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       </div>
 
       <div className="form-group">
-        <label>Due date</label>
+        <label htmlFor="task-due-date">Due date</label>
         <input
+          id="task-due-date"
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
           className="form-input"
-          placeholder="dd-mm-yyyy"
         />
       </div>
 

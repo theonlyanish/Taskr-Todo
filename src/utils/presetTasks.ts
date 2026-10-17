@@ -18,53 +18,83 @@ const generatePresetTask = (
 export const getPresetTasks = (): Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[] => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  
+
   const nextWeek = new Date();
   nextWeek.setDate(nextWeek.getDate() + 7);
 
   return [
     generatePresetTask(
       '👋 Welcome to Taskr!',
-      'This is a demo task to help you get started. You can click on any task to edit it, or click the checkbox to mark it as complete.',
+      'This is a sample task to get you started. Click a task to edit it, or tick its checkbox to mark it complete. Tip: press Ctrl+K (⌘K on a Mac) to search or run a command.',
       'To Do'
     ),
     generatePresetTask(
-      '✨ Create Subtasks',
-      'Click the "+ Add subtask" button on any task to create subtasks. Try organizing your work into smaller, manageable pieces!',
+      '✨ Break tasks into subtasks',
+      'Click “+ Add subtask” on any task to split it into smaller steps.',
       'To Do',
       tomorrow,
       [
         {
           title: '📝 This is a subtask',
-          description: 'Subtasks help break down complex tasks into smaller pieces',
+          description: 'Subtasks help break big tasks into smaller pieces.',
           status: 'To Do',
           isSubtask: true
         }
       ]
     ),
     generatePresetTask(
-      '🎯 Try Different Views like Kanban or Calendar',
-      'Use the view selector above to switch between Normal, Kanban, and Calendar views. Each view offers a different way to organize your tasks!',
+      '🎯 Try the board and calendar views',
+      'Use the List, Board and Calendar switch above (or press 1, 2 or 3) to see your tasks in different ways.',
       'In Progress',
       nextWeek
     ),
     generatePresetTask(
-        '🔑 Sign up to save your tasks',
-        'Sign up to save your tasks to the cloud and access them from anywhere!',
-        'In Progress',
-        nextWeek
-      ),
+      '🔑 Sign up to save your tasks',
+      'Create a free account to sync your tasks across devices. The tasks you have now come with you.',
+      'In Progress',
+      nextWeek
+    ),
     generatePresetTask(
-      '🌙 Dark Mode Available',
-      'Click the theme toggle in the top right corner to switch between light and dark modes.',
+      '🌙 Dark mode is available',
+      'Click the sun or moon in the top right corner to switch between light and dark themes.',
       'Completed'
     )
   ];
 };
 
+// Earlier wording of the welcome tasks, still saved on returning visitors'
+// devices. Recognised too, so unedited ones aren't copied into an account.
+const LEGACY_PRESET_TASKS: Pick<Task, 'title' | 'description' | 'status'>[] = [
+  {
+    title: '👋 Welcome to Taskr!',
+    description: 'This is a demo task to help you get started. You can click on any task to edit it, or click the checkbox to mark it as complete.',
+    status: 'To Do'
+  },
+  {
+    title: '✨ Create Subtasks',
+    description: 'Click the "+ Add subtask" button on any task to create subtasks. Try organizing your work into smaller, manageable pieces!',
+    status: 'To Do'
+  },
+  {
+    title: '🎯 Try Different Views like Kanban or Calendar',
+    description: 'Use the view selector above to switch between Normal, Kanban, and Calendar views. Each view offers a different way to organize your tasks!',
+    status: 'In Progress'
+  },
+  {
+    title: '🔑 Sign up to save your tasks',
+    description: 'Sign up to save your tasks to the cloud and access them from anywhere!',
+    status: 'In Progress'
+  },
+  {
+    title: '🌙 Dark Mode Available',
+    description: 'Click the theme toggle in the top right corner to switch between light and dark modes.',
+    status: 'Completed'
+  }
+];
+
 // A welcome task the user hasn't edited; these aren't copied into an account on sign-in
 export const isUntouchedPresetTask = (task: Pick<Task, 'title' | 'description' | 'status'>): boolean =>
-  getPresetTasks().some(preset =>
+  [...getPresetTasks(), ...LEGACY_PRESET_TASKS].some(preset =>
     preset.title === task.title &&
     preset.description === task.description &&
     preset.status === task.status
@@ -80,4 +110,4 @@ export const markPresetTasksAsSeen = (): void => {
 
 export const resetPresetTasksState = (): void => {
   localStorage.removeItem('hasSeenPresetTasks');
-}; 
+};

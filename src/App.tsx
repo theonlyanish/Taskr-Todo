@@ -669,31 +669,16 @@ function App() {
           
           // Filter out preset tasks that shouldn't be migrated
           const tasksToMigrate = localTasks.filter(localTask => {
-            // Check if this is a preset task by comparing title, description, and status
-            const isPresetTask = getPresetTasks().some(preset => 
-              preset.title === localTask.title && 
-              preset.description === localTask.description &&
-              preset.status === localTask.status
-            );
-
             // Check if a similar task already exists in Supabase
-            const hasExistingTask = supabaseTasks.some(supabaseTask => 
-              supabaseTask.title === localTask.title && 
+            const hasExistingTask = supabaseTasks.some(supabaseTask =>
+              supabaseTask.title === localTask.title &&
               supabaseTask.description === localTask.description &&
               supabaseTask.status === localTask.status
             );
 
-            // Only migrate if:
-            // 1. It's not a preset task, OR
-            // 2. It's a modified preset task (content or status has been edited)
-            // 3. AND the task doesn't already exist in Supabase
-            const matchingPreset = getPresetTasks().find(p => p.title === localTask.title);
-            return (!isPresetTask || 
-              (isPresetTask && (
-                localTask.title !== matchingPreset?.title ||
-                localTask.description !== matchingPreset?.description ||
-                localTask.status !== matchingPreset?.status
-              ))) && !hasExistingTask;
+            // Migrate everything except welcome tasks left as they were
+            // (current or earlier wording) and tasks the account already has
+            return !isUntouchedPresetTask(localTask) && !hasExistingTask;
           });
 
           if (tasksToMigrate.length > 0) {
@@ -947,7 +932,7 @@ function App() {
       <div className={`app-container ${isDarkMode ? 'dark-theme' : ''}`}>
         <header className="app-header">
           <div className="header">
-            <img src="/Logo.png" alt="Taskr Logo" />
+            <img src="/Logo.png" alt="" />
             <h1>Taskr</h1>
           </div>
           <div className="header-controls">
@@ -986,7 +971,7 @@ function App() {
                 onClick={() => openAuth()}
                 className="sign-in-btn"
               >
-                Sign In
+                Sign in
               </button>
             )}
           </div>
@@ -1028,7 +1013,7 @@ function App() {
               <div className="tasks-column">
                 <div className="tasks-header">
                   <button className="add-task-button" onClick={handleAddNewTask}>
-                    <span>+</span> Add New Task
+                    <span>+</span> Add new task
                   </button>
                 </div>
                 

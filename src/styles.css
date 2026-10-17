@@ -1,20 +1,11 @@
-@font-face {
-  font-family: "Segoe UI";
-  src: local("Segoe UI");
-  font-weight: 400;
-}
-
-@font-face {
-  font-family: "Segoe UI";
-  src: local("Segoe UI Semibold");
-  font-weight: 600;
-}
-
+/* Atkinson Hyperlegible Next (bundled, see index.tsx) on every platform, in
+   Light 300 for everyday text; headings and labels keep their own weights.
+   The system font shows while it loads or if it can't. */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Atkinson Hyperlegible Next Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scrollbar-width: thin;
@@ -288,6 +279,16 @@ background-color: var(--bg-primary);
 color: var(--text-primary);
 min-height: 100vh;
 margin: 0;
+font-weight: 300;
+}
+
+/* Form controls don't pick up the page's weight on their own; classes that
+   set a weight (buttons, labels) still win */
+input,
+textarea,
+select,
+button {
+font-weight: inherit;
 }
 
 .task-form,
@@ -2040,7 +2041,6 @@ flex: 0 0 auto;
 .calendar-container .fc-col-header-cell-cushion {
   color: var(--text-secondary);
   font-weight: 500;
-  text-transform: uppercase;
   font-size: 0.875rem;
 }
 
