@@ -11,7 +11,7 @@ import { SupabaseTaskService } from './services/supabaseTaskService';
 import { AuthService } from './services/authService';
 import { Task, TaskStatus } from './types/Task';
 import { User } from '@supabase/supabase-js';
-import { loadTasks, addTask, updateTask } from './utils/taskOperations';
+import { loadTasks, addTask } from './utils/taskOperations';
 import { MantineProvider } from '@mantine/core';
 import './styles.css';
 import { getPresetTasks, hasSeenPresetTasks, markPresetTasksAsSeen } from './utils/presetTasks';
@@ -43,6 +43,19 @@ const withoutTask = (taskList: Task[], id: string): Task[] =>
         ? { ...task, subtasks: task.subtasks.filter(subtask => subtask.id !== id) }
         : task
     );
+
+// Apply updates to a task wherever it sits, top level or as a subtask
+const withTaskUpdated = (taskList: Task[], id: string, updates: Partial<Task>): Task[] =>
+  taskList.map(task => {
+    if (task.id === id) return { ...task, ...updates };
+    if (task.subtasks?.some(subtask => subtask.id === id)) {
+      return {
+        ...task,
+        subtasks: task.subtasks.map(subtask => (subtask.id === id ? { ...subtask, ...updates } : subtask))
+      };
+    }
+    return task;
+  });
 
 const withTaskRestored = (taskList: Task[], { task, parentId, index }: PendingDelete): Task[] => {
   const insertAt = (items: Task[]) => [...items.slice(0, index), task, ...items.slice(index)];
@@ -291,6 +304,9 @@ function App() {
         return;
       }
       
+      // The task list after this update, including any status cascade
+      let nextTasks: Task[];
+
       // Always update the UI immediately for any status change
       if (updates.status && taskToUpdate.status !== updates.status) {
         console.log('Updating task status immediately:', taskId, updates.status);
@@ -355,8 +371,11 @@ function App() {
         
         // Update UI immediately
         setTasks(updatedTasks);
+        nextTasks = updatedTasks;
+      } else {
+        nextTasks = withTaskUpdated(tasks, taskId, { ...updates, updatedAt: new Date() });
       }
-      
+
       // For the actual async update, we need to get the complete task with the updates
       const completeTaskWithUpdates = {
         ...taskToUpdate,
@@ -374,22 +393,17 @@ function App() {
         } catch (error) {
           console.error('Error updating task in Supabase:', error);
           // If Supabase update fails, update in local storage
-          await updateTask(completeTaskWithUpdates, tasks);
+          await offlineStorage.saveTasks(nextTasks);
         }
       } else {
-        // Update in local storage
-        await updateTask(completeTaskWithUpdates, tasks);
+        // Guest tasks are stored as one list (subtasks nested in their parent),
+        // so save the whole updated list rather than just the changed task
+        await offlineStorage.saveTasks(nextTasks);
       }
-      
+
       // Final update if it wasn't a status change (status changes were already handled above)
       if (!updates.status || taskToUpdate.status === updates.status) {
-        const finalUpdatedTasks = tasks.map(t => {
-          if (t.id === taskId) {
-            return { ...t, ...updates, updatedAt: new Date() };
-          }
-          return t;
-        });
-        setTasks(finalUpdatedTasks);
+        setTasks(nextTasks);
       }
 
       // Keep the open form in step with changes made elsewhere (e.g. dragging the

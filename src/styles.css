@@ -1505,6 +1505,21 @@ flex: 0 0 auto;
   cursor: grabbing;
 }
 
+/* Subtasks in the tray are prefixed with their parent's name */
+.calendar-unscheduled-item.subtask {
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+.calendar-unscheduled-parent {
+  color: var(--text-secondary);
+}
+
+/* Subtask events on the calendar */
+.calendar-container .fc-event.calendar-subtask .fc-event-title::before {
+  content: '↳ ';
+}
+
 /* Copy of the tray item that follows the pointer while dragging */
 .fc-event-dragging {
   opacity: 0.9;

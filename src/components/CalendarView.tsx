@@ -28,15 +28,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const selectedDateRef = useRef<string | null>(null);
   const unscheduledRef = useRef<HTMLDivElement>(null);
 
-  // Tasks still open with no due date; these go in the tray above the calendar
-  const unscheduledTasks = tasks.filter(
-    task => !task.dueDate && !task.isSubtask && task.status !== 'Completed'
+  // Every task and subtask, each subtask straight after its parent
+  const allTasks = tasks
+    .filter(task => !task.isSubtask)
+    .flatMap(task => [
+      { task, parentTitle: undefined as string | undefined },
+      ...(task.subtasks || []).map(subtask => ({ task: subtask, parentTitle: task.title }))
+    ]);
+
+  // Open tasks and subtasks with no due date; these go in the tray above the calendar
+  const unscheduledTasks = allTasks.filter(
+    ({ task }) => !task.dueDate && task.status !== 'Completed'
   );
   const hasUnscheduled = unscheduledTasks.length > 0;
 
-  const events = tasks
-    .filter(task => task.dueDate)
-    .map(task => ({
+  const events = allTasks
+    .filter(({ task }) => task.dueDate)
+    .map(({ task, parentTitle }) => ({
       id: task.id,
       title: task.title,
       // A plain YYYY-MM-DD all-day date keeps the task on the same day in every timezone
@@ -44,10 +52,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       allDay: true,
       classNames: [
         `calendar-task-${task.status.toLowerCase().replace(' ', '-')}`,
+        parentTitle ? 'calendar-subtask' : '',
         task.id === selectedTaskId ? 'selected' : ''
       ],
       extendedProps: {
-        task
+        task,
+        parentTitle
       }
     }));
 
@@ -69,9 +79,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   // FullCalendar renders events as links without an href, which the keyboard
   // skips. Make each one focusable and open it with Enter or Space.
-  const handleEventDidMount = ({ el }: { el: HTMLElement }) => {
+  const handleEventDidMount = ({ el, event }: { el: HTMLElement; event: { title: string; extendedProps: { parentTitle?: string } } }) => {
     el.setAttribute('tabindex', '0');
     el.setAttribute('role', 'button');
+    // Name the parent of a subtask, since the event only shows its own title
+    const { parentTitle } = event.extendedProps;
+    if (parentTitle) {
+      el.setAttribute('title', `Subtask of ${parentTitle}`);
+      el.setAttribute('aria-label', `${event.title}, subtask of ${parentTitle}`);
+    }
     el.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
@@ -137,16 +153,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <span className="calendar-unscheduled-hint">Drag onto a day to set a due date</span>
           </div>
           <div className="calendar-unscheduled-list" ref={unscheduledRef}>
-            {unscheduledTasks.map(task => (
+            {unscheduledTasks.map(({ task, parentTitle }) => (
               <button
                 type="button"
                 key={task.id}
-                className={`calendar-unscheduled-item ${task.id === selectedTaskId ? 'selected' : ''}`}
+                className={`calendar-unscheduled-item ${parentTitle ? 'subtask' : ''} ${task.id === selectedTaskId ? 'selected' : ''}`}
                 data-task-id={task.id}
                 data-title={task.title}
                 data-status={task.status}
+                title={parentTitle ? `Subtask of ${parentTitle}` : undefined}
+                aria-label={parentTitle ? `${task.title}, subtask of ${parentTitle}` : undefined}
                 onClick={() => onTaskSelect(task)}
               >
+                {parentTitle && (
+                  <span className="calendar-unscheduled-parent" aria-hidden="true">
+                    {parentTitle} ›{' '}
+                  </span>
+                )}
                 {task.title}
               </button>
             ))}
