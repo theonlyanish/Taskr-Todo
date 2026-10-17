@@ -130,6 +130,7 @@ const KanbanCard: React.FC<{
       }}
       {...attributes}
       {...listeners}
+      data-task-id={task.id}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {

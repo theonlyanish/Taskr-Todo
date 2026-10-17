@@ -7,6 +7,7 @@ import { SyncIndicator } from './components/SyncIndicator';
 import KanbanView from './components/KanbanView';
 import { CalendarView } from './components/CalendarView';
 import { UndoToast } from './components/UndoToast';
+import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { SupabaseTaskService } from './services/supabaseTaskService';
 import { AuthService } from './services/authService';
 import { Task, TaskStatus } from './types/Task';
@@ -23,6 +24,22 @@ type ViewType = 'normal' | 'kanban' | 'calendar';
 
 // Matches the stacked layout breakpoint in styles.css
 const STACKED_LAYOUT_QUERY = '(max-width: 900px)';
+
+// Show ⌘ on Apple devices and Ctrl elsewhere in the shortcut hint
+const IS_APPLE = /Mac|iPhone|iPad/.test(navigator.userAgent);
+
+const VIEW_LABELS: Record<ViewType, string> = {
+  normal: 'list view',
+  kanban: 'Kanban board',
+  calendar: 'calendar'
+};
+
+// Extra search words for each view in the command palette
+const VIEW_KEYWORDS: Record<ViewType, string> = {
+  normal: 'view show normal list tasks',
+  kanban: 'view show board columns',
+  calendar: 'view show month week dates schedule'
+};
 
 // How long a deleted task can be brought back before the delete is saved
 const UNDO_WINDOW_MS = 5000;
@@ -93,6 +110,20 @@ function App() {
     pendingDeleteRef.current = null;
     setPendingDelete(null);
     pending?.commit().catch(error => console.error('Error deleting task:', error));
+  }, []);
+
+  const [showPalette, setShowPalette] = useState(false);
+
+  // Ctrl+K (Cmd+K on a Mac) opens and closes the command palette from anywhere
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setShowPalette(open => !open);
+      }
+    };
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
   }, []);
 
   // Don't lose a delete if the tab is closed during the undo window
@@ -238,13 +269,18 @@ function App() {
     revealTaskForm();
   };
 
-  const handleTaskSubmit = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+  // subtaskParentId defaults to the task whose "Add subtask" was clicked; the
+  // command palette passes null so its tasks are always top level.
+  const handleTaskSubmit = async (
+    taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>,
+    subtaskParentId: string | null = newSubtaskParentId
+  ) => {
     const now = new Date();
-    
+
     // If this is a subtask, find the parent task to inherit its status
     let status = taskData.status;
-    if (newSubtaskParentId || taskData.parentId) {
-      const parentId = newSubtaskParentId || taskData.parentId;
+    if (subtaskParentId || taskData.parentId) {
+      const parentId = subtaskParentId || taskData.parentId;
       const parentTask = findTaskById(tasks, parentId!);
       if (parentTask) {
         // Inherit parent's status unless explicitly set otherwise
@@ -258,21 +294,22 @@ function App() {
       id: crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
-      // If newSubtaskParentId exists, this is a subtask
-      parentId: newSubtaskParentId || taskData.parentId,
-      isSubtask: !!(newSubtaskParentId || taskData.parentId),
+      // If subtaskParentId exists, this is a subtask
+      parentId: subtaskParentId || taskData.parentId,
+      isSubtask: !!(subtaskParentId || taskData.parentId),
       subtasks: []
     };
 
     try {
-      // Save the task to Supabase
+      // Save the task to Supabase (does nothing for guests)
       const savedTask = await SupabaseTaskService.saveTask(newTask);
       console.log('Task saved to Supabase:', savedTask);
-      
-      if (newSubtaskParentId || taskData.parentId) {
+
+      let updatedTasks: Task[];
+      if (subtaskParentId || taskData.parentId) {
         // This is a subtask - add it to the parent's subtasks array
-        const parentId = newSubtaskParentId || taskData.parentId;
-        const updatedTasks = tasks.map(task => {
+        const parentId = subtaskParentId || taskData.parentId;
+        updatedTasks = tasks.map(task => {
           if (task.id === parentId) {
             return {
               ...task,
@@ -281,10 +318,16 @@ function App() {
           }
           return task;
         });
-        setTasks(updatedTasks);
       } else {
         // This is a main task
-        setTasks([...tasks, newTask]);
+        updatedTasks = [...tasks, newTask];
+      }
+      setTasks(updatedTasks);
+
+      // Guests keep their tasks in IndexedDB; without this a new task was only
+      // on screen and disappeared on reload unless something else saved the list
+      if (!user) {
+        await offlineStorage.saveTasks(updatedTasks);
       }
     } catch (error) {
       console.error('Error saving task:', error);
@@ -608,6 +651,72 @@ function App() {
     revealTaskForm();
   };
 
+  // Open a task from the command palette and bring its row or card into view
+  const jumpToTask = (task: Task) => {
+    handleTaskSelect(task);
+    // On narrow screens revealTaskForm already scrolls to the form instead
+    if (window.matchMedia(STACKED_LAYOUT_QUERY).matches) return;
+    requestAnimationFrame(() => {
+      document.querySelector(`[data-task-id="${task.id}"]`)?.scrollIntoView({ block: 'nearest' });
+    });
+  };
+
+  const paletteItems: PaletteItem[] = [
+    {
+      id: 'new-task',
+      group: 'Actions',
+      label: 'New task',
+      keywords: 'add create',
+      run: () => {
+        setNewSubtaskParentId(null);
+        handleAddNewTask();
+        requestAnimationFrame(() => taskFormRef.current?.querySelector('input')?.focus());
+      }
+    },
+    ...(Object.keys(VIEW_LABELS) as ViewType[]).map(view => ({
+      id: `view-${view}`,
+      group: 'Actions' as const,
+      label: `Switch to ${VIEW_LABELS[view]}`,
+      hint: view === viewType ? 'Current' : 'View',
+      keywords: VIEW_KEYWORDS[view],
+      run: () => setViewType(view)
+    })),
+    {
+      id: 'toggle-theme',
+      group: 'Actions',
+      label: isDarkMode ? 'Switch to light theme' : 'Switch to dark theme',
+      hint: 'Theme',
+      keywords: 'theme mode dark light colour color',
+      run: () => setIsDarkMode(!isDarkMode)
+    },
+    user
+      ? { id: 'sign-out', group: 'Actions', label: 'Sign out', keywords: 'log out account', run: handleSignOut }
+      : {
+          id: 'sign-in',
+          group: 'Actions',
+          label: 'Sign in to sync your tasks',
+          keywords: 'log in account cloud sync sign up',
+          run: () => setShowAuthModal(true)
+        },
+    // Every task and subtask, so the palette doubles as search
+    ...tasks
+      .filter(task => !task.isSubtask)
+      .flatMap(task => [task, ...(task.subtasks || [])])
+      .map(task => ({
+        id: `task-${task.id}`,
+        group: 'Tasks' as const,
+        label: task.title,
+        hint: task.isSubtask ? `Subtask · ${task.status}` : task.status,
+        keywords: task.description,
+        run: () => jumpToTask(task)
+      }))
+  ];
+
+  // Tasks created from the palette are always top level and start in To Do
+  const createTaskFromPalette = (title: string) => {
+    handleTaskSubmit({ title, description: '', status: 'To Do' }, null);
+  };
+
   return (
     <MantineProvider>
       <div className={`app-container ${isDarkMode ? 'dark-theme' : ''}`}>
@@ -617,6 +726,20 @@ function App() {
             <h1>Taskr</h1>
           </div>
           <div className="header-controls">
+            <button
+              type="button"
+              className="palette-trigger"
+              onClick={() => setShowPalette(true)}
+              aria-label="Search and commands"
+              aria-keyshortcuts={IS_APPLE ? 'Meta+K' : 'Control+K'}
+              title={`Search and commands (${IS_APPLE ? '⌘' : 'Ctrl'}+K)`}
+            >
+              <svg className="palette-trigger-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="16.5" y1="16.5" x2="21" y2="21" />
+              </svg>
+              <kbd className="palette-trigger-keys">{IS_APPLE ? '⌘' : 'Ctrl'} K</kbd>
+            </button>
               <SyncIndicator
               isOnline={isOnline}
               isSyncing={isSyncing}
@@ -921,6 +1044,13 @@ function App() {
               Anish Kapse
             </a>
           </p>
+        {showPalette && (
+          <CommandPalette
+            items={paletteItems}
+            onCreateTask={createTaskFromPalette}
+            onClose={() => setShowPalette(false)}
+          />
+        )}
         {pendingDelete && (
           <UndoToast
             key={pendingDelete.task.id}

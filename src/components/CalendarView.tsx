@@ -79,7 +79,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   // FullCalendar renders events as links without an href, which the keyboard
   // skips. Make each one focusable and open it with Enter or Space.
-  const handleEventDidMount = ({ el, event }: { el: HTMLElement; event: { title: string; extendedProps: { parentTitle?: string } } }) => {
+  const handleEventDidMount = ({ el, event }: { el: HTMLElement; event: { id: string; title: string; extendedProps: { parentTitle?: string } } }) => {
+    el.dataset.taskId = event.id;
     el.setAttribute('tabindex', '0');
     el.setAttribute('role', 'button');
     // Name the parent of a subtask, since the event only shows its own title

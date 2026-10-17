@@ -43,6 +43,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     <div
       className={`task-item ${task.id === selectedTaskId ? 'selected' : ''} ${task.isSubtask ? 'subtask' : ''}`}
       data-status={task.status}
+      data-task-id={task.id}
     >
       <button
         ref={checkboxRef}
