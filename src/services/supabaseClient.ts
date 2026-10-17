@@ -22,6 +22,7 @@ export interface TaskRow {
   parent_id: string | null;
   is_subtask: boolean | null;
   subtasks: any[] | null;
+  position?: number | null; // absent until the task_position migration has run
 }
 
 // Helper functions to convert between our app's Task type and Supabase's format
@@ -35,5 +36,6 @@ export const toTask = (row: TaskRow): Task => ({
   updatedAt: new Date(row.updated_at),
   parentId: row.parent_id || undefined,
   isSubtask: row.is_subtask || false,
-  subtasks: row.subtasks ? row.subtasks.map(st => toTask(st as TaskRow)) : []
+  subtasks: row.subtasks ? row.subtasks.map(st => toTask(st as TaskRow)) : [],
+  position: row.position ?? undefined
 });

@@ -16,6 +16,14 @@ const toRow = (task: Omit<Task, 'createdAt' | 'updatedAt'>, userId: string) => (
   subtasks: task.subtasks && task.subtasks.length > 0 ? task.subtasks : []
 });
 
+// Set once the server says the tasks table has no position column yet
+let positionColumnMissing = false;
+
+// PostgREST's "column not found in the schema cache", or Postgres's own
+// "undefined column", mentioning position
+const isMissingPositionColumn = (error: { code?: string; message?: string }) =>
+  (error.code === 'PGRST204' || error.code === '42703') && /position/i.test(error.message ?? '');
+
 // Rows per insert request when saving many tasks at once
 const BULK_INSERT_SIZE = 200;
 
@@ -119,15 +127,27 @@ export class SupabaseTaskService {
     if (updates.parentId !== undefined) updateData.parent_id = updates.parentId || null;
     if (updates.isSubtask !== undefined) updateData.is_subtask = updates.isSubtask;
     if (updates.subtasks !== undefined) updateData.subtasks = updates.subtasks;
+    if (updates.position !== undefined && !positionColumnMissing) updateData.position = updates.position;
     updateData.updated_at = new Date().toISOString();
 
-    const { data, error, status } = await supabase
-      .from('tasks')
-      .update(updateData)
-      .eq('id', taskId)
-      .eq('user_id', userId) // Only update if the task belongs to the user
-      .select('*')
-      .single();
+    const send = (data: Record<string, any>) =>
+      supabase
+        .from('tasks')
+        .update(data)
+        .eq('id', taskId)
+        .eq('user_id', userId) // Only update if the task belongs to the user
+        .select('*')
+        .single();
+
+    let { data, error, status } = await send(updateData);
+    // The position column needs the task_position migration. Until it has run,
+    // save everything else and keep the order on this device only.
+    if (error && 'position' in updateData && isMissingPositionColumn(error)) {
+      positionColumnMissing = true;
+      console.warn('Task order is saved on this device only until the task_position migration is run.');
+      const { position, ...withoutPosition } = updateData;
+      ({ data, error, status } = await send(withoutPosition));
+    }
     if (error) throw Object.assign(error, { status });
     return toTask(data);
   }

@@ -13,6 +13,7 @@ import { useAccountPreferences } from './utils/useAccountPreferences';
 import { UndoToast } from './components/UndoToast';
 import { FocusTimer } from './components/FocusTimer';
 import { useFocusTimer } from './utils/focusTimer';
+import { TaskPosition } from './utils/taskOrder';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
@@ -191,6 +192,23 @@ function App() {
   const saveOnDevice = (taskList: Task[], userId = userRef.current?.id) =>
     userId ? offlineStorage.saveAccountTasks(userId, taskList) : offlineStorage.saveTasks(taskList);
 
+  // The account's tasks from the server, keeping the order saved on this
+  // device for any task the server has no position for. Until the
+  // task_position migration runs, the server can't store the order at all.
+  const fetchAccountTasks = async (userId: string) => {
+    const fresh = await SupabaseTaskService.getTasks();
+    const cached = await offlineStorage.getAccountTasks(userId);
+    if (!cached?.length) return fresh;
+    const cachedPositions = new Map(
+      cached.filter(task => task.position !== undefined).map(task => [task.id, task.position])
+    );
+    return fresh.map(task =>
+      task.position === undefined && cachedPositions.has(task.id)
+        ? { ...task, position: cachedPositions.get(task.id) }
+        : task
+    );
+  };
+
   // A signed-in write that failed because Supabase couldn't be reached goes in
   // the outbox to be sent later. Returns false for any other kind of failure.
   const queueIfOffline = async (error: unknown, userId: string | undefined, change: OutboxChange) => {
@@ -208,7 +226,7 @@ function App() {
       setCloudNotice(OFFLINE_QUEUED_MESSAGE);
       return;
     }
-    let fresh = await SupabaseTaskService.getTasks();
+    let fresh = await fetchAccountTasks(userId);
     // A delete still inside its undo window hasn't been sent yet; keep it hidden
     const pending = pendingDeleteRef.current;
     if (pending) fresh = withoutTask(fresh, pending.task.id);
@@ -257,7 +275,7 @@ function App() {
             throw Object.assign(new Error('Changes are still waiting to sync'), { status: 0 });
           }
           // If user is logged in, load tasks from Supabase
-          loadedTasks = await SupabaseTaskService.getTasks();
+          loadedTasks = await fetchAccountTasks(currentUser.id);
           await saveOnDevice(loadedTasks, currentUser.id);
         } else {
           // If not logged in, try to load from local storage
@@ -534,6 +552,8 @@ function App() {
         nextTasks = updatedTasks;
       } else {
         nextTasks = withTaskUpdated(tasks, taskId, { ...updates, updatedAt: new Date() });
+        // Straight away too, so a dragged task doesn't jump back while it saves
+        setTasks(nextTasks);
       }
 
       // For the actual async update, we need to get the complete task with the updates
@@ -565,11 +585,6 @@ function App() {
       // their parent): the guest's only copy, or the signed-in offline copy
       await saveOnDevice(nextTasks, userId);
 
-      // Final update if it wasn't a status change (status changes were already handled above)
-      if (!updates.status || taskToUpdate.status === updates.status) {
-        setTasks(nextTasks);
-      }
-
       // Keep the open form in step with changes made elsewhere (e.g. dragging the
       // selected task to another day), so saving it doesn't restore stale values.
       setSelectedTask(current =>
@@ -579,6 +594,42 @@ function App() {
     } catch (error) {
       console.error('Error updating task:', error);
     }
+  };
+
+  // A task dragged (or moved with the keyboard) to a new place in its section
+  // or column, possibly into another column (status). Usually only that task
+  // changes; `others` are neighbours spaced out again when there was no room.
+  const handleTaskReorder = async (
+    taskId: string,
+    position: number,
+    status?: TaskStatus,
+    others: TaskPosition[] = []
+  ) => {
+    await handleTaskUpdate(taskId, status ? { status, position } : { position });
+    if (others.length > 0) await saveTaskPositions(others);
+  };
+
+  // Several new positions at once, from the latest task list
+  const saveTaskPositions = async (positions: TaskPosition[]) => {
+    const byId = new Map(positions.map(item => [item.id, item.position]));
+    const nextTasks = tasksRef.current.map(task =>
+      byId.has(task.id) ? { ...task, position: byId.get(task.id), updatedAt: new Date() } : task
+    );
+    tasksRef.current = nextTasks;
+    setTasks(nextTasks);
+    const userId = user?.id;
+    if (userId) {
+      for (const task of nextTasks.filter(item => byId.has(item.id))) {
+        try {
+          await SupabaseTaskService.updateTask(task.id, { position: task.position });
+        } catch (error) {
+          if (!(await queueIfOffline(error, userId, { type: 'update', task }))) {
+            console.error('Error saving task order:', error);
+          }
+        }
+      }
+    }
+    await saveOnDevice(nextTasks, userId);
   };
 
   // Helper function to find a task by ID (including in subtasks)
@@ -1172,6 +1223,7 @@ function App() {
                       }
                     }}
                     onAddSubtask={handleAddSubtask}
+                    onReorder={handleTaskReorder}
                     selectedTaskId={selectedTask?.id}
                   />
                 </div>
@@ -1230,6 +1282,7 @@ function App() {
                       }
                     }}
                     onAddSubtask={handleAddSubtask}
+                    onReorder={handleTaskReorder}
                     selectedTaskId={selectedTask?.id}
                   />
                 </div>
@@ -1276,6 +1329,7 @@ function App() {
                       }
                     }}
                     onAddSubtask={handleAddSubtask}
+                    onReorder={handleTaskReorder}
                     selectedTaskId={selectedTask?.id}
                   />
                 </div>
@@ -1300,6 +1354,7 @@ function App() {
                 tasks={tasks}
                 onTaskSelect={handleTaskSelect}
                 onTaskUpdate={handleTaskUpdate}
+                onReorder={handleTaskReorder}
                 selectedTaskId={selectedTask?.id}
               />
               <div className="task-detail-column" ref={taskFormRef}>

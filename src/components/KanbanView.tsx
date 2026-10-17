@@ -4,26 +4,30 @@ import {
   DragOverlay,
   MouseSensor,
   TouchSensor,
+  closestCenter,
   pointerWithin,
   rectIntersection,
-  useDraggable,
   useDroppable,
   useSensor,
   useSensors,
   type Announcements,
   type CollisionDetection,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent
 } from '@dnd-kit/core';
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Task, TaskStatus } from '../types/Task';
 import { isEqual } from 'lodash';
 import { useStatusMorph } from '../utils/statusMorph';
 import { DueDate } from './DueDate';
+import { TaskPosition, placeAt, positionBetween, sortByOrder, stepPosition } from '../utils/taskOrder';
 
 interface KanbanViewProps {
   tasks: Task[];
   onTaskSelect: (task: Task) => void;
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => void;
+  onReorder?: (taskId: string, position: number, status?: TaskStatus, others?: TaskPosition[]) => void;
   selectedTaskId?: string;
 }
 
@@ -38,17 +42,41 @@ const COLUMNS: ColumnDefinition[] = [
   { id: 'Completed', title: 'Completed' }
 ];
 
-// Prefer the column under the pointer, falling back to whichever column the
-// dragged card overlaps most.
+const isColumnId = (id: unknown): id is TaskStatus => COLUMNS.some(column => column.id === id);
+
+// What the dragged card is over: the card under the pointer, or else the
+// nearest card in the column under the pointer (so the gaps between cards
+// still sort), or the column itself when it has no other cards. Falls back to
+// whatever the dragged card overlaps most when the pointer is off the board.
 const collisionDetection: CollisionDetection = args => {
   const pointerHits = pointerWithin(args);
-  return pointerHits.length > 0 ? pointerHits : rectIntersection(args);
+  const hits = pointerHits.length > 0 ? pointerHits : rectIntersection(args);
+  const cardHit = hits.find(hit => !isColumnId(hit.id));
+  if (cardHit) return [cardHit];
+  const columnHit = hits.find(hit => isColumnId(hit.id));
+  if (!columnHit) return hits;
+  const cardsInColumn = args.droppableContainers.filter(
+    container => container.data.current?.sortable?.containerId === columnHit.id && container.id !== args.active.id
+  );
+  if (cardsInColumn.length === 0) return [columnHit];
+  const nearest = closestCenter({ ...args, droppableContainers: cardsInColumn });
+  return nearest.length > 0 ? [nearest[0]] : [columnHit];
 };
 
 const columnTitle = (id: unknown) => COLUMNS.find(column => column.id === id)?.title ?? 'a column';
 
-// Moving a card with the keyboard remounts it in its new column; this
-// remembers which card should take focus back.
+// A column's cards in the order the user set, without subtasks
+const columnTasks = (tasks: Task[], status: TaskStatus) =>
+  sortByOrder(tasks.filter(task => task.status === status && !task.isSubtask));
+
+// The list with new positions applied
+const withPositions = (tasks: Task[], positions: TaskPosition[]) => {
+  const byId = new Map(positions.map(item => [item.id, item.position]));
+  return tasks.map(task => (byId.has(task.id) ? { ...task, position: byId.get(task.id) } : task));
+};
+
+// Moving a card with the keyboard remounts it in its new column, or reorders
+// it in this one; this remembers which card should take focus back.
 let cardToRefocus: string | null = null;
 
 // Subtasks listed inside a Kanban card
@@ -91,7 +119,7 @@ const KanbanCardContent: React.FC<{
     {task.subtasks && task.subtasks.length > 0 && (
       <div className="kanban-subtasks-container">
         <div className="kanban-subtasks-header">Subtasks</div>
-        {task.subtasks.map(subtask => (
+        {sortByOrder(task.subtasks).map(subtask => (
           <SubtaskItem
             key={subtask.id}
             subtask={subtask}
@@ -108,9 +136,10 @@ const KanbanCard: React.FC<{
   task: Task;
   onTaskSelect: (task: Task) => void;
   onMove: (task: Task, step: -1 | 1) => void;
+  onReorderKey: (task: Task, step: -1 | 1) => void;
   selectedTaskId?: string;
-}> = ({ task, onTaskSelect, onMove, selectedTaskId }) => {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+}> = ({ task, onTaskSelect, onMove, onReorderKey, selectedTaskId }) => {
+  const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({
     id: task.id,
     data: { status: task.status, title: task.title }
   });
@@ -118,13 +147,14 @@ const KanbanCard: React.FC<{
   // Sweeps the colour strip from the old column's colour after a move
   const morph = useStatusMorph(task.id, task.status);
 
+  // After every render, since moving up or down doesn't remount the card
   useEffect(() => {
     if (cardToRefocus === task.id) {
       cardToRefocus = null;
       cardRef.current?.focus({ preventScroll: true });
       cardRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
-  }, [task.id]);
+  });
 
   return (
     <div
@@ -144,12 +174,20 @@ const KanbanCard: React.FC<{
           e.preventDefault();
           cardToRefocus = task.id;
           onMove(task, e.key === 'ArrowRight' ? 1 : -1);
+        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          cardToRefocus = task.id;
+          onReorderKey(task, e.key === 'ArrowDown' ? 1 : -1);
         }
       }}
       className={`kanban-task-card ${
         task.id === selectedTaskId ? 'selected' : ''
       } ${task.status === 'Completed' ? 'completed' : ''} ${isDragging ? 'drag-source' : ''} ${morph.className}`}
-      style={morph.style}
+      style={{
+        ...morph.style,
+        transform: transform ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)` : undefined,
+        transition
+      }}
       onAnimationEnd={morph.onAnimationEnd}
       onClick={() => onTaskSelect(task)}
     >
@@ -160,16 +198,20 @@ const KanbanCard: React.FC<{
 
 const KanbanColumn: React.FC<{
   column: ColumnDefinition;
+  taskIds: string[];
   children: React.ReactNode;
-}> = ({ column, children }) => {
+}> = ({ column, taskIds, children }) => {
+  // The column itself is a drop target too, for empty columns and the space below the cards
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
     <div ref={setNodeRef} className="kanban-column">
       <h2 className="kanban-column-title">{column.title}</h2>
-      <div className={`kanban-task-list ${isOver ? 'dragging-over' : ''}`}>
-        {children}
-      </div>
+      <SortableContext id={column.id} items={taskIds} strategy={verticalListSortingStrategy}>
+        <div className={`kanban-task-list ${isOver ? 'dragging-over' : ''}`}>
+          {children}
+        </div>
+      </SortableContext>
     </div>
   );
 };
@@ -178,6 +220,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({
   tasks,
   onTaskSelect,
   onTaskUpdate,
+  onReorder,
   selectedTaskId
 }) => {
   // Add local state to track tasks for optimistic UI updates
@@ -185,6 +228,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   // Screen reader message for moves made with the arrow keys
   const [keyboardAnnouncement, setKeyboardAnnouncement] = useState('');
+  // Where the dragged card started, to tell a column change apart and to undo
+  // the live move between columns if the drag is cancelled
+  const dragOriginRef = useRef<{ status: TaskStatus; index: number; snapshot: Task[] } | null>(null);
 
   // Update local tasks when props change. The functional update reads the
   // previous value without adding localTasks to the dependency array, and the
@@ -251,25 +297,119 @@ const KanbanView: React.FC<KanbanViewProps> = ({
     setKeyboardAnnouncement(`${task.title} moved to ${target.title}.`);
   };
 
+  // Up or down a place within the column
+  const handleKeyboardReorder = (task: Task, step: -1 | 1) => {
+    if (!onReorder) return;
+    const column = columnTasks(localTasks, task.status);
+    const move = stepPosition(column, task.id, step);
+    if (!move) {
+      cardToRefocus = null;
+      setKeyboardAnnouncement(`${task.title} is already ${step < 0 ? 'at the top' : 'at the bottom'} of ${columnTitle(task.status)}.`);
+      return;
+    }
+    setLocalTasks(prev => withPositions(prev, [{ id: task.id, position: move.position }, ...move.others]));
+    onReorder(task.id, move.position, undefined, move.others);
+    setKeyboardAnnouncement(`${task.title} moved to ${move.index + 1} of ${column.length} in ${columnTitle(task.status)}.`);
+  };
+
+  // The column a card or column id belongs to, as things stand mid-drag
+  const columnOf = (id: unknown, list: Task[] = localTasks): TaskStatus | undefined =>
+    isColumnId(id) ? id : list.find(task => task.id === id)?.status;
+
   const handleDragStart = ({ active }: DragStartEvent) => {
+    const task = localTasks.find(t => t.id === active.id);
     setActiveTaskId(String(active.id));
+    if (task) {
+      dragOriginRef.current = {
+        status: task.status,
+        index: columnTasks(localTasks, task.status).findIndex(t => t.id === task.id),
+        snapshot: localTasks
+      };
+    }
+  };
+
+  // Crossing into another column: move the card there now, so that column
+  // opens a gap where it will land
+  const handleDragOver = ({ active, over }: DragOverEvent) => {
+    if (!over) return;
+    setLocalTasks(prev => {
+      const from = columnOf(active.id, prev);
+      const to = columnOf(over.id, prev);
+      if (!from || !to || from === to) return prev;
+      const target = columnTasks(prev, to);
+      let index = isColumnId(over.id) ? target.length : target.findIndex(t => t.id === over.id);
+      if (index < 0) index = target.length;
+      // Over the lower half of a card: land below it
+      const dragged = active.rect.current.translated;
+      if (!isColumnId(over.id) && dragged && dragged.top + dragged.height / 2 > over.rect.top + over.rect.height / 2) {
+        index += 1;
+      }
+      // Provisional; worked out properly on drop
+      const before = target[index - 1];
+      const after = target[index];
+      const position = positionBetween(before, after) ?? Date.now();
+      return prev.map(t => (t.id === active.id ? { ...t, status: to, position } : t));
+    });
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     setActiveTaskId(null);
-    if (over) {
-      moveTask(String(active.id), over.id as TaskStatus);
+    const origin = dragOriginRef.current;
+    dragOriginRef.current = null;
+    const id = String(active.id);
+    const status = columnOf(id);
+    if (!over || !origin || !status) {
+      if (origin) setLocalTasks(origin.snapshot);
+      return;
     }
+
+    // The column as it is now (the card may already have moved into it)
+    const column = columnTasks(localTasks, status);
+    const from = column.findIndex(t => t.id === id);
+    const overIndex = isColumnId(over.id) ? column.length - 1 : column.findIndex(t => t.id === over.id);
+    const ordered = overIndex >= 0 && overIndex !== from ? arrayMove(column, from, overIndex) : column;
+    const index = ordered.findIndex(t => t.id === id);
+
+    const statusChanged = status !== origin.status;
+    if (!statusChanged && index === origin.index) {
+      // Back where it started; drop any provisional position from the drag
+      setLocalTasks(origin.snapshot);
+      return;
+    }
+
+    if (!onReorder) {
+      setLocalTasks(origin.snapshot);
+      if (statusChanged) moveTask(id, status);
+      return;
+    }
+    const moved = ordered[index];
+    const { position, others } = placeAt(ordered.filter(t => t.id !== id), index, moved);
+    setLocalTasks(prev => {
+      const placed = withPositions(prev, [{ id, position }, ...others]);
+      // Completing a parent completes its subtasks too, as App does
+      return status === 'Completed'
+        ? placed.map(t => (t.id === id && t.subtasks?.length
+            ? { ...t, subtasks: t.subtasks.map(sub => ({ ...sub, status: 'Completed' as TaskStatus })) }
+            : t))
+        : placed;
+    });
+    onReorder(id, position, statusChanged ? status : undefined, others);
+  };
+
+  const handleDragCancel = () => {
+    setActiveTaskId(null);
+    if (dragOriginRef.current) setLocalTasks(dragOriginRef.current.snapshot);
+    dragOriginRef.current = null;
   };
 
   // Screen reader messages, using task and column names instead of ids
   const announcements: Announcements = {
     onDragStart: ({ active }) => `Picked up ${active.data.current?.title}.`,
     onDragOver: ({ active, over }) =>
-      over ? `${active.data.current?.title} is over ${columnTitle(over.id)}.` : undefined,
+      over ? `${active.data.current?.title} is over ${columnTitle(columnOf(over.id))}.` : undefined,
     onDragEnd: ({ active, over }) =>
       over
-        ? `${active.data.current?.title} moved to ${columnTitle(over.id)}.`
+        ? `${active.data.current?.title} moved to ${columnTitle(columnOf(active.id))}.`
         : `${active.data.current?.title} dropped.`,
     onDragCancel: ({ active }) => `Moving ${active.data.current?.title} was cancelled.`
   };
@@ -305,7 +445,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({
   // Use localTasks instead of tasks for immediate UI updates
   const tasksByStatus = COLUMNS.reduce((acc, column) => ({
     ...acc,
-    [column.id]: localTasks.filter(task => task.status === column.id && !task.isSubtask)
+    [column.id]: columnTasks(localTasks, column.id)
   }), {} as Record<TaskStatus, Task[]>);
 
   const activeTask = activeTaskId ? localTasks.find(t => t.id === activeTaskId) : undefined;
@@ -315,13 +455,14 @@ const KanbanView: React.FC<KanbanViewProps> = ({
       sensors={sensors}
       collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveTaskId(null)}
+      onDragCancel={handleDragCancel}
       accessibility={{
         announcements,
         screenReaderInstructions: {
           draggable:
-            'Press Enter to open this task. Press the left or right arrow key to move it to another column.'
+            'Press Enter to open this task. Press the left or right arrow key to move it to another column, or up and down to change its place in the column.'
         }
       }}
     >
@@ -331,7 +472,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({
       <div className={`kanban-container ${activeTaskId ? 'is-dragging' : ''}`}>
         <div className="kanban-columns">
           {COLUMNS.map((column) => (
-            <KanbanColumn key={column.id} column={column}>
+            <KanbanColumn key={column.id} column={column} taskIds={tasksByStatus[column.id].map(task => task.id)}>
               {tasksByStatus[column.id].length === 0 && (
                 <div className="kanban-no-tasks">No tasks in this column</div>
               )}
@@ -341,6 +482,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({
                   task={task}
                   onTaskSelect={handleTaskSelect}
                   onMove={handleKeyboardMove}
+                  onReorderKey={handleKeyboardReorder}
                   selectedTaskId={selectedTaskId}
                 />
               ))}

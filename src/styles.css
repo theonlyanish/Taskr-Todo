@@ -2463,6 +2463,25 @@ button.kanban-subtask-item {
   scroll-snap-type: none;
 }
 
+/* List rows can be dragged too: a long press starts it on touch screens,
+   instead of selecting text or opening the callout menu */
+.task-list > .task-item {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* A list row being dragged to a new place: lifted above its neighbours */
+.task-item.drag-active {
+  position: relative;
+  z-index: 5;
+  cursor: grabbing;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.dark-theme .task-item.drag-active {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.55);
+}
+
 /* Quick add: the due date read from a new task's title ("pay rent fri") */
 .quick-add-hint:not(:empty) {
   display: flex;
