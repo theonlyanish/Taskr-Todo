@@ -948,6 +948,7 @@ function App() {
                 <circle cx="11" cy="11" r="7" />
                 <line x1="16.5" y1="16.5" x2="21" y2="21" />
               </svg>
+              <span className="palette-trigger-label" aria-hidden="true">Search…</span>
               <kbd className="palette-trigger-keys">{IS_APPLE ? '⌘' : 'Ctrl'} K</kbd>
             </button>
               <SyncIndicator

@@ -2439,6 +2439,13 @@ button.kanban-subtask-item {
   stroke-linecap: round;
 }
 
+/* Reads as a search box: label on the left, shortcut pushed to the right */
+.palette-trigger-label {
+  flex: 1;
+  min-width: 6rem;
+  text-align: left;
+}
+
 .palette-trigger-keys,
 .palette-footer kbd {
   font-family: inherit;
@@ -2909,7 +2916,9 @@ button.kanban-subtask-item {
     padding: 1.25rem 1.25rem 1.5rem;
   }
 
-  /* Phones rarely have a keyboard: show the search icon only, and use the full width */
+  /* Phones rarely have a keyboard and the header is tight: show the search
+     icon only, and use the full width */
+  .palette-trigger-label,
   .palette-trigger-keys,
   .palette-footer {
     display: none;
