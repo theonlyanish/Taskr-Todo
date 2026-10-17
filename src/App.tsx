@@ -7,6 +7,7 @@ import { SyncIndicator } from './components/SyncIndicator';
 import KanbanView from './components/KanbanView';
 import { CalendarView } from './components/CalendarView';
 import { ViewSwitcher, ViewType } from './components/ViewSwitcher';
+import { useTheme } from './utils/theme';
 import { UndoToast } from './components/UndoToast';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
@@ -96,10 +97,8 @@ const withTaskRestored = (taskList: Task[], { task, parentId, index }: PendingDe
 function App() {
   const [tasks, setTasks] = useState<Task[]>([] as Task[]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check if dark mode is enabled based on local storage
-    return localStorage.getItem('theme') === 'dark';
-  });
+  // Starts in the device's light or dark mode until the user picks one
+  const { isDark: isDarkMode, toggleTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -211,11 +210,6 @@ function App() {
   const syncWithServerRef = useRef(syncWithServer);
   syncWithServerRef.current = syncWithServer;
 
-  // Effect to toggle dark mode and update local storage
-  useEffect(() => {
-    document.body.classList.toggle('dark-theme', isDarkMode);
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-  }, [isDarkMode]);
 
   // Load tasks and check auth state on mount
   useEffect(() => {
@@ -885,7 +879,7 @@ function App() {
       label: isDarkMode ? 'Switch to light theme' : 'Switch to dark theme',
       hint: 'Theme',
       keywords: 'theme mode dark light colour color',
-      run: () => setIsDarkMode(!isDarkMode)
+      run: toggleTheme
     },
     user
       ? { id: 'sign-out', group: 'Actions', label: 'Sign out', keywords: 'log out account', run: handleSignOut }
@@ -978,7 +972,7 @@ function App() {
               />
             <ThemeToggle
               isDark={isDarkMode}
-              onToggle={() => setIsDarkMode(!isDarkMode)}
+              onToggle={toggleTheme}
             />
             {user ? (
               <AccountMenu

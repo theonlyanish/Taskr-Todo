@@ -155,6 +155,17 @@
     </style>
   </head>
   <body>
+    <script>
+      // Apply the saved theme, or the device's dark/light setting, before the
+      // app loads so dark mode doesn't flash white. Same rule as src/utils/theme.ts.
+      try {
+        var savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || (savedTheme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.body.classList.add('dark-theme');
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      } catch (e) {}
+    </script>
     <div id="root"></div>
 
     <section id="landing" aria-label="About Taskr">
