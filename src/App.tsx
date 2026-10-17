@@ -321,11 +321,15 @@ function App() {
       const savedTask = await SupabaseTaskService.saveTask(newTask);
       console.log('Task saved to Supabase:', savedTask);
 
+      // Start from the latest list, not the `tasks` this call began with: a
+      // second task added while the save above was in flight would otherwise
+      // be built on the same old list and wipe out the first one
+      const latestTasks = tasksRef.current;
       let updatedTasks: Task[];
       if (subtaskParentId || taskData.parentId) {
         // This is a subtask - add it to the parent's subtasks array
         const parentId = subtaskParentId || taskData.parentId;
-        updatedTasks = tasks.map(task => {
+        updatedTasks = latestTasks.map(task => {
           if (task.id === parentId) {
             return {
               ...task,
@@ -336,8 +340,10 @@ function App() {
         });
       } else {
         // This is a main task
-        updatedTasks = [...tasks, newTask];
+        updatedTasks = [...latestTasks, newTask];
       }
+      // Update the ref now too, so the next add sees this task before React re-renders
+      tasksRef.current = updatedTasks;
       setTasks(updatedTasks);
 
       // Guests keep their tasks in IndexedDB; without this a new task was only
