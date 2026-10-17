@@ -11,6 +11,8 @@ import { useTheme } from './utils/theme';
 import { CalendarLayout, Preferences, saveCalendarLayout, savedCalendarLayout, savedView, saveView } from './utils/preferences';
 import { useAccountPreferences } from './utils/useAccountPreferences';
 import { UndoToast } from './components/UndoToast';
+import { FocusTimer } from './components/FocusTimer';
+import { useFocusTimer } from './utils/focusTimer';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
@@ -121,6 +123,8 @@ function App() {
   const [cloudNotice, setCloudNotice] = useState<string | null>(null);
   const taskFormRef = useRef<HTMLDivElement>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  // Countdown for working on one task, shown in a bar and the browser tab
+  const focus = useFocusTimer();
   const pendingDeleteRef = useRef<PendingDelete | null>(null);
   const undoTimerRef = useRef<number | undefined>(undefined);
   // Latest tasks, for saving a guest's list when a delayed delete is committed
@@ -593,6 +597,20 @@ function App() {
     return undefined;
   };
 
+  // The task the focus timer is running for, if it still exists
+  const focusTask = focus.session ? findTaskById(tasks, focus.session.taskId) : undefined;
+  const renameFocus = focus.rename;
+  useEffect(() => {
+    if (focusTask) renameFocus(focusTask.title);
+  }, [focusTask, renameFocus]);
+
+  const startFocus = (task: Task, minutes: number) => focus.start(task.id, task.title, minutes);
+
+  const completeFocusTask = () => {
+    if (focusTask && focusTask.status !== 'Completed') handleTaskUpdate(focusTask.id, { status: 'Completed' });
+    focus.stop();
+  };
+
   // Remove the task from the screen straight away, but only save the delete
   // once the undo window has passed.
   const handleTaskDelete = (taskId: string) => {
@@ -604,6 +622,12 @@ function App() {
 
     // Only one delete can be undone at a time, so save any earlier one first
     commitPendingDelete();
+
+    // No point timing a task that's gone (or a subtask of one)
+    const focusedId = focus.session?.taskId;
+    if (focusedId && (focusedId === taskId || taskToDelete.subtasks?.some(subtask => subtask.id === focusedId))) {
+      focus.stop();
+    }
 
     const parent = tasks.find(task => task.subtasks?.some(subtask => subtask.id === taskId));
     const index = parent
@@ -910,6 +934,26 @@ function App() {
       keywords: VIEW_KEYWORDS[view],
       run: () => setViewType(view)
     })),
+    ...(selectedTask && selectedTask.status !== 'Completed' && focus.session?.taskId !== selectedTask.id
+      ? [{
+          id: 'focus-start',
+          group: 'Actions' as const,
+          label: `Focus on “${selectedTask.title}” for 25 minutes`,
+          hint: 'Timer',
+          keywords: 'focus timer pomodoro countdown concentrate',
+          run: () => startFocus(selectedTask, 25)
+        }]
+      : []),
+    ...(focus.session
+      ? [{
+          id: 'focus-stop',
+          group: 'Actions' as const,
+          label: 'Stop focus timer',
+          hint: 'Timer',
+          keywords: 'focus timer pomodoro cancel end',
+          run: focus.stop
+        }]
+      : []),
     {
       id: 'toggle-theme',
       group: 'Actions',
@@ -1240,6 +1284,8 @@ function App() {
               <div className="task-detail-column" ref={taskFormRef}>
                 <TaskForm
                   selectedTask={selectedTask}
+                  focusTaskId={focus.session?.taskId}
+                  onStartFocus={startFocus}
                   onSubmit={handleTaskSubmit}
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
@@ -1259,6 +1305,8 @@ function App() {
               <div className="task-detail-column" ref={taskFormRef}>
                 <TaskForm
                   selectedTask={selectedTask}
+                  focusTaskId={focus.session?.taskId}
+                  onStartFocus={startFocus}
                   onSubmit={handleTaskSubmit}
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
@@ -1281,6 +1329,8 @@ function App() {
               <div className="task-detail-column" ref={taskFormRef}>
                 <TaskForm
                   selectedTask={selectedTask}
+                  focusTaskId={focus.session?.taskId}
+                  onStartFocus={startFocus}
                   onSubmit={handleTaskSubmit}
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
@@ -1343,6 +1393,21 @@ function App() {
             onCreateTask={createTaskFromPalette}
             previewCreate={previewPaletteCreate}
             onClose={() => setShowPalette(false)}
+          />
+        )}
+        {/* Before the undo bar, which stacks above it (see .focus-bar ~ .undo-toast) */}
+        {focus.session && focus.phase && (
+          <FocusTimer
+            session={focus.session}
+            phase={focus.phase}
+            remainingMs={focus.remainingMs}
+            canComplete={!!focusTask && focusTask.status !== 'Completed'}
+            onPause={focus.pause}
+            onResume={focus.resume}
+            onStop={focus.stop}
+            onExtend={focus.extend}
+            onComplete={completeFocusTask}
+            onShowTask={() => focusTask && jumpToTask(focusTask)}
           />
         )}
         {pendingDelete && (

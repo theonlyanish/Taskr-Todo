@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Task, TaskStatus } from '../types/Task';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from '../utils/quickAdd';
+import { FOCUS_LENGTHS } from '../utils/focusTimer';
 
 // Define the interface for TaskFormProps
 export interface TaskFormProps {
@@ -10,6 +11,9 @@ export interface TaskFormProps {
   onDelete: (taskId: string) => void;
   initialDueDate?: Date | null;
   parentId?: string | null;
+  // The task the focus timer is running for, if any
+  focusTaskId?: string | null;
+  onStartFocus?: (task: Task, minutes: number) => void;
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({
@@ -18,7 +22,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   onUpdate,
   onDelete,
   initialDueDate,
-  parentId
+  parentId,
+  focusTaskId,
+  onStartFocus
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -107,6 +113,32 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   return (
     <form key={formKey} onSubmit={handleSubmit} className="task-form">
       {formTitle && <h2>{formTitle}</h2>}
+      {selectedTask && onStartFocus && selectedTask.status !== 'Completed' && (
+        <div className="focus-start" role="group" aria-label="Focus timer">
+          <svg className="focus-start-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="13" r="8" />
+            <path d="M12 9v4l2.5 2.5M9.5 2.5h5" />
+          </svg>
+          {focusTaskId === selectedTask.id ? (
+            <span className="focus-start-label">Focusing on this task</span>
+          ) : (
+            <>
+              <span className="focus-start-label">Focus</span>
+              {FOCUS_LENGTHS.map(minutes => (
+                <button
+                  key={minutes}
+                  type="button"
+                  className="focus-start-btn"
+                  onClick={() => onStartFocus(selectedTask, minutes)}
+                  aria-label={`Focus on this task for ${minutes} minutes`}
+                >
+                  {minutes} min
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
       <div className="form-group">
         <label htmlFor="task-title">Title</label>
         <input

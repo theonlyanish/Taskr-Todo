@@ -2846,6 +2846,264 @@ button.kanban-subtask-item {
   }
 }
 
+/* Focus timer: the bar in the bottom corner, and the Focus row in the task panel */
+.focus-bar {
+  --focus-color: var(--accent-color);
+  position: fixed;
+  left: 1.5rem;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(27rem, calc(100vw - 3rem));
+  padding: 0.6rem 0.6rem 0.6rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  animation: focus-bar-in 0.2s ease-out;
+}
+
+.dark-theme .focus-bar {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.focus-bar.focus-paused {
+  --focus-color: var(--text-secondary);
+}
+
+.focus-bar.focus-finished {
+  --focus-color: var(--status-done);
+}
+
+.focus-ring {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.focus-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.focus-ring circle {
+  fill: none;
+  stroke-width: 3.5;
+}
+
+.focus-ring-track {
+  stroke: var(--border-color);
+}
+
+.dark-theme .focus-ring-track {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+
+.focus-ring-left {
+  stroke: var(--focus-color);
+  stroke-linecap: round;
+  /* Glides between the once-a-second updates */
+  transition: stroke-dashoffset 1s linear, stroke 0.15s ease;
+}
+
+.focus-bar-task {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.1rem 0.25rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.focus-bar-task:hover .focus-bar-title {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.focus-bar-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.focus-bar.focus-finished .focus-bar-label {
+  color: var(--focus-color);
+}
+
+.focus-bar-title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.focus-bar-time {
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.focus-bar.focus-paused .focus-bar-time {
+  color: var(--text-secondary);
+}
+.focus-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.focus-bar-btn {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.focus-bar-btn:hover {
+  border-color: var(--accent-color);
+}
+
+.focus-bar-primary {
+  border-color: transparent;
+  background-color: #1e8e4f;
+  color: #fff;
+}
+
+.focus-bar-primary:hover {
+  border-color: transparent;
+  background-color: #187a43;
+}
+
+.focus-bar-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.focus-bar-close:hover {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.focus-bar-close svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.focus-bar-task:focus-visible,
+.focus-bar-btn:focus-visible,
+.focus-bar-close:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* With both showing, the undo bar sits above the timer */
+.focus-bar ~ .undo-toast {
+  bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+@keyframes focus-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-bar {
+    animation: none;
+  }
+
+  .focus-ring-left {
+    transition: none;
+  }
+}
+
+.focus-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: -0.25rem 0 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.focus-start-icon {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.focus-start-label {
+  margin-right: 0.15rem;
+}
+
+.focus-start-btn {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.focus-start-btn:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.focus-start-btn:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.dark-theme .focus-start-btn:hover {
+  color: #8fbde3;
+}
+
 /* Responsive layout. Below 900px the task form stacks under the tasks
    instead of sitting beside them; App scrolls to it on select or add. */
 @media (max-width: 900px) {
@@ -3050,6 +3308,23 @@ button.kanban-subtask-item {
     max-width: none;
     transform: none;
     animation: none;
+  }
+
+  .focus-bar {
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    gap: 0.5rem;
+  }
+
+  .focus-bar ~ .undo-toast {
+    bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Three buttons when time's up: give the title the ring's room */
+  .focus-bar.focus-finished .focus-ring {
+    display: none;
   }
 }
 
