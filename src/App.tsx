@@ -8,6 +8,8 @@ import KanbanView from './components/KanbanView';
 import { CalendarView } from './components/CalendarView';
 import { UndoToast } from './components/UndoToast';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
+import { ImportDialog, ImportState } from './components/ImportDialog';
+import { exportFileName, parseImportFile, toMarkdown } from './utils/importExport';
 import { SupabaseTaskService } from './services/supabaseTaskService';
 import { AuthService } from './services/authService';
 import { Task, TaskStatus } from './types/Task';
@@ -91,6 +93,10 @@ function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  // Why the sign-in dialog was opened, shown in place of its default line
+  const [authMessage, setAuthMessage] = useState<string | undefined>(undefined);
+  const [importState, setImportState] = useState<ImportState | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [viewType, setViewType] = useState<ViewType>('normal');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [newSubtaskParentId, setNewSubtaskParentId] = useState<string | null>(null);
@@ -661,6 +667,80 @@ function App() {
     });
   };
 
+  const openAuth = (message?: string) => {
+    setAuthMessage(message);
+    setShowAuthModal(true);
+  };
+
+  const closeAuth = () => {
+    setShowAuthModal(false);
+    setAuthMessage(undefined);
+  };
+
+  // Import and export are account features: guests are asked to sign in first
+  const handleImportClick = () => {
+    if (!user) {
+      openAuth('Sign in to import tasks from Todoist or a CSV file into your account.');
+      return;
+    }
+    importInputRef.current?.click();
+  };
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Clear the input so choosing the same file again still fires a change
+    event.target.value = '';
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setImportState({ status: 'error', fileName: file.name, message: 'That file is over 5 MB. Export a single project or list and try again.' });
+      return;
+    }
+    try {
+      const result = parseImportFile(await file.text());
+      setImportState({ status: 'preview', fileName: file.name, result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The file couldn’t be read.';
+      setImportState({ status: 'error', fileName: file.name, message });
+    }
+  };
+
+  const handleImportConfirm = async () => {
+    if (importState?.status !== 'preview') return;
+    const { fileName, result } = importState;
+    setImportState({ status: 'saving', fileName, result });
+    try {
+      await SupabaseTaskService.saveTasks(result.tasks);
+      setTasks(current => [...current, ...result.tasks]);
+      setImportState({ status: 'done', fileName, result });
+    } catch (error) {
+      console.error('Import failed:', error);
+      reportCloudError(error);
+      const savedCount = (error as { savedCount?: number }).savedCount ?? 0;
+      const reason = (error instanceof Error && error.message ? error.message : 'Something went wrong').replace(/\.$/, '');
+      const message = isSupabaseUnavailable(error)
+        ? CLOUD_ASLEEP_MESSAGE
+        : savedCount > 0
+          ? `${reason}. ${savedCount} of ${result.taskCount} tasks were saved first; sync to see them before trying again.`
+          : `${reason}. Nothing was imported.`;
+      setImportState({ status: 'error', fileName, message, result });
+    }
+  };
+
+  const handleExport = () => {
+    if (!user) {
+      openAuth('Sign in to export your tasks as a Markdown file.');
+      return;
+    }
+    const blob = new Blob([toMarkdown(tasks)], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = exportFileName();
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const paletteItems: PaletteItem[] = [
     {
       id: 'new-task',
@@ -696,8 +776,24 @@ function App() {
           group: 'Actions',
           label: 'Sign in to sync your tasks',
           keywords: 'log in account cloud sync sign up',
-          run: () => setShowAuthModal(true)
+          run: () => openAuth()
         },
+    {
+      id: 'import',
+      group: 'Actions',
+      label: 'Import tasks from Todoist or CSV',
+      hint: user ? undefined : 'Sign in',
+      keywords: 'upload file todoist csv spreadsheet',
+      run: handleImportClick
+    },
+    {
+      id: 'export',
+      group: 'Actions',
+      label: 'Export tasks to Markdown',
+      hint: user ? undefined : 'Sign in',
+      keywords: 'download backup save file markdown md',
+      run: handleExport
+    },
     // Every task and subtask, so the palette doubles as search
     ...tasks
       .filter(task => !task.isSubtask)
@@ -758,7 +854,7 @@ function App() {
               </button>
             ) : (
               <button
-                onClick={() => setShowAuthModal(true)}
+                onClick={() => openAuth()}
                 className="sign-in-btn"
               >
                 Sign In
@@ -782,7 +878,38 @@ function App() {
         )}
 
         <div className="view-selector-container">
-          <select 
+          <div className="data-actions">
+            <button
+              type="button"
+              className="data-action-btn"
+              onClick={handleImportClick}
+              title={user ? 'Import tasks from a Todoist or CSV export' : 'Sign in to import tasks'}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+              </svg>
+              Import
+            </button>
+            <button
+              type="button"
+              className="data-action-btn"
+              onClick={handleExport}
+              title={user ? 'Download your tasks as Markdown' : 'Sign in to export tasks'}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 15V4M7 9l5-5 5 5M5 20h14" />
+              </svg>
+              Export
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".csv,.tsv,.txt,text/csv"
+              hidden
+              onChange={handleImportFile}
+            />
+          </div>
+          <select
             className="view-selector"
             value={viewType}
             onChange={(e) => setViewType(e.target.value as ViewType)}
@@ -1026,10 +1153,10 @@ function App() {
         </div>
 
         {showAuthModal && (
-          <div className="modal-overlay" onClick={() => setShowAuthModal(false)}>
+          <div className="modal-overlay" onClick={closeAuth}>
             <div className="modal-content auth-modal" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowAuthModal(false)}>×</button>
-              <Auth onAuthStateChange={handleAuthStateChange} />
+              <button className="modal-close" onClick={closeAuth}>×</button>
+              <Auth onAuthStateChange={handleAuthStateChange} message={authMessage} />
             </div>
           </div>
         )}
@@ -1044,6 +1171,13 @@ function App() {
               Anish Kapse
             </a>
           </p>
+        {importState && (
+          <ImportDialog
+            state={importState}
+            onConfirm={handleImportConfirm}
+            onClose={() => setImportState(null)}
+          />
+        )}
         {showPalette && (
           <CommandPalette
             items={paletteItems}

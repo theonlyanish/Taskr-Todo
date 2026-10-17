@@ -5,9 +5,11 @@ import { CLOUD_ASLEEP_MESSAGE, isSupabaseUnavailable } from '../services/supabas
 
 interface AuthProps {
   onAuthStateChange: (isLoggedIn: boolean) => void;
+  // Why sign-in was asked for, e.g. "Sign in to import tasks"; replaces the default line
+  message?: string;
 }
 
-export const Auth: React.FC<AuthProps> = ({ onAuthStateChange }) => {
+export const Auth: React.FC<AuthProps> = ({ onAuthStateChange, message }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,7 +47,7 @@ export const Auth: React.FC<AuthProps> = ({ onAuthStateChange }) => {
     <div className="auth-container">
       <h2>{isLogin ? 'Sign In' : 'Sign Up'}</h2>
       <p className="auth-description">
-        Sign in to save your tasks and access them anytime, anywhere
+        {message ?? 'Sign in to save your tasks and access them anytime, anywhere'}
       </p>
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="form-group">

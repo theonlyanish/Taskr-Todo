@@ -933,7 +933,118 @@ flex: 0 0 auto;
   padding: 8px 2rem;
   background-color: var(--bg-primary);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Import and Export buttons, left of the view selector */
+.data-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.data-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.data-action-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-color);
+}
+
+.data-action-btn:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.data-action-btn svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Import preview dialog */
+.modal-content.import-dialog {
+  max-width: 30rem;
+}
+
+.import-dialog p {
+  overflow-wrap: anywhere;
+}
+
+.import-note {
+  font-size: 0.85rem;
+}
+
+.import-error {
+  color: #dc3545 !important;
+}
+
+.import-preview {
+  list-style: none;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.import-preview li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.import-preview li + li {
+  border-top: 1px solid var(--border-color);
+}
+
+.import-preview-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-preview-meta,
+.import-preview li.import-preview-more {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.import-confirm-btn {
+  background-color: #0066cc;
+  color: #fff;
+  font-weight: 500;
+}
+
+.import-confirm-btn:hover:not(:disabled) {
+  background-color: #0052a3;
+}
+
+.modal-actions button:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 
 .view-selector {

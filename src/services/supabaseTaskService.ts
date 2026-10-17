@@ -3,7 +3,45 @@ import { supabase, toTask } from './supabaseClient';
 import { AuthService } from './authService';
 import { isSupabaseUnavailable } from './supabaseErrors';
 
+// Shape of a new row in the tasks table
+const toRow = (task: Omit<Task, 'createdAt' | 'updatedAt'>, userId: string) => ({
+  id: task.id,
+  title: task.title,
+  description: task.description || null,
+  status: task.status,
+  due_date: task.dueDate?.toISOString() || null,
+  user_id: userId,
+  parent_id: task.parentId || null,
+  is_subtask: task.isSubtask || false,
+  subtasks: task.subtasks && task.subtasks.length > 0 ? task.subtasks : []
+});
+
+// Rows per insert request when saving many tasks at once
+const BULK_INSERT_SIZE = 200;
+
 export class SupabaseTaskService {
+  // Save many new tasks (with nested subtasks) for the signed-in user, e.g. an
+  // import. Parents go in before subtasks because parent_id references them.
+  // Unlike saveTask this throws, so the caller can tell the user what failed;
+  // the error's savedCount says how many rows went in before it.
+  static async saveTasks(tasks: Task[]): Promise<void> {
+    const user = await AuthService.getCurrentUser();
+    if (!user) throw Object.assign(new Error('Sign in to save tasks to your account'), { savedCount: 0 });
+
+    const parents = tasks.map(task => toRow({ ...task, subtasks: [] }, user.id));
+    const subtasks = tasks.flatMap(task => (task.subtasks || []).map(subtask => toRow(subtask, user.id)));
+
+    let savedCount = 0;
+    for (const rows of [parents, subtasks]) {
+      for (let start = 0; start < rows.length; start += BULK_INSERT_SIZE) {
+        const batch = rows.slice(start, start + BULK_INSERT_SIZE);
+        const { error, status } = await supabase.from('tasks').insert(batch);
+        if (error) throw Object.assign(error, { status, savedCount });
+        savedCount += batch.length;
+      }
+    }
+  }
+
   static async getTasks(): Promise<Task[]> {
     try {
       const user = await AuthService.getCurrentUser();
@@ -60,17 +98,7 @@ export class SupabaseTaskService {
       // Log the task being saved to help with debugging
       console.log('Saving task:', task);
 
-      const newTaskData = {
-        id: task.id,
-        title: task.title,
-        description: task.description || null,
-        status: task.status,
-        due_date: task.dueDate?.toISOString() || null,
-        user_id: user.id,
-        parent_id: task.parentId || null,
-        is_subtask: task.isSubtask || false,
-        subtasks: task.subtasks && task.subtasks.length > 0 ? task.subtasks : []
-      };
+      const newTaskData = toRow(task, user.id);
 
       // Inserting the new task into the database and selecting the inserted data
       const { data, error } = await supabase
