@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>How Taskr is built</title>
+    <meta name="description" content="The engineering behind Taskr, a free todo app that works offline and without an account: local-first storage, an offline outbox, natural language dates, and the bugs worth learning from." />
+    <link rel="canonical" href="https://taskr-todo.vercel.app/how-its-built.html" />
+    <meta name="theme-color" content="#3d7199" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+    <link rel="preload" href="/fonts/ibm-plex-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://taskr-todo.vercel.app/how-its-built.html" />
+    <meta property="og:site_name" content="Taskr" />
+    <meta property="og:title" content="How Taskr is built" />
+    <meta property="og:description" content="Local-first storage, an offline outbox for signed-in users, natural language dates and a Ctrl+K palette, in a React and Supabase todo app." />
+    <meta property="og:image" content="https://taskr-todo.vercel.app/Logo.png" />
+    <meta property="og:image:alt" content="Taskr logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="How Taskr is built" />
+    <meta name="twitter:description" content="Local-first storage, an offline outbox for signed-in users, natural language dates and a Ctrl+K palette, in a React and Supabase todo app." />
+    <meta name="twitter:image" content="https://taskr-todo.vercel.app/Logo.png" />
+
+    <script>
+      // Match the theme picked in the app (same storage key), else the device's
+      try {
+        var savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+      } catch (e) {}
+    </script>
+
+    <style>
+      /* The same font the app bundles; see /fonts for its licence */
+      @font-face {
+        font-family: "IBM Plex Sans";
+        src: url("/fonts/ibm-plex-sans-latin-wght-normal.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      :root {
+        --bg: #f7f7f8;
+        --surface: #ffffff;
+        --text: #1a1a1f;
+        --muted: #5c606a;
+        --border: #e3e6ea;
+        --accent: #3d7199;
+        --accent-text: #2f5d80;
+        --code-bg: #eef1f4;
+        --todo: #f1c40f;
+        --progress: #3498db;
+        --done: #2ecc71;
+        color-scheme: light;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #0a0a0c;
+          --surface: #131317;
+          --text: #ececf0;
+          --muted: #a2a6b0;
+          --border: #24242b;
+          --accent: #5b93c2;
+          --accent-text: #8fbde3;
+          --code-bg: #1d1d23;
+          color-scheme: dark;
+        }
+      }
+
+      :root[data-theme="dark"] {
+        --bg: #0a0a0c;
+        --surface: #131317;
+        --text: #ececf0;
+        --muted: #a2a6b0;
+        --border: #24242b;
+        --accent: #5b93c2;
+        --accent-text: #8fbde3;
+        --code-bg: #1d1d23;
+        color-scheme: dark;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main { max-width: 760px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+      h1 { font-size: 2.1rem; font-weight: 600; margin: 0 0 0.5rem; line-height: 1.2; }
+      h2 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin: 2.75rem 0 0.75rem;
+        padding-left: 0.75rem;
+        border-left: 4px solid var(--section-color, var(--accent));
+        line-height: 1.3;
+      }
+      h3 { font-size: 1.05rem; font-weight: 600; margin: 1.5rem 0 0.4rem; }
+      p, li { margin: 0 0 0.6rem; }
+      ol, ul { padding-left: 1.25rem; margin: 0 0 1rem; }
+      a { color: var(--accent-text); text-underline-offset: 2px; }
+      strong { font-weight: 600; }
+      code {
+        background: var(--code-bg);
+        padding: 0.1em 0.35em;
+        border-radius: 4px;
+        font-family: ui-monospace, "Cascadia Code", Consolas, Menlo, monospace;
+        font-size: 0.88em;
+      }
+      .breadcrumb, .byline { color: var(--muted); font-size: 0.9rem; }
+      .breadcrumb { margin: 0 0 1rem; }
+      .byline { margin: 0 0 1.5rem; }
+      .lede { font-size: 1.12rem; }
+
+      .todo { --section-color: var(--todo); }
+      .progress { --section-color: var(--progress); }
+      .done { --section-color: var(--done); }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1rem 1.25rem;
+        margin: 1rem 0 1.25rem;
+      }
+
+      /* Tables scroll sideways on narrow screens instead of widening the page */
+      .table-wrap { overflow-x: auto; margin: 0.75rem 0 1.25rem; }
+      table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+      th, td { text-align: left; vertical-align: top; padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--border); }
+      th { font-weight: 600; white-space: nowrap; }
+      td:first-child { white-space: nowrap; font-weight: 500; }
+      .bugs td:first-child { white-space: normal; min-width: 10rem; }
+
+      /* Storage diagram: three boxes in a row, stacked on phones */
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr auto 1.3fr auto 1fr;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 1.25rem 0 0.5rem;
+      }
+      .flow-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.8rem 0.9rem;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        height: 100%;
+      }
+      .flow-box strong { display: block; margin-bottom: 0.3rem; font-size: 0.95rem; }
+      .flow-box ul { margin: 0; padding-left: 1rem; }
+      .flow-box li { margin: 0 0 0.15rem; }
+      .flow-arrow { color: var(--muted); font-size: 0.8rem; text-align: center; line-height: 1.3; }
+      .flow-arrow span { display: block; font-size: 1.3rem; color: var(--accent); }
+      .flow-caption { color: var(--muted); font-size: 0.85rem; margin-bottom: 1.25rem; }
+
+      @media (max-width: 640px) {
+        .flow { grid-template-columns: 1fr; }
+        .flow-arrow span { transform: rotate(90deg); }
+      }
+
+      /* Live demo of the status colour sweep, the same technique the app uses */
+      @property --sweep {
+        syntax: '<number>';
+        inherits: true;
+        initial-value: 1;
+      }
+      .demo { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+      .demo-card {
+        flex: 1 1 14rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.8rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 5px solid color-mix(in hsl shorter hue, var(--to) calc(var(--sweep) * 100%), var(--from));
+        border-radius: 8px;
+        --from: var(--todo);
+        --to: var(--todo);
+      }
+      .demo-card.sweeping { animation: sweep 900ms ease-in-out both; }
+      @keyframes sweep { from { --sweep: 0; } to { --sweep: 1; } }
+      .demo-status { margin-left: auto; color: var(--muted); font-size: 0.85rem; }
+      .demo button {
+        padding: 0.55rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+      .demo button:hover { border-color: var(--accent); }
+      .demo button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      @media (prefers-reduced-motion: reduce) {
+        .demo-card.sweeping { animation-duration: 1ms; }
+      }
+
+      .cta {
+        display: inline-block;
+        margin: 0.25rem 0.5rem 0.5rem 0;
+        padding: 0.6rem 1.1rem;
+        /* Taskr's blue in both themes: the lighter dark-mode accent is too pale behind white text */
+        background: #3d7199;
+        color: #fff;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .cta.secondary { background: none; color: var(--accent-text); border: 1px solid var(--border); }
+
+      footer {
+        margin-top: 3rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="breadcrumb"><a href="/">Taskr</a> &rsaquo; How it’s built</p>
+      <h1>How Taskr is built</h1>
+      <p class="byline">By <a href="https://anishkapse.com">Anish Kapse</a> &middot; Updated 18 October 2026</p>
+
+      <p class="lede">
+        Taskr is a free todo app with List, Board and Calendar views. It has been running since December 2024,
+        works offline, and never asks for an account before you add your first task. This page covers how it
+        works underneath: where tasks are stored, how offline changes reach the server, and the bugs that taught
+        the most.
+      </p>
+      <a class="cta" href="/">Open Taskr</a>
+      <a class="cta secondary" href="https://github.com/theonlyanish/Taskr-Todo">Source on GitHub</a>
+
+      <h2>At a glance</h2>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr><td>App</td><td>React 18 and TypeScript, built with Create React App</td></tr>
+            <tr><td>On the device</td><td>IndexedDB for tasks and the offline queue, with a service worker so the app opens offline</td></tr>
+            <tr><td>Accounts</td><td>Supabase: Postgres for tasks, Supabase Auth for sign-in and password resets</td></tr>
+            <tr><td>Hosting</td><td>Vercel, with Vercel Web Analytics for anonymous page views</td></tr>
+            <tr><td>Drag and drop</td><td>dnd-kit for the board (mouse, touch and keyboard), FullCalendar for the calendar</td></tr>
+            <tr><td>Dates</td><td>chrono-node, loaded only when you start typing a task</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="todo">Local first, account optional</h2>
+      <p>
+        Every task is saved in your browser’s IndexedDB first. Without an account, that’s the only copy: nothing is
+        sent anywhere, and the app works the same with or without a connection.
+      </p>
+      <p>
+        Creating an account adds Supabase on top. The device keeps its own copy of the account’s tasks, so a
+        signed-in user still sees their list instantly, and offline.
+      </p>
+
+      <div class="flow" role="img" aria-label="Changes are saved in the browser's IndexedDB first, then sent to Supabase when there is a connection">
+        <div class="flow-box">
+          <strong>Taskr in the browser</strong>
+          Every add, edit, move and delete
+        </div>
+        <div class="flow-arrow" aria-hidden="true"><span>&rarr;</span>saved at once</div>
+        <div class="flow-box">
+          <strong>IndexedDB on this device</strong>
+          <ul>
+            <li>Guest tasks</li>
+            <li>A copy of the account’s tasks</li>
+            <li>An outbox of changes not yet sent</li>
+          </ul>
+        </div>
+        <div class="flow-arrow" aria-hidden="true"><span>&rarr;</span>sent when online</div>
+        <div class="flow-box">
+          <strong>Supabase</strong>
+          Postgres and Auth, only for people who sign in
+        </div>
+      </div>
+      <p class="flow-caption">Signing in is optional. Guests only ever use the middle box.</p>
+
+      <h3>Moving guest tasks into a new account</h3>
+      <p>
+        When a guest signs up, the tasks they already made come with them. Each task and subtask gets a fresh ID so it
+        can’t clash with anything on the server. Two kinds are skipped: welcome tasks left exactly as they were (in
+        current or older wording, so returning visitors are covered), and tasks the account already has.
+      </p>
+
+      <h2 class="progress">Offline changes for signed-in users</h2>
+      <p>
+        A signed-in change that can’t reach Supabase goes into an <strong>outbox</strong>: a queue in IndexedDB,
+        kept per account, that survives reloads. The device’s copy of the tasks is updated straight away, so nothing
+        looks different to the user. The outbox is sent when the connection returns, when the app loads, on sign-in,
+        and from the sync button.
+      </p>
+      <ul>
+        <li><strong>Oldest first, stopping at the first network failure,</strong> so an edit can never arrive before the task it edits.</li>
+        <li><strong>One send at a time.</strong> Two triggers firing together share the same run instead of sending twice.</li>
+        <li><strong>Retries are safe.</strong> If a change already reached the server before the connection dropped, the retry sees a duplicate key (Postgres <code>23505</code>) or a missing row (<code>PGRST116</code>) and counts it as done.</li>
+        <li><strong>Changes the server rejects are dropped,</strong> rather than blocking everything queued behind them.</li>
+      </ul>
+      <p>
+        Signing out sends what it can. If changes are still waiting, they and the account’s offline copy stay on the
+        device until that person signs in again. Otherwise the copy is removed, so the next person on the device
+        can’t see it.
+      </p>
+
+      <h3>When the database is asleep</h3>
+      <p>
+        Supabase’s free tier pauses a project after about a week without activity. Two things handle that. A GitHub
+        Actions job makes one small read every three days to keep the project awake. And the app tells “the server
+        is unreachable” apart from real errors (a failed fetch, a 5xx, or Supabase’s 540 “paused” response), so
+        people see <em>Cloud sync is asleep right now. Your tasks are still saved on this device.</em> rather than
+        a raw error.
+      </p>
+
+      <h2 class="done">Typing a task: natural language dates</h2>
+      <p>
+        Typing <code>pay rent fri</code> creates “pay rent” due on Friday, and <code>dentist 3 Nov</code> works the
+        same way. The parser, chrono-node, is a sizeable library, so it’s split into its own file and only downloaded
+        when you start typing. The first visit doesn’t pay for it.
+      </p>
+      <p>
+        Dates like <code>3/11</code> mean different things in different places. Taskr reads them month-first only
+        when the browser’s language is US English, and day-first everywhere else, which suits Taskr’s home in
+        Australia. A month or year on its own isn’t treated as a due date, so “call May about the lease” and
+        “watch 1917” stay as they are. A day, a weekday or a time has to be there too.
+      </p>
+
+      <h3>The Ctrl+K palette</h3>
+      <p>
+        <code>Ctrl+K</code> (<code>⌘K</code> on a Mac) opens a palette for switching views, importing, exporting
+        and jumping to any task. Matches that start with what you typed rank above matches in the middle of a word.
+        Unless the text is already a task, the last option creates it, with a live preview of any date it found.
+      </p>
+
+      <h2>Small details</h2>
+
+      <h3>Colours that travel round the colour wheel</h3>
+      <p>
+        When a task changes status, its colour strip doesn’t snap from yellow to blue. It sweeps round the colour
+        wheel, through the hues in between. The card usually moves to a different section, which creates a new element,
+        so an ordinary CSS transition has nothing to start from. Taskr remembers each task’s last status across
+        that move and plays a one-off animation. A registered custom property (<code>@property</code>) animates from
+        0 to 1, and <code>color-mix(in hsl shorter hue, …)</code> turns that number into the colour in between.
+      </p>
+      <div class="card demo">
+        <div class="demo-card" id="demo-card">
+          Plan trip
+          <span class="demo-status" id="demo-status" aria-live="polite">To Do</span>
+        </div>
+        <button type="button" id="demo-button">Move to In Progress</button>
+      </div>
+
+      <h3>Dark mode without a white flash</h3>
+      <p>
+        A few lines of plain script in the page’s <code>&lt;head&gt;</code> apply the saved theme, or the device’s
+        light or dark setting, before React loads. Until someone picks a theme, Taskr follows the device, including
+        when it switches at sunset.
+      </p>
+
+      <h3>Settings that follow you</h3>
+      <p>
+        For signed-in users, the theme, the last view used and the calendar’s Month or Week choice are stored in the
+        account’s Supabase user metadata, so no extra table is needed. A new device opens the way you left the last
+        one. A change made offline is marked on the device and wins the next time it connects.
+      </p>
+
+      <h3>Deleting an account</h3>
+      <p>
+        A browser can’t delete a Supabase user directly. Taskr calls a small Postgres function instead. It runs with
+        elevated rights (<code>SECURITY DEFINER</code>), but can only ever delete the caller’s own tasks and account,
+        identified by <code>auth.uid()</code>. Afterwards the app clears that account’s copy and outbox from the device.
+      </p>
+
+      <h3>Usable without a mouse</h3>
+      <p>
+        Checkboxes and task rows are real buttons, so they’re reachable with Tab. The account menu follows the WAI-ARIA
+        menu button pattern, with arrow keys, Home, End and Escape. On the board, the left and right arrow keys move a
+        focused card between columns, and cards can be dragged with a finger as well as a mouse, and 1, 2 and 3 switch between List, Board and Calendar.
+      </p>
+
+      <h2>Bugs worth telling</h2>
+      <div class="table-wrap">
+        <table class="bugs">
+          <thead>
+            <tr><th>What people saw</th><th>Why</th><th>The fix</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>New visitors got one welcome task instead of five</td>
+              <td>Each welcome task was saved on its own, and each save rewrote storage with just that task</td>
+              <td>Save the whole set in one write</td>
+            </tr>
+            <tr>
+              <td>Adding tasks in quick succession lost one</td>
+              <td>The save handler worked from a copy of the list captured before the previous add finished (a stale closure)</td>
+              <td>Read the latest list from a ref at the moment of saving</td>
+            </tr>
+            <tr>
+              <td>Signed-in edits made offline disappeared</td>
+              <td>The “back online” handler cleared the queue without sending it. The code even said <em>“Here you would sync”</em></td>
+              <td>The outbox described above, tested against a fake Supabase server that can be switched off</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>What’s next</h2>
+      <ul>
+        <li><strong>Automated tests.</strong> Import, export and date parsing were checked by hand with scripts. They should become a test suite.</li>
+        <li><strong>Moving off Create React App,</strong> which is no longer maintained, to a current build tool.</li>
+      </ul>
+      <p>Everything that has shipped so far is in the <a href="/changelog.html">changelog</a>.</p>
+
+      <footer>
+        <p>
+          Taskr is open source <a href="https://github.com/theonlyanish/Taskr-Todo">on GitHub</a> and made by
+          <a href="https://anishkapse.com">Anish Kapse</a>.
+        </p>
+        <p>
+          <a href="/">Open Taskr</a> &middot;
+          <a href="/offline-todo-app.html">Offline and no-account guide</a> &middot;
+          <a href="/import-from-todoist.html">Import from Todoist</a> &middot;
+          <a href="/changelog.html">Changelog</a>
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      // Status colour demo: To Do -> In Progress -> Completed -> To Do
+      (function () {
+        var card = document.getElementById('demo-card');
+        var label = document.getElementById('demo-status');
+        var button = document.getElementById('demo-button');
+        var steps = [
+          { name: 'To Do', color: 'var(--todo)' },
+          { name: 'In Progress', color: 'var(--progress)' },
+          { name: 'Completed', color: 'var(--done)' }
+        ];
+        var current = 0;
+
+        button.addEventListener('click', function () {
+          var next = (current + 1) % steps.length;
+          card.style.setProperty('--from', steps[current].color);
+          card.style.setProperty('--to', steps[next].color);
+          // Restart the animation even if one is still running
+          card.classList.remove('sweeping');
+          void card.offsetWidth;
+          card.classList.add('sweeping');
+          current = next;
+          label.textContent = steps[current].name;
+          button.textContent = 'Move to ' + steps[(current + 1) % steps.length].name;
+        });
+      })();
+    </script>
+  </body>
+</html>

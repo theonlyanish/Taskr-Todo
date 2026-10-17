@@ -1311,6 +1311,13 @@ function App() {
             >
               Anish Kapse
             </a>
+            <span aria-hidden="true"> · </span>
+            <a
+              href="/how-its-built.html"
+              className="transition-colors duration-200 hover:text-[#da4167] underline-offset-2 hover:underline"
+            >
+              How it’s built
+            </a>
           </p>
         {importState && (
           <ImportDialog

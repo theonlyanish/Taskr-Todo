@@ -107,7 +107,7 @@
       <ol>
         <li>On your first visit, a service worker caches the app so it can load again without a network connection.</li>
         <li>Every change you make is written to IndexedDB on your device as it happens, so there is no "save" step and nothing to lose if the connection drops.</li>
-        <li>If you are signed in, each change is saved straight to Supabase and a sync indicator in the header shows whether you are online. Offline mode is a guest feature: see the limits below.</li>
+        <li>If you are signed in, each change is also sent to Supabase. When there is no connection, it waits in a queue on your device and is sent automatically when you reconnect, in the order you made it. A sync indicator in the header shows whether you are online.</li>
       </ol>
       <p>
         This is the same approach used by most installable web apps: the app shell is cached,
@@ -132,7 +132,7 @@
         <li><strong>Guest tasks live in one browser profile.</strong> They are not available in another browser, another profile, a private window or another device. Sign in if you want that.</li>
         <li><strong>Clearing site data deletes guest tasks.</strong> If you clear your browser's storage for taskr-todo.vercel.app, or your browser evicts storage because the disk is full, tasks that were never synced are gone. There is no server-side copy to restore from.</li>
         <li><strong>The first load needs a connection.</strong> The app is cached after you have opened it once online. Before that, there is nothing on your device to run.</li>
-        <li><strong>Signed-in users need a connection to save.</strong> When you are signed in, changes go straight to the cloud and are not queued for later. If you edit while offline, the change can fail to save; the sync indicator turns to an offline state so you know. Full offline use is for guest mode today.</li>
+        <li><strong>Offline changes wait on the device you made them on.</strong> When you are signed in and offline, your changes are kept on that device and only reach your other devices once it reconnects.</li>
         <li><strong>Guests cannot export yet.</strong> Export to Markdown and import from CSV currently require signing in.</li>
         <li><strong>Sync depends on a free-tier database.</strong> Taskr's cloud runs on Supabase's free tier. If that project is paused, sign-in and sync are unavailable until it is woken, and the app shows a "Cloud sync is asleep" notice. Guest mode keeps working regardless.</li>
         <li><strong>No reminders or notifications.</strong> Taskr shows due dates in the list and the Calendar but does not send push notifications or emails.</li>

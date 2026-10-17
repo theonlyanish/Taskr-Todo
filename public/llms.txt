@@ -2,7 +2,7 @@
 
 > Taskr is a free todo app with Kanban, Calendar and list views. It works offline, needs no sign-up, and keeps your tasks in your browser until you choose to sync.
 
-Last updated: 2026-10-17
+Last updated: 2026-10-18
 
 Taskr is a free todo app that works offline and needs no sign-up. Open https://taskr-todo.vercel.app/ and start adding tasks straight away. Your list is saved in your browser, so it is still there when you come back, with or without an internet connection.
 
@@ -30,6 +30,7 @@ Switch between a Kanban board, a Calendar and a simple list to see the same task
 - Import your tasks from Todoist into Taskr: https://taskr-todo.vercel.app/import-from-todoist.html
 - How Taskr works offline and without an account: https://taskr-todo.vercel.app/offline-todo-app.html
 - Changelog, what has shipped so far: https://taskr-todo.vercel.app/changelog.html
+- How Taskr is built (architecture and engineering notes): https://taskr-todo.vercel.app/how-its-built.html
 
 ## FAQ
 
@@ -43,7 +44,7 @@ No. You can use every view and feature without signing up. Creating an account i
 
 ### Does it work offline?
 
-Yes, when you use it without an account: your tasks are kept in your browser and everything works without a connection. If you are signed in, changes are saved to the cloud, so you need a connection for them to be saved, and the sync indicator shows when you are offline.
+Yes. Without an account, your tasks are kept in your browser and everything works without a connection. If you are signed in, changes made offline are saved on your device and sent to your account automatically when you reconnect.
 
 ### Can I sync across devices?
 
