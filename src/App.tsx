@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TaskList } from './components/TaskList';
 import { TaskForm } from './components/TaskForm';
 import { ThemeToggle } from './components/ThemeToggle';
-import { Auth } from './components/Auth';
+import { Auth, AuthMode } from './components/Auth';
 import { SyncIndicator } from './components/SyncIndicator';
 import KanbanView from './components/KanbanView';
 import { CalendarView } from './components/CalendarView';
@@ -20,7 +20,7 @@ import { User } from '@supabase/supabase-js';
 import { loadTasks, addTask } from './utils/taskOperations';
 import { MantineProvider } from '@mantine/core';
 import './styles.css';
-import { getPresetTasks, hasSeenPresetTasks, markPresetTasksAsSeen } from './utils/presetTasks';
+import { getPresetTasks, hasSeenPresetTasks, isUntouchedPresetTask, markPresetTasksAsSeen } from './utils/presetTasks';
 import { offlineStorage } from './utils/offlineStorage';
 import { CLOUD_ASLEEP_MESSAGE, isSupabaseUnavailable } from './services/supabaseErrors';
 
@@ -95,6 +95,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   // Why the sign-in dialog was opened, shown in place of its default line
   const [authMessage, setAuthMessage] = useState<string | undefined>(undefined);
+  const [authMode, setAuthMode] = useState<AuthMode>('signIn');
   const [importState, setImportState] = useState<ImportState | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [viewType, setViewType] = useState<ViewType>('normal');
@@ -242,8 +243,14 @@ function App() {
     loadInitialData();
 
     // Subscribe to auth changes
-    const { data: { subscription } } = AuthService.subscribeToAuthChanges((user) => {
+    const { data: { subscription } } = AuthService.subscribeToAuthChanges((user, event) => {
       setUser(user);
+      // Arrived from a password reset email: ask for the new password
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthMessage(undefined);
+        setAuthMode('updatePassword');
+        setShowAuthModal(true);
+      }
     });
 
     // Set up online/offline listeners
@@ -671,6 +678,7 @@ function App() {
 
   const openAuth = (message?: string) => {
     setAuthMessage(message);
+    setAuthMode('signIn');
     setShowAuthModal(true);
   };
 
@@ -1142,12 +1150,13 @@ function App() {
         </div>
 
         {showAuthModal && (
-          <div className="modal-overlay" onClick={closeAuth}>
-            <div className="modal-content auth-modal" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={closeAuth}>×</button>
-              <Auth onAuthStateChange={handleAuthStateChange} message={authMessage} />
-            </div>
-          </div>
+          <Auth
+            onAuthStateChange={handleAuthStateChange}
+            onClose={closeAuth}
+            message={authMessage}
+            initialMode={authMode}
+            guestTaskCount={user ? 0 : tasks.filter(task => !task.isSubtask && !isUntouchedPresetTask(task)).length}
+          />
         )}
         <p className="footer-text">
             Taskr by{' '}

@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { User } from '@supabase/supabase-js';
+import { AuthChangeEvent, User } from '@supabase/supabase-js';
 import { isSupabaseUnavailable } from './supabaseErrors';
 
 export class AuthService {
@@ -21,6 +21,21 @@ export class AuthService {
     return data;
   }
 
+  // Emails a link back to this site; opening it signs the user in with a
+  // PASSWORD_RECOVERY event so they can choose a new password
+  static async requestPasswordReset(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+    if (error) throw error;
+  }
+
+  static async updatePassword(password: string) {
+    const { data, error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+    return data;
+  }
+
   static async signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -34,9 +49,9 @@ export class AuthService {
     return user;
   }
 
-  static subscribeToAuthChanges(callback: (user: User | null) => void) {
-    return supabase.auth.onAuthStateChange((_event, session) => {
-      callback(session?.user ?? null);
+  static subscribeToAuthChanges(callback: (user: User | null, event: AuthChangeEvent) => void) {
+    return supabase.auth.onAuthStateChange((event, session) => {
+      callback(session?.user ?? null, event);
     });
   }
 } 

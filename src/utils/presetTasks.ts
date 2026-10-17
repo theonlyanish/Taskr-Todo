@@ -62,6 +62,14 @@ export const getPresetTasks = (): Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[]
   ];
 };
 
+// A welcome task the user hasn't edited; these aren't copied into an account on sign-in
+export const isUntouchedPresetTask = (task: Pick<Task, 'title' | 'description' | 'status'>): boolean =>
+  getPresetTasks().some(preset =>
+    preset.title === task.title &&
+    preset.description === task.description &&
+    preset.status === task.status
+  );
+
 export const hasSeenPresetTasks = (): boolean => {
   return localStorage.getItem('hasSeenPresetTasks') === 'true';
 };
