@@ -9,6 +9,7 @@ import { CalendarView } from './components/CalendarView';
 import { UndoToast } from './components/UndoToast';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
+import { AccountMenu } from './components/AccountMenu';
 import { exportFileName, parseImportFile, toMarkdown } from './utils/importExport';
 import { SupabaseTaskService } from './services/supabaseTaskService';
 import { AuthService } from './services/authService';
@@ -846,12 +847,12 @@ function App() {
               onToggle={() => setIsDarkMode(!isDarkMode)}
             />
             {user ? (
-              <button
-                onClick={handleSignOut}
-                className="sign-out-btn"
-              >
-                Sign Out
-              </button>
+              <AccountMenu
+                email={user.email ?? 'your account'}
+                onImport={handleImportClick}
+                onExport={handleExport}
+                onSignOut={handleSignOut}
+              />
             ) : (
               <button
                 onClick={() => openAuth()}
@@ -877,38 +878,16 @@ function App() {
           </div>
         )}
 
+        {/* Opened by "Import tasks" in the account menu or command palette */}
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".csv,.tsv,.txt,text/csv"
+          hidden
+          onChange={handleImportFile}
+        />
+
         <div className="view-selector-container">
-          <div className="data-actions">
-            <button
-              type="button"
-              className="data-action-btn"
-              onClick={handleImportClick}
-              title={user ? 'Import tasks from a Todoist or CSV export' : 'Sign in to import tasks'}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 4v11M7 10l5 5 5-5M5 20h14" />
-              </svg>
-              Import
-            </button>
-            <button
-              type="button"
-              className="data-action-btn"
-              onClick={handleExport}
-              title={user ? 'Download your tasks as Markdown' : 'Sign in to export tasks'}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 15V4M7 9l5-5 5 5M5 20h14" />
-              </svg>
-              Export
-            </button>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".csv,.tsv,.txt,text/csv"
-              hidden
-              onChange={handleImportFile}
-            />
-          </div>
           <select
             className="view-selector"
             value={viewType}
