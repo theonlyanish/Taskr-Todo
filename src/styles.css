@@ -1135,25 +1135,88 @@ flex: 0 0 auto;
   cursor: progress;
 }
 
-.view-selector {
-  padding: 0.5rem 1rem;
+/* List / Board / Calendar switch. Three equal columns so the highlight can
+   slide by its own width: --active-index is set from the component. */
+.view-switcher {
+  position: relative;
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 3px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  font-size: 0.9rem;
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.dark-theme .view-switcher {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.view-switcher-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 3);
+  border-radius: 7px;
+  background-color: var(--card-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--border-color);
+  transform: translateX(calc(var(--active-index, 0) * 100%));
+  transition: transform 200ms ease-out;
+}
+
+/* The dark card colour is too close to the dark page to show the selection */
+.dark-theme .view-switcher-indicator {
+  background-color: #1d1d24;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.view-switcher-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border: none;
+  border-radius: 7px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
   cursor: pointer;
-  min-width: 150px;
 }
 
-.view-selector:hover {
-  border-color: var(--accent-color);
+.view-switcher-option:hover,
+.view-switcher-option[aria-pressed="true"] {
+  color: var(--text-primary);
 }
 
-.view-selector:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+.view-switcher-option svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.view-switcher-option[aria-pressed="true"] svg {
+  color: var(--accent-color);
+}
+
+.view-switcher-option:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-switcher-indicator {
+    transition: none;
+  }
 }
 
 /* Sign In/Out Button */
@@ -2506,6 +2569,16 @@ button.kanban-subtask-item {
 
   .view-selector-container {
     padding: 0.75rem 1rem 0;
+  }
+
+  /* Full-width switch on phones: bigger targets, easy to reach */
+  .view-switcher {
+    display: grid;
+    width: 100%;
+  }
+
+  .view-switcher-option {
+    padding: 0.55rem 0.5rem;
   }
 
   .task-item {

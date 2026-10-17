@@ -6,6 +6,7 @@ import { Auth } from './components/Auth';
 import { SyncIndicator } from './components/SyncIndicator';
 import KanbanView from './components/KanbanView';
 import { CalendarView } from './components/CalendarView';
+import { ViewSwitcher, ViewType } from './components/ViewSwitcher';
 import { UndoToast } from './components/UndoToast';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
@@ -22,9 +23,6 @@ import './styles.css';
 import { getPresetTasks, hasSeenPresetTasks, markPresetTasksAsSeen } from './utils/presetTasks';
 import { offlineStorage } from './utils/offlineStorage';
 import { CLOUD_ASLEEP_MESSAGE, isSupabaseUnavailable } from './services/supabaseErrors';
-
-// Add this type definition at the top of the file
-type ViewType = 'normal' | 'kanban' | 'calendar';
 
 // Matches the stacked layout breakpoint in styles.css
 const STACKED_LAYOUT_QUERY = '(max-width: 900px)';
@@ -908,15 +906,7 @@ function App() {
         />
 
         <div className="view-selector-container">
-          <select
-            className="view-selector"
-            value={viewType}
-            onChange={(e) => setViewType(e.target.value as ViewType)}
-          >
-            <option value="normal">Normal View</option>
-            <option value="kanban">Kanban View</option>
-            <option value="calendar">Calendar View</option>
-          </select>
+          <ViewSwitcher value={viewType} onChange={setViewType} />
         </div>
 
         <div className={`main-content ${
