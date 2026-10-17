@@ -18,6 +18,7 @@ import {
 import { Task, TaskStatus } from '../types/Task';
 import { isEqual } from 'lodash';
 import { useStatusMorph } from '../utils/statusMorph';
+import { DueDate } from './DueDate';
 
 interface KanbanViewProps {
   tasks: Task[];
@@ -82,7 +83,7 @@ const KanbanCardContent: React.FC<{
     <div className="kanban-task-title">{task.title}</div>
     {task.dueDate && (
       <div className="kanban-task-due-date">
-        {new Date(task.dueDate).toLocaleDateString()}
+        <DueDate dueDate={task.dueDate} completed={task.status === 'Completed'} />
       </div>
     )}
 

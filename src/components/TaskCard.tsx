@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Task } from '../types/Task';
 import { useStatusMorph } from '../utils/statusMorph';
+import { DueDate } from './DueDate';
 
 // Ticking a task moves it to another section, which remounts its row. This
 // remembers whose checkbox had focus so the new row can take focus back.
@@ -70,9 +71,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         </span>
         {task.dueDate && (
           <span className="task-meta">
-            <span className="due-date">
-              Due: {new Date(task.dueDate).toLocaleDateString()}
-            </span>
+            <DueDate dueDate={task.dueDate} completed={isCompleted} className="due-date" />
           </span>
         )}
       </button>
