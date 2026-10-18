@@ -32,6 +32,7 @@ import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
 import { DeleteAccountDialog, DeleteAccountState } from './components/DeleteAccountDialog';
 import { DevicesDialog } from './components/DevicesDialog';
+import { RecentlyDeletedDialog } from './components/RecentlyDeletedDialog';
 import { exportFileName, parseImportFile, toMarkdown } from './utils/importExport';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from './utils/quickAdd';
 import { SupabaseTaskService } from './services/supabaseTaskService';
@@ -160,6 +161,7 @@ function App() {
   const [savedTemplates, setSavedTemplates] = useState<TaskTemplate[]>(() => loadSavedTemplates());
   const [showTemplates, setShowTemplates] = useState(false);
   const [showDevices, setShowDevices] = useState(false);
+  const [showRecentlyDeleted, setShowRecentlyDeleted] = useState(false);
   // Set while this tab signs out, to tell that apart from being signed out elsewhere
   const signingOutRef = useRef(false);
   // Start loading the date parser for quick add; re-renders once it's ready
@@ -454,6 +456,9 @@ function App() {
           }
           // If user is logged in, load tasks from Supabase
           loadedTasks = await fetchAccountTasks(currentUser.id);
+          // Tasks deleted over 30 days ago go for good (a nightly server job does
+          // this too, when Supabase Cron is set up)
+          SupabaseTaskService.removeExpiredDeleted().catch(() => {});
           await saveOnDevice(loadedTasks, currentUser.id);
         } else {
           // If not logged in, try to load from local storage
@@ -1054,6 +1059,7 @@ function App() {
   // ran out): tidy up and say why
   const handleSignedOutElsewhere = async (userId: string) => {
     setShowDevices(false);
+    setShowRecentlyDeleted(false);
     await forgetAccountOnDevice(userId, false);
     setCloudNotice('You were signed out, so your tasks were removed from this device. Sign in to see them again.');
   };
@@ -1080,6 +1086,7 @@ function App() {
       signingOutRef.current = false;
     }
     setShowDevices(false);
+    setShowRecentlyDeleted(false);
     if (signedOutUser) await forgetAccountOnDevice(signedOutUser.id, true);
   };
 
@@ -1284,6 +1291,16 @@ function App() {
       : []),
     ...(user
       ? [{
+          id: 'recently-deleted',
+          group: 'Actions' as const,
+          label: 'Recently deleted',
+          hint: 'Account',
+          keywords: 'bin trash restore undelete deleted recover',
+          run: () => setShowRecentlyDeleted(true)
+        }]
+      : []),
+    ...(user
+      ? [{
           id: 'devices',
           group: 'Actions' as const,
           label: 'Signed-in devices',
@@ -1402,6 +1419,7 @@ function App() {
                 onSignOut={handleSignOut}
                 onDeleteAccount={openDeleteAccount}
                 onDevices={() => setShowDevices(true)}
+                onRecentlyDeleted={() => setShowRecentlyDeleted(true)}
               />
             ) : (
               <button
@@ -1738,6 +1756,23 @@ function App() {
             onUse={handleUseTemplate}
             onDelete={handleDeleteTemplate}
             onClose={() => setShowTemplates(false)}
+          />
+        )}
+        {showRecentlyDeleted && user && (
+          <RecentlyDeletedDialog
+            isOnline={isOnline}
+            titleOf={taskId => findTaskById(tasksRef.current, taskId)?.title}
+            onChanged={restored => {
+              // Restored tasks come back from the server; other devices hear either way
+              if (restored) {
+                syncWithServer(user.id).catch(error => {
+                  console.error('Refreshing after a restore failed:', error);
+                  reportCloudError(error);
+                });
+              }
+              announceChange();
+            }}
+            onClose={() => setShowRecentlyDeleted(false)}
           />
         )}
         {showDevices && user && (

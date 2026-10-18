@@ -23,6 +23,7 @@ export interface TaskRow {
   is_subtask: boolean | null;
   subtasks: any[] | null;
   position?: number | null; // absent until the task_position migration has run
+  deleted_at?: string | null; // set while in Recently deleted (recently_deleted migration)
 }
 
 // Helper functions to convert between our app's Task type and Supabase's format

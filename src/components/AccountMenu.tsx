@@ -7,12 +7,13 @@ interface AccountMenuProps {
   onSignOut: () => void;
   onDeleteAccount: () => void;
   onDevices: () => void;
+  onRecentlyDeleted: () => void;
 }
 
 // Signed-in user's menu in the header: account details, import, export, sign out
 // and deleting the account.
 // Follows the WAI-ARIA menu button pattern for keyboard and screen reader users.
-export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExport, onSignOut, onDeleteAccount, onDevices }) => {
+export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExport, onSignOut, onDeleteAccount, onDevices, onRecentlyDeleted }) => {
   const [open, setOpen] = useState(false);
   // Which item takes focus once the menu has rendered
   const [focusOnOpen, setFocusOnOpen] = useState<'first' | 'last' | null>(null);
@@ -130,6 +131,11 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExp
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M5 20h14" /></svg>
             Export tasks
             <span className="account-menu-item-hint">Markdown</span>
+          </button>
+          <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={() => choose(onRecentlyDeleted)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3M9.5 14.5l2.5-2.5 2.5 2.5M12 12v5" /></svg>
+            Recently deleted
+            <span className="account-menu-item-hint">30 days</span>
           </button>
           <div className="account-menu-separator" role="separator" />
           <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={() => choose(onDevices)}>

@@ -1,5 +1,5 @@
 import { Task } from '../types/Task';
-import { supabase, toTask } from './supabaseClient';
+import { supabase, toTask, TaskRow } from './supabaseClient';
 import { AuthService } from './authService';
 import { isSupabaseUnavailable } from './supabaseErrors';
 
@@ -23,6 +23,32 @@ let positionColumnMissing = false;
 // "undefined column", mentioning position
 const isMissingPositionColumn = (error: { code?: string; message?: string }) =>
   (error.code === 'PGRST204' || error.code === '42703') && /position/i.test(error.message ?? '');
+
+// Set once the server says the tasks table has no deleted_at column yet (the
+// recently_deleted migration); until then deleting removes tasks straight away
+let deletedColumnMissing = false;
+
+const isMissingDeletedColumn = (error: { code?: string; message?: string }) =>
+  (error.code === 'PGRST204' || error.code === '42703') && /deleted_at/i.test(error.message ?? '');
+
+const noteDeletedColumnMissing = () => {
+  if (!deletedColumnMissing) {
+    deletedColumnMissing = true;
+    console.warn('Deleted tasks are removed straight away until the recently_deleted migration is run.');
+  }
+};
+
+// Tasks deleted this long ago are removed for good
+export const KEEP_DELETED_DAYS = 30;
+
+// One entry in Recently deleted: a task (with the subtasks deleted along with
+// it), or a subtask deleted on its own
+export interface DeletedTask {
+  task: Task;
+  deletedAt: Date;
+  deletedAtRaw: string; // exactly as stored, to restore the same batch
+  subtaskCount: number;
+}
 
 // Rows per insert request when saving many tasks at once
 const BULK_INSERT_SIZE = 200;
@@ -64,7 +90,8 @@ export class SupabaseTaskService {
       if (error) throw Object.assign(error, { status });
       
       // Convert all tasks to our Task type
-      const allTasks = data.map(toTask);
+      // Leaving out tasks in Recently deleted
+      const allTasks = data.filter(row => !row.deleted_at).map(toTask);
       
       // Create a map of parent tasks
       const parentTasks = allTasks.filter(task => !task.isSubtask);
@@ -152,13 +179,109 @@ export class SupabaseTaskService {
     return toTask(data);
   }
 
+  // Moves a task, and its subtasks, to Recently deleted. Until that's set up
+  // on the server, removes them for good instead (subtasks cascade).
   static async deleteTaskOrThrow(taskId: string, userId: string): Promise<void> {
+    if (!deletedColumnMissing) {
+      const { error, status } = await supabase
+        .from('tasks')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('user_id', userId) // Only the user's own tasks
+        .or(`id.eq.${taskId},parent_id.eq.${taskId}`)
+        // Subtasks deleted earlier keep their own time
+        .is('deleted_at', null);
+      if (!error) return;
+      if (!isMissingDeletedColumn(error)) throw Object.assign(error, { status });
+      noteDeletedColumnMissing();
+    }
     const { error, status } = await supabase
       .from('tasks')
       .delete()
       .eq('id', taskId)
       .eq('user_id', userId); // Only delete if the task belongs to the user
     if (error) throw Object.assign(error, { status });
+  }
+
+  // Everything in Recently deleted, newest first; null until it's set up on the server
+  static async getDeletedTasks(): Promise<DeletedTask[] | null> {
+    if (deletedColumnMissing) return null;
+    const user = await AuthService.getCurrentUser();
+    if (!user) return [];
+    const { data, error, status } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', user.id)
+      .not('deleted_at', 'is', null)
+      .order('deleted_at', { ascending: false });
+    if (error) {
+      if (isMissingDeletedColumn(error)) {
+        noteDeletedColumnMissing();
+        return null;
+      }
+      throw Object.assign(error, { status });
+    }
+    const rows = data as (TaskRow & { deleted_at: string })[];
+    const deletedIds = new Set(rows.map(row => row.id));
+    return rows
+      // A subtask whose parent is also in the bin comes back with the parent
+      .filter(row => !(row.parent_id && deletedIds.has(row.parent_id)))
+      .map(row => ({
+        task: toTask(row),
+        deletedAt: new Date(row.deleted_at),
+        deletedAtRaw: row.deleted_at,
+        subtaskCount: rows.filter(sub => sub.parent_id === row.id && sub.deleted_at === row.deleted_at).length
+      }));
+  }
+
+  // Brings back a task and the subtasks deleted along with it
+  static async restoreTask(entry: DeletedTask): Promise<void> {
+    const user = await AuthService.getCurrentUser();
+    if (!user) return;
+    const { error, status } = await supabase
+      .from('tasks')
+      .update({ deleted_at: null })
+      .eq('user_id', user.id)
+      .or(`id.eq.${entry.task.id},and(parent_id.eq.${entry.task.id},deleted_at.eq.${entry.deletedAtRaw})`);
+    if (error) throw Object.assign(error, { status });
+  }
+
+  // Removes a deleted task for good (its subtasks go with it)
+  static async deleteForever(taskId: string): Promise<void> {
+    const user = await AuthService.getCurrentUser();
+    if (!user) return;
+    const { error, status } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('id', taskId)
+      .not('deleted_at', 'is', null);
+    if (error) throw Object.assign(error, { status });
+  }
+
+  static async emptyRecentlyDeleted(): Promise<void> {
+    const user = await AuthService.getCurrentUser();
+    if (!user) return;
+    const { error, status } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('user_id', user.id)
+      .not('deleted_at', 'is', null);
+    if (error) throw Object.assign(error, { status });
+  }
+
+  // Removes this user's tasks deleted over 30 days ago. A nightly job on the
+  // server does the same for everyone; this covers projects without it.
+  static async removeExpiredDeleted(): Promise<void> {
+    if (deletedColumnMissing) return;
+    const user = await AuthService.getCurrentUser();
+    if (!user) return;
+    const cutoff = new Date(Date.now() - KEEP_DELETED_DAYS * 86_400_000).toISOString();
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('user_id', user.id)
+      .lt('deleted_at', cutoff);
+    if (error && isMissingDeletedColumn(error)) noteDeletedColumnMissing();
   }
 
   // Static method to save a new task to the database
