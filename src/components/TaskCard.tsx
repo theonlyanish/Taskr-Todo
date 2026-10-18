@@ -27,6 +27,12 @@ export interface TaskCardProps {
   };
   // Alt+Up / Alt+Down: move one place up or down in the section
   onKeyboardMove?: (step: -1 | 1) => void;
+  // Bulk selection, for top-level rows: whether this one is picked, whether
+  // select mode is on, and the click handler that returns true when the
+  // click selected rather than opened (Ctrl/⌘-click, Shift-click, select mode)
+  isBulkSelected?: boolean;
+  selecting?: boolean;
+  onSelectClick?: (task: Task, event: React.MouseEvent) => boolean;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({
@@ -36,7 +42,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   onAddSubtask,
   selectedTaskId,
   sortable,
-  onKeyboardMove
+  onKeyboardMove,
+  isBulkSelected = false,
+  selecting = false,
+  onSelectClick
 }) => {
   const isCompleted = task.status === 'Completed';
   const checkboxRef = useRef<HTMLButtonElement>(null);
@@ -84,7 +93,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
     <div
       ref={sortable?.ref}
       {...sortable?.listeners}
-      className={`task-item ${task.id === selectedTaskId ? 'selected' : ''} ${task.isSubtask ? 'subtask' : ''} ${sortable?.isDragging ? 'drag-active' : ''} ${morph.className}`}
+      className={`task-item ${task.id === selectedTaskId ? 'selected' : ''} ${task.isSubtask ? 'subtask' : ''} ${sortable?.isDragging ? 'drag-active' : ''} ${isBulkSelected ? 'bulk-selected' : ''} ${morph.className}`}
       style={{ ...morph.style, ...sortable?.style }}
       onAnimationEnd={morph.onAnimationEnd}
       data-status={task.status}
@@ -105,7 +114,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         className="task-content"
         aria-current={task.id === selectedTaskId ? 'true' : undefined}
         aria-keyshortcuts={onKeyboardMove ? 'Alt+ArrowUp Alt+ArrowDown' : undefined}
-        onClick={() => onTaskSelect(task)}
+        aria-pressed={onSelectClick && selecting ? isBulkSelected : undefined}
+        // Shift-click selects a range; don't let it select text as well
+        onMouseDown={event => event.shiftKey && onSelectClick && event.preventDefault()}
+        onClick={event => {
+          if (onSelectClick?.(task, event)) return;
+          onTaskSelect(task);
+        }}
         onKeyDown={handleContentKeyDown}
       >
         <span className={`task-title ${isCompleted ? 'completed' : ''}`}>

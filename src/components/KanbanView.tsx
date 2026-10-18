@@ -31,6 +31,12 @@ interface KanbanViewProps {
   onTaskUpdate: (taskId: string, updates: Partial<Task>) => void;
   onReorder?: (taskId: string, position: number, status?: TaskStatus, others?: TaskPosition[]) => void;
   selectedTaskId?: string;
+  // Bulk selection: picked cards, whether select mode is on, and the click
+  // handler that returns true when a click selected rather than opened
+  bulkSelectedIds?: string[];
+  selecting?: boolean;
+  onSelectClick?: (task: Task, event: React.MouseEvent | React.KeyboardEvent) => boolean;
+  onClearCompleted?: () => void;
 }
 
 interface ColumnDefinition {
@@ -157,7 +163,10 @@ const KanbanCard: React.FC<{
   onMove: (task: Task, step: -1 | 1) => void;
   onReorderKey: (task: Task, step: -1 | 1) => void;
   selectedTaskId?: string;
-}> = ({ task, onTaskSelect, onMove, onReorderKey, selectedTaskId }) => {
+  isBulkSelected: boolean;
+  selecting: boolean;
+  onSelectClick?: (task: Task, event: React.MouseEvent | React.KeyboardEvent) => boolean;
+}> = ({ task, onTaskSelect, onMove, onReorderKey, selectedTaskId, isBulkSelected, selecting, onSelectClick }) => {
   const { attributes, listeners, setNodeRef, isDragging, transform, transition } = useSortable({
     id: task.id,
     data: { status: task.status, title: task.title }
@@ -188,6 +197,7 @@ const KanbanCard: React.FC<{
         if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          if (onSelectClick?.(task, e)) return;
           onTaskSelect(task);
         } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
           e.preventDefault();
@@ -201,14 +211,20 @@ const KanbanCard: React.FC<{
       }}
       className={`kanban-task-card ${
         task.id === selectedTaskId ? 'selected' : ''
-      } ${task.status === 'Completed' ? 'completed' : ''} ${isDragging ? 'drag-source' : ''} ${morph.className}`}
+      } ${task.status === 'Completed' ? 'completed' : ''} ${isDragging ? 'drag-source' : ''} ${isBulkSelected ? 'bulk-selected' : ''} ${morph.className}`}
+      aria-pressed={selecting ? isBulkSelected : undefined}
       style={{
         ...morph.style,
         transform: transform ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)` : undefined,
         transition
       }}
       onAnimationEnd={morph.onAnimationEnd}
-      onClick={() => onTaskSelect(task)}
+      // Shift-click selects a range; don't let it select text as well
+      onMouseDown={e => e.shiftKey && onSelectClick && e.preventDefault()}
+      onClick={(e) => {
+        if (onSelectClick?.(task, e)) return;
+        onTaskSelect(task);
+      }}
     >
       <KanbanCardContent task={task} onTaskSelect={onTaskSelect} selectedTaskId={selectedTaskId} />
     </div>
@@ -218,14 +234,23 @@ const KanbanCard: React.FC<{
 const KanbanColumn: React.FC<{
   column: ColumnDefinition;
   taskIds: string[];
+  // Completed only: remove every card in it (with undo)
+  onClear?: () => void;
   children: React.ReactNode;
-}> = ({ column, taskIds, children }) => {
+}> = ({ column, taskIds, onClear, children }) => {
   // The column itself is a drop target too, for empty columns and the space below the cards
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
   return (
     <div ref={setNodeRef} className="kanban-column">
-      <h2 className="kanban-column-title">{column.title}</h2>
+      <div className="kanban-column-header">
+        <h2 className="kanban-column-title">{column.title}</h2>
+        {onClear && taskIds.length > 0 && (
+          <button type="button" className="clear-completed-btn" onClick={onClear}>
+            Clear
+          </button>
+        )}
+      </div>
       <SortableContext id={column.id} items={taskIds} strategy={verticalListSortingStrategy}>
         <div className={`kanban-task-list ${isOver ? 'dragging-over' : ''}`}>
           {children}
@@ -240,7 +265,11 @@ const KanbanView: React.FC<KanbanViewProps> = ({
   onTaskSelect,
   onTaskUpdate,
   onReorder,
-  selectedTaskId
+  selectedTaskId,
+  bulkSelectedIds = [],
+  selecting = false,
+  onSelectClick,
+  onClearCompleted
 }) => {
   // Add local state to track tasks for optimistic UI updates
   const [localTasks, setLocalTasks] = useState<Task[]>(tasks);
@@ -491,7 +520,12 @@ const KanbanView: React.FC<KanbanViewProps> = ({
       <div className={`kanban-container ${activeTaskId ? 'is-dragging' : ''}`}>
         <div className="kanban-columns">
           {COLUMNS.map((column) => (
-            <KanbanColumn key={column.id} column={column} taskIds={tasksByStatus[column.id].map(task => task.id)}>
+            <KanbanColumn
+              key={column.id}
+              column={column}
+              taskIds={tasksByStatus[column.id].map(task => task.id)}
+              onClear={column.id === 'Completed' ? onClearCompleted : undefined}
+            >
               {tasksByStatus[column.id].length === 0 && (
                 <div className="kanban-no-tasks">No tasks in this column</div>
               )}
@@ -502,6 +536,9 @@ const KanbanView: React.FC<KanbanViewProps> = ({
                   onTaskSelect={handleTaskSelect}
                   onMove={handleKeyboardMove}
                   onReorderKey={handleKeyboardReorder}
+                  isBulkSelected={bulkSelectedIds.includes(task.id)}
+                  selecting={selecting}
+                  onSelectClick={onSelectClick}
                   selectedTaskId={selectedTaskId}
                 />
               ))}

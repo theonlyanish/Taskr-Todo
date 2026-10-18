@@ -23,6 +23,10 @@ interface TaskListProps {
   onAddSubtask: (parentId: string) => void;
   onReorder?: (taskId: string, position: number, status?: TaskStatus, others?: TaskPosition[]) => void;
   selectedTaskId?: string;
+  // Bulk selection (see TaskCard)
+  bulkSelectedIds?: string[];
+  selecting?: boolean;
+  onSelectClick?: (task: Task, event: React.MouseEvent) => boolean;
 }
 
 // Rows only slide up and down
@@ -57,7 +61,10 @@ export const TaskList: React.FC<TaskListProps> = ({
   onTaskToggle,
   onAddSubtask,
   onReorder,
-  selectedTaskId
+  selectedTaskId,
+  bulkSelectedIds = [],
+  selecting = false,
+  onSelectClick
 }) => {
   // Subtasks are shown inside their parent; the rest in the order the user set
   const mainTasks = sortByOrder(tasks.filter(task => !task.isSubtask));
@@ -110,7 +117,10 @@ export const TaskList: React.FC<TaskListProps> = ({
     onTaskToggle,
     onAddSubtask,
     selectedTaskId,
-    onKeyboardMove: onReorder && mainTasks.length > 1 ? step => handleKeyboardMove(task, step) : undefined
+    onKeyboardMove: onReorder && mainTasks.length > 1 ? step => handleKeyboardMove(task, step) : undefined,
+    isBulkSelected: bulkSelectedIds.includes(task.id),
+    selecting,
+    onSelectClick
   });
 
   return (

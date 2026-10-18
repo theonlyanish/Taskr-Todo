@@ -13,7 +13,7 @@ import { useAccountPreferences } from './utils/useAccountPreferences';
 import { UndoToast } from './components/UndoToast';
 import { FocusTimer } from './components/FocusTimer';
 import { useFocusTimer } from './utils/focusTimer';
-import { TaskPosition } from './utils/taskOrder';
+import { TaskPosition, sortByOrder } from './utils/taskOrder';
 import { setSubtasksExpanded } from './utils/subtaskExpansion';
 import { useLiveSync } from './utils/liveSync';
 import { TemplatePicker } from './components/TemplatePicker';
@@ -33,6 +33,7 @@ import { AccountMenu } from './components/AccountMenu';
 import { DeleteAccountDialog, DeleteAccountState } from './components/DeleteAccountDialog';
 import { DevicesDialog } from './components/DevicesDialog';
 import { RecentlyDeletedDialog } from './components/RecentlyDeletedDialog';
+import { BulkActionBar } from './components/BulkActionBar';
 import { exportFileName, parseImportFile, toMarkdown } from './utils/importExport';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from './utils/quickAdd';
 import { SupabaseTaskService } from './services/supabaseTaskService';
@@ -70,10 +71,16 @@ const VIEW_KEYWORDS: Record<ViewType, string> = {
 const UNDO_WINDOW_MS = 5000;
 
 // A delete that has been applied on screen but not yet saved
-interface PendingDelete {
+interface DeletedItem {
   task: Task;
   parentId?: string; // set when the deleted task is a subtask
   index: number; // position among its siblings, so undo puts it back in place
+}
+
+// One task, or several deleted together (bulk delete, Clear completed), which
+// one Undo brings back together
+interface PendingDelete {
+  items: DeletedItem[];
   commit: () => Promise<unknown>;
 }
 
@@ -109,11 +116,19 @@ const withTaskUpdated = (taskList: Task[], id: string, updates: Partial<Task>): 
     return task;
   });
 
-const withTaskRestored = (taskList: Task[], { task, parentId, index }: PendingDelete): Task[] => {
-  const insertAt = (items: Task[]) => [...items.slice(0, index), task, ...items.slice(index)];
-  if (!parentId) return insertAt(taskList);
-  return taskList.map(t => (t.id === parentId ? { ...t, subtasks: insertAt(t.subtasks || []) } : t));
-};
+const withoutTasks = (taskList: Task[], ids: string[]): Task[] => ids.reduce(withoutTask, taskList);
+
+// Earliest first, so each index still points at the right place
+const withTasksRestored = (taskList: Task[], { items }: PendingDelete): Task[] =>
+  [...items]
+    .sort((a, b) => a.index - b.index)
+    .reduce((list, { task, parentId, index }) => {
+      const insertAt = (siblings: Task[]) => [...siblings.slice(0, index), task, ...siblings.slice(index)];
+      if (!parentId) return insertAt(list);
+      return list.map(t => (t.id === parentId ? { ...t, subtasks: insertAt(t.subtasks || []) } : t));
+    }, taskList);
+
+const pendingIds = (pending: PendingDelete) => pending.items.map(item => item.task.id);
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([] as Task[]);
@@ -162,6 +177,25 @@ function App() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showDevices, setShowDevices] = useState(false);
   const [showRecentlyDeleted, setShowRecentlyDeleted] = useState(false);
+  // Tasks picked for a bulk action. null when not selecting; sticky keeps select
+  // mode on with nothing picked (started from "Select tasks" in Ctrl+K).
+  const [selection, setSelection] = useState<{ ids: string[]; sticky: boolean } | null>(null);
+  const selectionAnchorRef = useRef<string | null>(null);
+  // Picked tasks that still exist (one may have been deleted elsewhere)
+  const bulkSelectedIds = (selection?.ids ?? []).filter(id => tasks.some(task => task.id === id && !task.isSubtask));
+
+  // Esc ends selecting, unless it's closing a dialog
+  useEffect(() => {
+    if (!selection) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if ((event.target as Element | null)?.closest?.('[role="dialog"]')) return;
+      setSelection(null);
+      selectionAnchorRef.current = null;
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selection]);
   // Set while this tab signs out, to tell that apart from being signed out elsewhere
   const signingOutRef = useRef(false);
   // Start loading the date parser for quick add; re-renders once it's ready
@@ -247,7 +281,7 @@ function App() {
     if (!saved) return;
     // A delete still inside its undo window here stays hidden
     const pending = pendingDeleteRef.current;
-    if (pending) saved = withoutTask(saved, pending.task.id);
+    if (pending) saved = withoutTasks(saved, pendingIds(pending));
     tasksRef.current = saved;
     setTasks(saved);
   };
@@ -409,7 +443,7 @@ function App() {
     let fresh = await fetchAccountTasks(userId);
     // A delete still inside its undo window hasn't been sent yet; keep it hidden
     const pending = pendingDeleteRef.current;
-    if (pending) fresh = withoutTask(fresh, pending.task.id);
+    if (pending) fresh = withoutTasks(fresh, pendingIds(pending));
     tasksRef.current = fresh;
     setTasks(fresh);
     await saveOnDevice(fresh, userId);
@@ -864,41 +898,47 @@ function App() {
 
   // Remove the task from the screen straight away, but only save the delete
   // once the undo window has passed.
-  const handleTaskDelete = (taskId: string) => {
-    const taskToDelete = findTaskById(tasks, taskId);
-    if (!taskToDelete) {
-      console.error('Task not found:', taskId);
-      return;
-    }
+  // Removes tasks from the screen straight away, but only saves the delete once
+  // the undo window has passed. Several can go together (bulk delete, Clear
+  // completed), and one Undo brings them all back.
+  const deleteTasksWithUndo = (taskIds: string[]) => {
+    const latest = tasksRef.current;
+    const items: DeletedItem[] = taskIds.flatMap(taskId => {
+      const task = findTaskById(latest, taskId);
+      if (!task) return [];
+      const parent = latest.find(t => t.subtasks?.some(subtask => subtask.id === taskId));
+      const index = parent
+        ? parent.subtasks!.findIndex(subtask => subtask.id === taskId)
+        : latest.findIndex(t => t.id === taskId);
+      return [{ task, parentId: parent?.id, index }];
+    });
+    if (items.length === 0) return;
 
     // Only one delete can be undone at a time, so save any earlier one first
     commitPendingDelete();
 
     // No point timing a task that's gone (or a subtask of one)
     const focusedId = focus.session?.taskId;
-    if (focusedId && (focusedId === taskId || taskToDelete.subtasks?.some(subtask => subtask.id === focusedId))) {
+    if (focusedId && items.some(({ task }) => task.id === focusedId || task.subtasks?.some(subtask => subtask.id === focusedId))) {
       focus.stop();
     }
 
-    const parent = tasks.find(task => task.subtasks?.some(subtask => subtask.id === taskId));
-    const index = parent
-      ? parent.subtasks!.findIndex(subtask => subtask.id === taskId)
-      : tasks.findIndex(task => task.id === taskId);
-
+    const ids = items.map(item => item.task.id);
     // Whoever is signed in now, even if the delete is only sent after the undo window
     const deletingUserId = user?.id;
     const pending: PendingDelete = {
-      task: taskToDelete,
-      parentId: parent?.id,
-      index,
-      // Signed-in deletes go to Supabase (subtasks cascade), or the outbox when
-      // offline. Either way the list as it is by then is saved on this device.
+      items,
+      // Signed-in deletes go to Recently deleted in Supabase (subtasks too), or
+      // the outbox when offline. Either way the list as it is by then is saved
+      // on this device.
       commit: async () => {
         if (deletingUserId) {
-          try {
-            await SupabaseTaskService.deleteTask(taskId);
-          } catch (error) {
-            if (!(await queueIfOffline(error, deletingUserId, { type: 'delete', taskId }))) throw error;
+          for (const taskId of ids) {
+            try {
+              await SupabaseTaskService.deleteTask(taskId);
+            } catch (error) {
+              if (!(await queueIfOffline(error, deletingUserId, { type: 'delete', taskId }))) throw error;
+            }
           }
         }
         await saveOnDevice(tasksRef.current, deletingUserId);
@@ -910,9 +950,117 @@ function App() {
     setPendingDelete(pending);
     undoTimerRef.current = window.setTimeout(commitPendingDelete, UNDO_WINDOW_MS);
 
-    setTasks(withoutTask(tasks, taskId));
-    setSelectedTask(null);
+    const nextTasks = withoutTasks(latest, ids);
+    tasksRef.current = nextTasks;
+    setTasks(nextTasks);
+    setSelectedTask(current => (current && (ids.includes(current.id) || items.some(({ task }) => task.subtasks?.some(sub => sub.id === current.id))) ? null : current));
   };
+
+  const handleTaskDelete = (taskId: string) => {
+    if (!findTaskById(tasks, taskId)) {
+      console.error('Task not found:', taskId);
+      return;
+    }
+    deleteTasksWithUndo([taskId]);
+  };
+
+  // Moves several tasks to one status in one go. Completing a task completes
+  // its subtasks too, as it does one at a time.
+  const handleBulkStatus = async (taskIds: string[], status: TaskStatus) => {
+    const ids = new Set(taskIds);
+    const now = new Date();
+    const changed: Task[] = [];
+    const nextTasks = tasksRef.current.map(task => {
+      if (!ids.has(task.id)) return task;
+      let subtasks = task.subtasks;
+      if (status === 'Completed' && subtasks?.some(subtask => subtask.status !== 'Completed')) {
+        subtasks = subtasks.map(subtask => {
+          if (subtask.status === 'Completed') return subtask;
+          const done = { ...subtask, status, updatedAt: now };
+          changed.push(done);
+          return done;
+        });
+      }
+      if (task.status === status && subtasks === task.subtasks) return task;
+      const updated = { ...task, status, updatedAt: now, subtasks };
+      changed.push(updated);
+      return updated;
+    });
+    if (changed.length === 0) return;
+    tasksRef.current = nextTasks;
+    setTasks(nextTasks);
+
+    const userId = user?.id;
+    if (userId) {
+      for (const task of changed) {
+        try {
+          await SupabaseTaskService.updateTask(task.id, task);
+        } catch (error) {
+          if (!(await queueIfOffline(error, userId, { type: 'update', task }))) {
+            console.error('Error updating task in Supabase:', error);
+          }
+        }
+      }
+    }
+    await saveOnDevice(nextTasks, userId);
+    announceChange();
+  };
+
+  // Top-level tasks in the order they're shown: To Do, In Progress, Completed
+  const tasksInDisplayOrder = () =>
+    (['To Do', 'In Progress', 'Completed'] as TaskStatus[]).flatMap(status =>
+      sortByOrder(tasks.filter(task => !task.isSubtask && task.status === status))
+    );
+
+  // Ctrl/⌘-click picks or unpicks a task, Shift-click picks everything between
+  // it and the last one picked, and in select mode a plain click picks too.
+  // Returns true when the click was a selection rather than opening the task.
+  const handleSelectClick = (task: Task, event: React.MouseEvent | React.KeyboardEvent): boolean => {
+    if (task.isSubtask) return false;
+    const toggle = event.ctrlKey || event.metaKey;
+    const range = event.shiftKey;
+    if (!toggle && !range && !selection) return false;
+    event.preventDefault();
+
+    const current = selection?.ids ?? [];
+    const anchor = selectionAnchorRef.current;
+    let ids: string[];
+    if (range && anchor && anchor !== task.id) {
+      const order = tasksInDisplayOrder().map(t => t.id);
+      const from = order.indexOf(anchor);
+      const to = order.indexOf(task.id);
+      ids = from < 0 || to < 0
+        ? Array.from(new Set([...current, task.id]))
+        : Array.from(new Set([...current, ...order.slice(Math.min(from, to), Math.max(from, to) + 1)]));
+    } else {
+      ids = current.includes(task.id) ? current.filter(id => id !== task.id) : [...current, task.id];
+      selectionAnchorRef.current = task.id;
+    }
+    const sticky = selection?.sticky ?? false;
+    // Unpicking the last one ends selecting, unless it was started from Ctrl+K
+    setSelection(ids.length === 0 && !sticky ? null : { ids, sticky });
+    return true;
+  };
+
+  const stopSelecting = () => {
+    setSelection(null);
+    selectionAnchorRef.current = null;
+  };
+
+  const handleBulkMove = (status: TaskStatus) => {
+    const ids = bulkSelectedIds;
+    stopSelecting();
+    handleBulkStatus(ids, status);
+  };
+
+  const handleBulkDelete = () => {
+    const ids = bulkSelectedIds;
+    stopSelecting();
+    deleteTasksWithUndo(ids);
+  };
+
+  const completedTaskIds = tasks.filter(task => !task.isSubtask && task.status === 'Completed').map(task => task.id);
+  const handleClearCompleted = () => deleteTasksWithUndo(completedTaskIds);
 
   const handleUndoDelete = () => {
     const pending = pendingDeleteRef.current;
@@ -920,10 +1068,12 @@ function App() {
     window.clearTimeout(undoTimerRef.current);
     pendingDeleteRef.current = null;
     setPendingDelete(null);
-    setTasks(current => withTaskRestored(current, pending));
+    setTasks(current => withTasksRestored(current, pending));
   };
 
-  const describeDelete = ({ task }: PendingDelete) => {
+  const describeDelete = ({ items }: PendingDelete) => {
+    if (items.length > 1) return `Deleted ${items.length} tasks`;
+    const { task } = items[0];
     const subtaskCount = task.subtasks?.length ?? 0;
     const label = task.isSubtask ? 'subtask' : 'task';
     const extra = subtaskCount > 0 ? ` and ${subtaskCount} subtask${subtaskCount === 1 ? '' : 's'}` : '';
@@ -1261,6 +1411,24 @@ function App() {
         }]
       : []),
     {
+      id: 'select-tasks',
+      group: 'Actions',
+      label: selection ? 'Stop selecting tasks' : 'Select tasks',
+      hint: 'Bulk',
+      keywords: 'select multiple bulk several many batch move complete delete',
+      run: () => (selection ? stopSelecting() : setSelection({ ids: [], sticky: true }))
+    },
+    ...(completedTaskIds.length > 0
+      ? [{
+          id: 'clear-completed',
+          group: 'Actions' as const,
+          label: `Clear completed tasks (${completedTaskIds.length})`,
+          hint: 'Bulk',
+          keywords: 'clear completed done finished remove delete tidy',
+          run: handleClearCompleted
+        }]
+      : []),
+    {
       id: 'templates',
       group: 'Actions',
       label: 'New task from a template',
@@ -1537,6 +1705,9 @@ function App() {
                     }}
                     onAddSubtask={handleAddSubtask}
                     onReorder={handleTaskReorder}
+                    bulkSelectedIds={bulkSelectedIds}
+                    selecting={!!selection}
+                    onSelectClick={handleSelectClick}
                     selectedTaskId={selectedTask?.id}
                   />
                 </div>
@@ -1596,13 +1767,23 @@ function App() {
                     }}
                     onAddSubtask={handleAddSubtask}
                     onReorder={handleTaskReorder}
+                    bulkSelectedIds={bulkSelectedIds}
+                    selecting={!!selection}
+                    onSelectClick={handleSelectClick}
                     selectedTaskId={selectedTask?.id}
                   />
                 </div>
 
                 {/* Completed Section */}
                 <div className="task-section completed-section">
-                  <h2>Completed</h2>
+                  <div className="section-header">
+                    <h2>Completed</h2>
+                    {completedTaskIds.length > 0 && (
+                      <button type="button" className="clear-completed-btn" onClick={handleClearCompleted}>
+                        Clear
+                      </button>
+                    )}
+                  </div>
                   <TaskList 
                     tasks={tasks.filter(task => task.status === 'Completed')}
                     onTaskSelect={handleTaskSelect}
@@ -1643,6 +1824,9 @@ function App() {
                     }}
                     onAddSubtask={handleAddSubtask}
                     onReorder={handleTaskReorder}
+                    bulkSelectedIds={bulkSelectedIds}
+                    selecting={!!selection}
+                    onSelectClick={handleSelectClick}
                     selectedTaskId={selectedTask?.id}
                   />
                 </div>
@@ -1671,6 +1855,10 @@ function App() {
                 onTaskUpdate={handleTaskUpdate}
                 onReorder={handleTaskReorder}
                 selectedTaskId={selectedTask?.id}
+                bulkSelectedIds={bulkSelectedIds}
+                selecting={!!selection}
+                onSelectClick={handleSelectClick}
+                onClearCompleted={handleClearCompleted}
               />
               <div className="task-detail-column" ref={taskFormRef}>
                 <TaskForm
@@ -1803,6 +1991,16 @@ function App() {
           />
         )}
         {/* Before the undo bar, which stacks above it (see .focus-bar ~ .undo-toast) */}
+        {selection && (
+          <BulkActionBar
+            count={bulkSelectedIds.length}
+            total={tasks.filter(task => !task.isSubtask).length}
+            onMove={handleBulkMove}
+            onDelete={handleBulkDelete}
+            onSelectAll={() => setSelection({ ids: tasksInDisplayOrder().map(task => task.id), sticky: true })}
+            onDone={stopSelecting}
+          />
+        )}
         {focus.session && focus.phase && (
           <FocusTimer
             session={focus.session}
@@ -1819,7 +2017,7 @@ function App() {
         )}
         {pendingDelete && (
           <UndoToast
-            key={pendingDelete.task.id}
+            key={pendingIds(pendingDelete).join()}
             message={describeDelete(pendingDelete)}
             durationMs={UNDO_WINDOW_MS}
             onUndo={handleUndoDelete}

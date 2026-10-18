@@ -4016,3 +4016,214 @@ button.kanban-subtask-item {
   outline: 2px solid var(--accent-color);
   outline-offset: 2px;
 }
+
+/* Bulk actions: picked rows and cards, the bar, and Clear completed */
+.task-item.bulk-selected,
+.kanban-task-card.bulk-selected {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+  background-color: rgba(9, 132, 227, 0.08);
+}
+
+.dark-theme .task-item.bulk-selected,
+.dark-theme .kanban-task-card.bulk-selected {
+  outline-color: #5b93c2;
+  background-color: rgba(61, 113, 153, 0.22);
+}
+
+.bulk-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  animation: bulk-bar-in 0.2s ease-out;
+}
+
+.dark-theme .bulk-bar {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* The focus timer sits in the bottom corner; the bar goes above it */
+.focus-bar ~ .bulk-bar {
+  bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.bulk-count {
+  margin-right: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.bulk-move,
+.bulk-btn {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.bulk-move:hover:not(:disabled),
+.bulk-btn:hover:not(:disabled) {
+  border-color: var(--accent-color);
+}
+
+.bulk-delete {
+  color: #c82333;
+}
+
+.dark-theme .bulk-delete {
+  color: #ff7b86;
+}
+
+.bulk-delete:hover:not(:disabled) {
+  border-color: #dc3545;
+}
+
+.bulk-link {
+  border-color: transparent;
+  background: none;
+  color: var(--accent-color);
+}
+
+.dark-theme .bulk-link {
+  color: #8fbde3;
+}
+
+.bulk-move:disabled,
+.bulk-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bulk-done {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.bulk-done:hover {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.bulk-done svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.bulk-move:focus-visible,
+.bulk-btn:focus-visible,
+.bulk-done:focus-visible,
+.clear-completed-btn:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+@keyframes bulk-bar-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bulk-bar {
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .bulk-bar {
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    max-width: none;
+    transform: none;
+    animation: none;
+  }
+
+  .focus-bar ~ .bulk-bar {
+    bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  margin-bottom: 0;
+}
+
+.kanban-column-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.kanban-column-header .kanban-column-title {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.clear-completed-btn {
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.clear-completed-btn:hover {
+  border-color: #dc3545;
+  color: #c82333;
+}
+
+.dark-theme .clear-completed-btn:hover {
+  color: #ff7b86;
+}
