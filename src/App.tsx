@@ -22,6 +22,7 @@ import {
   BUILT_IN_TEMPLATES,
   TaskTemplate,
   loadSavedTemplates,
+  forgetSavedTemplates,
   sameTemplate,
   storeSavedTemplates,
   templateFromTask
@@ -30,10 +31,11 @@ import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
 import { DeleteAccountDialog, DeleteAccountState } from './components/DeleteAccountDialog';
+import { DevicesDialog } from './components/DevicesDialog';
 import { exportFileName, parseImportFile, toMarkdown } from './utils/importExport';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from './utils/quickAdd';
 import { SupabaseTaskService } from './services/supabaseTaskService';
-import { AuthService } from './services/authService';
+import { AuthService, SignOutScope } from './services/authService';
 import { Task, TaskStatus } from './types/Task';
 import { User } from '@supabase/supabase-js';
 import { loadTasks } from './utils/taskOperations';
@@ -157,6 +159,9 @@ function App() {
   // Templates the user saved; the built-in ones live in utils/templates
   const [savedTemplates, setSavedTemplates] = useState<TaskTemplate[]>(() => loadSavedTemplates());
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showDevices, setShowDevices] = useState(false);
+  // Set while this tab signs out, to tell that apart from being signed out elsewhere
+  const signingOutRef = useRef(false);
   // Start loading the date parser for quick add; re-renders once it's ready
   useQuickAdd();
 
@@ -453,6 +458,10 @@ function App() {
         } else {
           // If not logged in, try to load from local storage
           loadedTasks = await loadTasks();
+          // Accounts signed out while this page was closed (for example from
+          // another device) leave their copy behind; remove any with nothing
+          // left to send, as signing out here would have
+          forgetSignedOutAccounts().catch(error => console.error('Clearing old account data failed:', error));
         }
 
         // Only load preset tasks if there are no existing tasks and they haven't been seen
@@ -520,7 +529,14 @@ function App() {
 
     // Subscribe to auth changes
     const { data: { subscription } } = AuthService.subscribeToAuthChanges((user, event) => {
+      const previous = userRef.current;
       setUser(user);
+      // Signed out from another device ("Sign out other devices" or "everywhere"
+      // there): this device's sign-in couldn't be renewed. Clear the account
+      // away, since this may be a shared computer.
+      if (event === 'SIGNED_OUT' && previous && !signingOutRef.current) {
+        signedOutElsewhereRef.current(previous.id);
+      }
       // Arrived from a password reset email: ask for the new password
       if (event === 'PASSWORD_RECOVERY') {
         setAuthMessage(undefined);
@@ -1004,24 +1020,67 @@ function App() {
     }
   };
 
-  const handleSignOut = async () => {
+  // Remove an account's data from this device so the next person here can't
+  // see it: its tasks, templates and anything open from it. Unsent changes (and
+  // the tasks copy) normally stay until that person signs in again; after a
+  // sign-out from elsewhere they go too, since they can't be sent any more.
+  const forgetAccountOnDevice = async (userId: string, keepUnsent: boolean) => {
+    const waiting = keepUnsent ? await outboxSize(userId) : 0;
+    if (waiting === 0) {
+      await offlineStorage.clearAccountTasks(userId);
+      await discardOutbox(userId);
+    }
+    forgetSavedTemplates(userId);
+    setSavedTemplates(loadSavedTemplates());
+    setSelectedTask(null);
+    if (focus.session) focus.stop();
+    const guestTasks = await loadTasks();
+    tasksRef.current = guestTasks;
+    setTasks(guestTasks);
+  };
+
+  // Account copies on this device whose owner isn't signed in, with nothing
+  // waiting to be sent
+  const forgetSignedOutAccounts = async () => {
+    for (const userId of await offlineStorage.getAccountIds()) {
+      if ((await outboxSize(userId)) === 0) {
+        await offlineStorage.clearAccountTasks(userId);
+        forgetSavedTemplates(userId);
+      }
+    }
+  };
+
+  // Signed out without doing it here (from another device, or the sign-in
+  // ran out): tidy up and say why
+  const handleSignedOutElsewhere = async (userId: string) => {
+    setShowDevices(false);
+    await forgetAccountOnDevice(userId, false);
+    setCloudNotice('You were signed out, so your tasks were removed from this device. Sign in to see them again.');
+  };
+  const signedOutElsewhereRef = useRef(handleSignedOutElsewhere);
+  signedOutElsewhereRef.current = handleSignedOutElsewhere;
+
+  // Sign out this device ('local', the usual Sign out) or every device ('global')
+  const handleSignOut = async (scope: SignOutScope = 'local') => {
     // Save a pending delete while still signed in, or it would be lost
     commitPendingDelete();
-    // Try to send anything queued offline. Once nothing is left waiting, remove
-    // this account's offline copy so the next person on this device can't see it;
-    // unsent changes (and their copy) stay until this user signs in again.
     const signedOutUser = user;
+    // Try to send anything queued offline first
     if (signedOutUser) {
       try {
-        const { remaining } = await flushOutbox(signedOutUser.id);
-        if (remaining === 0) await offlineStorage.clearAccountTasks(signedOutUser.id);
+        await flushOutbox(signedOutUser.id);
       } catch (error) {
         console.error('Sync before signing out failed:', error);
       }
     }
-    await AuthService.signOut();
-    const localTasks = await loadTasks();
-    setTasks(localTasks);
+    signingOutRef.current = true;
+    try {
+      await AuthService.signOut(scope);
+    } finally {
+      signingOutRef.current = false;
+    }
+    setShowDevices(false);
+    if (signedOutUser) await forgetAccountOnDevice(signedOutUser.id, true);
   };
 
   const openDeleteAccount = () => {
@@ -1034,18 +1093,23 @@ function App() {
     setDeleteAccount(current => current && { ...current, state: { status: 'deleting' } });
     // Send a delete still inside its undo window now, rather than after the account is gone
     commitPendingDelete();
+    signingOutRef.current = true;
     try {
       await AuthService.deleteAccount();
     } catch (error) {
+      signingOutRef.current = false;
       console.error('Deleting the account failed:', error);
       setDeleteAccount(current => current && { ...current, state: { status: 'confirm', error: friendlyDeleteAccountError(error) } });
       return;
     }
+    signingOutRef.current = false;
     // Nothing of the account stays on this device either: its offline copy and
     // any changes still waiting to be sent
     try {
       await offlineStorage.clearAccountTasks(account.id);
       await discardOutbox(account.id);
+      forgetSavedTemplates(account.id);
+      setSavedTemplates(loadSavedTemplates());
     } catch (error) {
       console.error('Clearing the deleted account from this device failed:', error);
     }
@@ -1218,6 +1282,16 @@ function App() {
           }
         }]
       : []),
+    ...(user
+      ? [{
+          id: 'devices',
+          group: 'Actions' as const,
+          label: 'Signed-in devices',
+          hint: 'Account',
+          keywords: 'sessions sign out everywhere other devices log out shared computer',
+          run: () => setShowDevices(true)
+        }]
+      : []),
     {
       id: 'toggle-theme',
       group: 'Actions',
@@ -1227,7 +1301,7 @@ function App() {
       run: toggleTheme
     },
     user
-      ? { id: 'sign-out', group: 'Actions', label: 'Sign out', keywords: 'log out account', run: handleSignOut }
+      ? { id: 'sign-out', group: 'Actions', label: 'Sign out', keywords: 'log out account', run: () => handleSignOut() }
       : {
           id: 'sign-in',
           group: 'Actions',
@@ -1327,6 +1401,7 @@ function App() {
                 onExport={handleExport}
                 onSignOut={handleSignOut}
                 onDeleteAccount={openDeleteAccount}
+                onDevices={() => setShowDevices(true)}
               />
             ) : (
               <button
@@ -1663,6 +1738,14 @@ function App() {
             onUse={handleUseTemplate}
             onDelete={handleDeleteTemplate}
             onClose={() => setShowTemplates(false)}
+          />
+        )}
+        {showDevices && user && (
+          <DevicesDialog
+            isOnline={isOnline}
+            onSignOutOthers={() => AuthService.signOut('others')}
+            onSignOutEverywhere={() => handleSignOut('global')}
+            onClose={() => setShowDevices(false)}
           />
         )}
         {deleteAccount && (

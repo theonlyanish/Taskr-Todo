@@ -3,6 +3,24 @@ import { AuthChangeEvent, User } from '@supabase/supabase-js';
 import { isSupabaseUnavailable } from './supabaseErrors';
 import type { Preferences } from '../utils/preferences';
 
+export type SignOutScope = 'local' | 'others' | 'global';
+
+export interface DeviceSession {
+  id: string;
+  createdAt: Date;
+  lastActiveAt: Date;
+  userAgent: string | null;
+  isCurrent: boolean;
+}
+
+interface SessionRow {
+  id: string;
+  created_at: string;
+  last_active_at: string;
+  user_agent: string | null;
+  is_current: boolean;
+}
+
 export class AuthService {
   static async signUp(email: string, password: string) {
     const { data, error } = await supabase.auth.signUp({
@@ -53,9 +71,26 @@ export class AuthService {
     await supabase.auth.signOut({ scope: 'local' });
   }
 
-  static async signOut() {
-    const { error } = await supabase.auth.signOut();
+  // 'local' signs out this device only (supabase-js would otherwise default to
+  // every device); 'others' every device but this one; 'global' all of them.
+  // Other devices are signed out once their current sign-in token expires
+  // (within the hour) and can't be renewed.
+  static async signOut(scope: SignOutScope = 'local') {
+    const { error } = await supabase.auth.signOut({ scope });
     if (error) throw error;
+  }
+
+  // Where this user is signed in (the list_my_sessions migration)
+  static async listSessions(): Promise<DeviceSession[]> {
+    const { data, error, status } = await supabase.rpc('list_my_sessions');
+    if (error) throw Object.assign(error, { status });
+    return (data as SessionRow[]).map(row => ({
+      id: row.id,
+      createdAt: new Date(row.created_at),
+      lastActiveAt: new Date(row.last_active_at),
+      userAgent: row.user_agent,
+      isCurrent: row.is_current
+    }));
   }
 
   static async getCurrentUser(): Promise<User | null> {

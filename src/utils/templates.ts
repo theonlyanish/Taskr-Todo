@@ -106,3 +106,12 @@ export const sameTemplate = (a: TaskTemplate, b: TaskTemplate) =>
   a.title === b.title &&
   a.subtasks.length === b.subtasks.length &&
   a.subtasks.every((subtask, index) => subtask.title === b.subtasks[index].title);
+
+// A signed-out account's templates, removed from this device
+export const forgetSavedTemplates = (userId: string) => {
+  try {
+    localStorage.removeItem(storageKey(userId));
+  } catch {
+    // Storage unavailable: nothing was kept
+  }
+};

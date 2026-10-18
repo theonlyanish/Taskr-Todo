@@ -6,12 +6,13 @@ interface AccountMenuProps {
   onExport: () => void;
   onSignOut: () => void;
   onDeleteAccount: () => void;
+  onDevices: () => void;
 }
 
 // Signed-in user's menu in the header: account details, import, export, sign out
 // and deleting the account.
 // Follows the WAI-ARIA menu button pattern for keyboard and screen reader users.
-export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExport, onSignOut, onDeleteAccount }) => {
+export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExport, onSignOut, onDeleteAccount, onDevices }) => {
   const [open, setOpen] = useState(false);
   // Which item takes focus once the menu has rendered
   const [focusOnOpen, setFocusOnOpen] = useState<'first' | 'last' | null>(null);
@@ -131,6 +132,10 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExp
             <span className="account-menu-item-hint">Markdown</span>
           </button>
           <div className="account-menu-separator" role="separator" />
+          <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={() => choose(onDevices)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="13" height="9" rx="1.5" /><path d="M6 18h6M9 14v4" /><rect x="16.5" y="8" width="5" height="11" rx="1.2" /></svg>
+            Signed-in devices
+          </button>
           <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={() => choose(onSignOut)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10" /></svg>
             Sign out

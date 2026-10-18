@@ -141,6 +141,15 @@ export class OfflineStorage {
     return record?.tasks ?? null;
   }
 
+  // Which accounts have a copy of their tasks on this device
+  async getAccountIds(): Promise<string[]> {
+    const db = await this.database();
+    const keys = await result<IDBValidKey[]>(
+      db.transaction(ACCOUNT_TASKS_STORE, 'readonly').objectStore(ACCOUNT_TASKS_STORE).getAllKeys()
+    );
+    return keys.map(String);
+  }
+
   async clearAccountTasks(userId: string): Promise<void> {
     const db = await this.database();
     const tx = db.transaction(ACCOUNT_TASKS_STORE, 'readwrite');

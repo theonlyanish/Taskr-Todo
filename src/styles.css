@@ -3695,3 +3695,139 @@ button.kanban-subtask-item {
   font-size: 0.85rem;
   color: var(--text-secondary);
 }
+
+/* Signed-in devices dialog */
+.modal-content.devices-dialog {
+  max-width: 30rem;
+}
+
+.devices-dialog .devices-note,
+.devices-dialog .devices-message {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.devices-dialog .devices-message.is-error {
+  color: #c82333;
+}
+
+.dark-theme .devices-dialog .devices-message.is-error {
+  color: #ff7b86;
+}
+
+.devices-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.device-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.device-row + .device-row {
+  border-top: 1px solid var(--border-color);
+}
+
+.device-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.device-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.device-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.device-current {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background-color: rgba(46, 204, 113, 0.15);
+  color: #1e8e4f;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.dark-theme .device-current {
+  color: #5fd38d;
+}
+
+.device-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.devices-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.devices-btn {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.devices-btn:hover:not(:disabled) {
+  border-color: var(--accent-color);
+}
+
+.devices-btn-danger {
+  color: #c82333;
+}
+
+.dark-theme .devices-btn-danger {
+  color: #ff7b86;
+}
+
+.devices-btn-danger:hover:not(:disabled) {
+  border-color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.08);
+}
+
+.devices-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.devices-btn:focus-visible,
+.devices-close:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.devices-dialog .devices-close {
+  margin-left: auto;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
