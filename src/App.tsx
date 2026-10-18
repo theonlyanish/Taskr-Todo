@@ -15,6 +15,7 @@ import { FocusTimer } from './components/FocusTimer';
 import { useFocusTimer } from './utils/focusTimer';
 import { TaskPosition } from './utils/taskOrder';
 import { setSubtasksExpanded } from './utils/subtaskExpansion';
+import { useLiveSync } from './utils/liveSync';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
@@ -219,10 +220,40 @@ function App() {
     return true;
   };
 
+  // Another tab on this device changed the tasks: show what it saved
+  const reloadFromDevice = async () => {
+    const signedIn = userRef.current;
+    let saved = signedIn ? await offlineStorage.getAccountTasks(signedIn.id) : await loadTasks();
+    if (!saved) return;
+    // A delete still inside its undo window here stays hidden
+    const pending = pendingDeleteRef.current;
+    if (pending) saved = withoutTask(saved, pending.task.id);
+    tasksRef.current = saved;
+    setTasks(saved);
+  };
+
+  // Live updates from other tabs and devices (see utils/liveSync)
+  const { announceChange } = useLiveSync({
+    userId: user?.id,
+    onTabChange: () => {
+      reloadFromDevice().catch(error => console.error('Reading tasks saved by another tab failed:', error));
+    },
+    onDeviceChange: () => {
+      const signedIn = userRef.current;
+      if (!signedIn) return;
+      syncWithServerRef.current(signedIn.id).catch(error => {
+        console.error('Live update failed:', error);
+        reportCloudError(error);
+      });
+    }
+  });
+
   // Send queued changes, then load the account's tasks fresh from Supabase.
   // If anything is still queued (still offline), keep what's on screen.
   const syncWithServer = async (userId: string) => {
-    const { remaining } = await flushOutbox(userId);
+    const { remaining, sent } = await flushOutbox(userId);
+    // Changes made here while offline have now reached the server
+    if (sent > 0) announceChange();
     if (remaining > 0) {
       setCloudNotice(OFFLINE_QUEUED_MESSAGE);
       return;
@@ -469,6 +500,7 @@ function App() {
       // Keep the list on this device too (guests' only copy; signed-in users'
       // offline copy). Without this a guest's new task vanished on reload.
       await saveOnDevice(updatedTasks, userId);
+      announceChange();
     } catch (error) {
       console.error('Error saving task:', error);
       // Handle the error (e.g., show a notification)
@@ -588,6 +620,7 @@ function App() {
       // Save the whole updated list on this device (subtasks are nested in
       // their parent): the guest's only copy, or the signed-in offline copy
       await saveOnDevice(nextTasks, userId);
+      announceChange();
 
       // Keep the open form in step with changes made elsewhere (e.g. dragging the
       // selected task to another day), so saving it doesn't restore stale values.
@@ -634,6 +667,7 @@ function App() {
       }
     }
     await saveOnDevice(nextTasks, userId);
+    announceChange();
   };
 
   // Helper function to find a task by ID (including in subtasks)
@@ -706,6 +740,7 @@ function App() {
           }
         }
         await saveOnDevice(tasksRef.current, deletingUserId);
+        announceChange();
       }
     };
 
@@ -944,6 +979,7 @@ function App() {
       await SupabaseTaskService.saveTasks(result.tasks);
       setTasks(current => [...current, ...result.tasks]);
       setImportState({ status: 'done', fileName, result });
+      announceChange();
     } catch (error) {
       console.error('Import failed:', error);
       reportCloudError(error);
