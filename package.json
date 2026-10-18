@@ -26,7 +26,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "test:ci": "react-scripts test --watchAll=false"
   },
   "eslintConfig": {
     "extends": [
@@ -46,12 +47,23 @@
     ]
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@supabase/supabase-js": "^2.47.2",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/jest": "^27.5.2",
     "@types/lodash": "^4.17.15",
     "@types/node": "^22.10.1",
     "@types/react": "^19.0.1",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^19.0.1",
     "typescript": "^4.9.5"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^chrono-node/en$": "<rootDir>/node_modules/chrono-node/dist/cjs/locales/en/index.js"
+    },
+    "globalSetup": "<rootDir>/scripts/jestGlobalSetup.js"
   }
 }
