@@ -1,4 +1,5 @@
 import { Task } from '../types/Task';
+import type { TaskTemplate } from './templates';
 
 const DB_NAME = 'TaskrDB';
 // Version 2 added the account cache and outbox stores
@@ -19,7 +20,9 @@ interface PendingChange {
 export type OutboxChange =
   | { type: 'add'; task: Task }
   | { type: 'update'; task: Task }
-  | { type: 'delete'; taskId: string };
+  | { type: 'delete'; taskId: string }
+  | { type: 'template-add'; template: TaskTemplate }
+  | { type: 'template-delete'; templateId: string };
 
 export interface OutboxEntry {
   seq?: number; // assigned by IndexedDB, keeps changes in the order they were made

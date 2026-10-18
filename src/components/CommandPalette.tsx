@@ -9,6 +9,8 @@ export interface PaletteItem {
   hint?: string;
   // Extra words the search should match, e.g. "add create" for "New task"
   keywords?: string;
+  // Only listed once something is typed (e.g. one entry per template)
+  searchOnly?: boolean;
   run: () => void;
 }
 
@@ -41,7 +43,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ items, onCreateT
     const needle = text.toLowerCase();
     // 0 = title starts with the text, 1 = title contains it, 2 = only a keyword does
     const rank = (item: PaletteItem) => {
-      if (!needle) return 0;
+      if (!needle) return item.searchOnly ? -1 : 0;
       const label = item.label.toLowerCase();
       if (label.startsWith(needle)) return 0;
       if (label.includes(needle)) return 1;

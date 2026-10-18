@@ -1,5 +1,6 @@
 import { offlineStorage, OutboxChange } from '../utils/offlineStorage';
 import { SupabaseTaskService } from './supabaseTaskService';
+import { TemplateService } from './templateService';
 import { isSupabaseUnavailable } from './supabaseErrors';
 
 // Signed-in changes that couldn't reach Supabase (offline, or the project
@@ -27,7 +28,7 @@ export interface FlushResult {
 // A retry of a change that already reached the server, or no longer applies
 const alreadyDone = (change: OutboxChange, error: unknown) => {
   const code = (error as { code?: string }).code;
-  if (change.type === 'add' && code === '23505') return true; // duplicate key: inserted earlier
+  if ((change.type === 'add' || change.type === 'template-add') && code === '23505') return true; // duplicate key: inserted earlier
   if (change.type === 'update' && code === 'PGRST116') return true; // no such row: deleted since
   return false;
 };
@@ -40,6 +41,10 @@ const apply = (change: OutboxChange, userId: string): Promise<unknown> => {
       return SupabaseTaskService.updateTaskOrThrow(change.task.id, change.task, userId);
     case 'delete':
       return SupabaseTaskService.deleteTaskOrThrow(change.taskId, userId);
+    case 'template-add':
+      return TemplateService.add(change.template, userId);
+    case 'template-delete':
+      return TemplateService.remove(change.templateId, userId);
   }
 };
 

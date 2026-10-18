@@ -3439,3 +3439,259 @@ button.kanban-subtask-item {
     transform: none;
   }
 }
+/* Templates: the button beside "+ Add new task", the picker, and the task panel's buttons */
+.tasks-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tasks-header .add-task-button {
+  flex: 1;
+  width: auto;
+}
+
+.templates-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.templates-button:hover {
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.templates-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.modal-content.template-picker {
+  max-width: 32rem;
+  max-height: min(42rem, calc(100vh - 2rem));
+  overflow-y: auto;
+}
+
+.template-picker .template-intro {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.template-group {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.template-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.template-row {
+  display: flex;
+  align-items: stretch;
+}
+
+.template-row + .template-row {
+  border-top: 1px solid var(--border-color);
+}
+
+.template-use {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.template-use:hover,
+.template-use:focus-visible {
+  background-color: rgba(9, 132, 227, 0.08);
+}
+
+.dark-theme .template-use:hover,
+.dark-theme .template-use:focus-visible {
+  background-color: rgba(61, 113, 153, 0.25);
+}
+
+.template-use:focus-visible,
+.template-delete:focus-visible,
+.templates-button:focus-visible,
+.template-save-btn:focus-visible,
+.template-link:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.template-title {
+  font-weight: 500;
+}
+
+.template-count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.template-preview {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.template-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.template-delete:hover {
+  color: #c82333;
+}
+
+.dark-theme .template-delete:hover {
+  color: #ff7b86;
+}
+
+.template-delete svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.template-confirm {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.template-confirm span {
+  flex: 1;
+  min-width: 8rem;
+}
+
+.template-confirm button {
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.template-confirm-delete {
+  border: none;
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.template-confirm-cancel {
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.template-picker .template-empty {
+  margin: 0;
+  padding: 0.75rem 0.8rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.template-picker .modal-actions {
+  margin-top: 1.25rem;
+}
+
+.form-actions {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.template-save-btn {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.template-save-btn:hover {
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.template-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-color);
+  font: inherit;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.dark-theme .template-link {
+  color: #8fbde3;
+}
+
+.template-notice:empty {
+  display: none;
+}
+
+.template-notice {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}

@@ -16,6 +16,16 @@ import { useFocusTimer } from './utils/focusTimer';
 import { TaskPosition } from './utils/taskOrder';
 import { setSubtasksExpanded } from './utils/subtaskExpansion';
 import { useLiveSync } from './utils/liveSync';
+import { TemplatePicker } from './components/TemplatePicker';
+import { TemplateService } from './services/templateService';
+import {
+  BUILT_IN_TEMPLATES,
+  TaskTemplate,
+  loadSavedTemplates,
+  sameTemplate,
+  storeSavedTemplates,
+  templateFromTask
+} from './utils/templates';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
@@ -144,6 +154,9 @@ function App() {
   }, []);
 
   const [showPalette, setShowPalette] = useState(false);
+  // Templates the user saved; the built-in ones live in utils/templates
+  const [savedTemplates, setSavedTemplates] = useState<TaskTemplate[]>(() => loadSavedTemplates());
+  const [showTemplates, setShowTemplates] = useState(false);
   // Start loading the date parser for quick add; re-renders once it's ready
   useQuickAdd();
 
@@ -237,6 +250,7 @@ function App() {
     userId: user?.id,
     onTabChange: () => {
       reloadFromDevice().catch(error => console.error('Reading tasks saved by another tab failed:', error));
+      setSavedTemplates(loadSavedTemplates(userRef.current?.id));
     },
     onDeviceChange: () => {
       const signedIn = userRef.current;
@@ -245,8 +259,135 @@ function App() {
         console.error('Live update failed:', error);
         reportCloudError(error);
       });
+      refreshTemplatesRef.current(signedIn.id);
     }
   });
+
+  // The account's saved templates from the server. Guest templates made before
+  // signing in are added to the account once. Offline, or until the
+  // task_templates migration has run, the copy on this device is used.
+  const refreshTemplates = async (userId: string) => {
+    try {
+      // Send templates saved or deleted offline first, so the list is current
+      const { remaining } = await flushOutbox(userId);
+      if (remaining > 0) return;
+      const fromServer = await TemplateService.list();
+      if (fromServer === null) return;
+      const guestTemplates = loadSavedTemplates();
+      const toUpload = guestTemplates.filter(guest => !fromServer.some(saved => sameTemplate(saved, guest)));
+      for (const template of toUpload) await TemplateService.add(template, userId);
+      if (guestTemplates.length > 0) storeSavedTemplates([]);
+      if (userRef.current?.id !== userId) return;
+      const templates = [...fromServer, ...toUpload];
+      storeSavedTemplates(templates, userId);
+      setSavedTemplates(templates);
+    } catch (error) {
+      // Offline or asleep: keep the templates saved on this device
+      if (!isSupabaseUnavailable(error)) console.error('Loading templates failed:', error);
+    }
+  };
+  const refreshTemplatesRef = useRef(refreshTemplates);
+  refreshTemplatesRef.current = refreshTemplates;
+
+  // Signed in or out: show that account's (or the guest's) templates
+  useEffect(() => {
+    const userId = user?.id;
+    setSavedTemplates(loadSavedTemplates(userId));
+    if (userId) refreshTemplatesRef.current(userId);
+  }, [user?.id]);
+
+  // Save a task as a template: its title, description and subtasks
+  const handleSaveTemplate = async (task: Task): Promise<'saved' | 'exists'> => {
+    // The task as it is now, with any subtasks added since it was opened
+    const template = templateFromTask(findTaskById(tasksRef.current, task.id) ?? task);
+    if ([...BUILT_IN_TEMPLATES, ...savedTemplates].some(existing => sameTemplate(existing, template))) return 'exists';
+    const userId = user?.id;
+    const next = [...savedTemplates, template];
+    setSavedTemplates(next);
+    storeSavedTemplates(next, userId);
+    if (userId) {
+      try {
+        await TemplateService.add(template, userId);
+      } catch (error) {
+        if (!(await queueIfOffline(error, userId, { type: 'template-add', template }))) {
+          console.error('Saving the template failed:', error);
+        }
+      }
+    }
+    announceChange();
+    return 'saved';
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    const userId = user?.id;
+    const next = savedTemplates.filter(template => template.id !== templateId);
+    setSavedTemplates(next);
+    storeSavedTemplates(next, userId);
+    if (userId) {
+      try {
+        await TemplateService.remove(templateId, userId);
+      } catch (error) {
+        if (!(await queueIfOffline(error, userId, { type: 'template-delete', templateId }))) {
+          console.error('Deleting the template failed:', error);
+        }
+      }
+    }
+    announceChange();
+  };
+
+  // Add a template's task and subtasks to To Do, then open it
+  const handleUseTemplate = async (template: TaskTemplate) => {
+    setShowTemplates(false);
+    const now = Date.now();
+    const taskId = crypto.randomUUID();
+    const subtasks: Task[] = template.subtasks.map((subtask, index) => ({
+      id: crypto.randomUUID(),
+      title: subtask.title,
+      description: subtask.description,
+      status: 'To Do' as TaskStatus,
+      // A millisecond apart so they keep the template's order
+      createdAt: new Date(now + index + 1),
+      updatedAt: new Date(now + index + 1),
+      parentId: taskId,
+      isSubtask: true,
+      subtasks: []
+    }));
+    const task: Task = {
+      id: taskId,
+      title: template.title,
+      description: template.description,
+      status: 'To Do',
+      createdAt: new Date(now),
+      updatedAt: new Date(now),
+      isSubtask: false,
+      subtasks
+    };
+
+    const userId = user?.id;
+    if (userId) {
+      try {
+        await SupabaseTaskService.saveTasks([task]);
+      } catch (error) {
+        // Offline part way: queue whatever didn't make it (parent first)
+        const savedCount = (error as { savedCount?: number }).savedCount ?? 0;
+        const rows: Task[] = [{ ...task, subtasks: [] }, ...subtasks].slice(savedCount);
+        if (isSupabaseUnavailable(error)) {
+          for (const row of rows) await queueIfOffline(error, userId, { type: 'add', task: row });
+        } else {
+          console.error('Adding the template failed:', error);
+          reportCloudError(error);
+        }
+      }
+    }
+
+    const nextTasks = [...tasksRef.current, task];
+    tasksRef.current = nextTasks;
+    setTasks(nextTasks);
+    await saveOnDevice(nextTasks, userId);
+    announceChange();
+    setSubtasksExpanded(taskId, true);
+    jumpToTask(task);
+  };
 
   // Send queued changes, then load the account's tasks fresh from Supabase.
   // If anything is still queued (still offline), keep what's on screen.
@@ -1049,6 +1190,35 @@ function App() {
         }]
       : []),
     {
+      id: 'templates',
+      group: 'Actions',
+      label: 'New task from a template',
+      hint: 'Templates',
+      keywords: 'template preset checklist reuse',
+      run: () => setShowTemplates(true)
+    },
+    ...[...BUILT_IN_TEMPLATES, ...savedTemplates].map(template => ({
+      id: `template-${template.id}`,
+      group: 'Actions' as const,
+      label: `New from template: ${template.title}`,
+      hint: 'Template',
+      keywords: 'template',
+      searchOnly: true,
+      run: () => handleUseTemplate(template)
+    })),
+    ...(selectedTask && !selectedTask.isSubtask
+      ? [{
+          id: 'save-template',
+          group: 'Actions' as const,
+          label: `Save “${selectedTask.title}” as a template`,
+          hint: 'Templates',
+          keywords: 'template reuse save',
+          run: () => {
+            handleSaveTemplate(selectedTask);
+          }
+        }]
+      : []),
+    {
       id: 'toggle-theme',
       group: 'Actions',
       label: isDarkMode ? 'Switch to light theme' : 'Switch to dark theme',
@@ -1206,6 +1376,13 @@ function App() {
                 <div className="tasks-header">
                   <button className="add-task-button" onClick={handleAddNewTask}>
                     <span>+</span> Add new task
+                  </button>
+                  <button type="button" className="templates-button" onClick={() => setShowTemplates(true)}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="4" y="3.5" width="16" height="17" rx="2" />
+                      <path d="M8 8h8M8 12h8M8 16h5" />
+                    </svg>
+                    Templates
                   </button>
                 </div>
                 
@@ -1383,6 +1560,8 @@ function App() {
                   selectedTask={selectedTask}
                   focusTaskId={focus.session?.taskId}
                   onStartFocus={startFocus}
+                  onSaveTemplate={handleSaveTemplate}
+                  onOpenTemplates={() => setShowTemplates(true)}
                   onSubmit={handleTaskSubmit}
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
@@ -1405,6 +1584,8 @@ function App() {
                   selectedTask={selectedTask}
                   focusTaskId={focus.session?.taskId}
                   onStartFocus={startFocus}
+                  onSaveTemplate={handleSaveTemplate}
+                  onOpenTemplates={() => setShowTemplates(true)}
                   onSubmit={handleTaskSubmit}
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
@@ -1429,6 +1610,8 @@ function App() {
                   selectedTask={selectedTask}
                   focusTaskId={focus.session?.taskId}
                   onStartFocus={startFocus}
+                  onSaveTemplate={handleSaveTemplate}
+                  onOpenTemplates={() => setShowTemplates(true)}
                   onSubmit={handleTaskSubmit}
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
@@ -1472,6 +1655,14 @@ function App() {
             state={importState}
             onConfirm={handleImportConfirm}
             onClose={() => setImportState(null)}
+          />
+        )}
+        {showTemplates && (
+          <TemplatePicker
+            saved={savedTemplates}
+            onUse={handleUseTemplate}
+            onDelete={handleDeleteTemplate}
+            onClose={() => setShowTemplates(false)}
           />
         )}
         {deleteAccount && (

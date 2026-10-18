@@ -14,6 +14,9 @@ export interface TaskFormProps {
   // The task the focus timer is running for, if any
   focusTaskId?: string | null;
   onStartFocus?: (task: Task, minutes: number) => void;
+  // Templates: save this task as one, or open the picker to start from one
+  onSaveTemplate?: (task: Task) => Promise<'saved' | 'exists'>;
+  onOpenTemplates?: () => void;
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({
@@ -24,8 +27,13 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   initialDueDate,
   parentId,
   focusTaskId,
-  onStartFocus
+  onStartFocus,
+  onSaveTemplate,
+  onOpenTemplates
 }) => {
+  // "Saved as a template" after saving, until another task is opened
+  const [templateNotice, setTemplateNotice] = useState<string | null>(null);
+  useEffect(() => setTemplateNotice(null), [selectedTask?.id]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('To Do');
@@ -218,6 +226,18 @@ export const TaskForm: React.FC<TaskFormProps> = ({
         <button type="submit" className="add-task-btn">
           {selectedTask ? 'Save changes' : 'Add task'}
         </button>
+        {selectedTask && !selectedTask.isSubtask && onSaveTemplate && (
+          <button
+            type="button"
+            className="template-save-btn"
+            onClick={async () => {
+              const result = await onSaveTemplate(selectedTask);
+              setTemplateNotice(result === 'saved' ? 'Saved as a template' : 'Already saved as a template');
+            }}
+          >
+            Save as template
+          </button>
+        )}
         {selectedTask && onDelete && (
           <button 
             type="button"
@@ -227,7 +247,13 @@ export const TaskForm: React.FC<TaskFormProps> = ({
             🗑️ Delete
           </button>
         )}
+        {!selectedTask && !parentId && onOpenTemplates && (
+          <button type="button" className="template-link" onClick={onOpenTemplates}>
+            or start from a template
+          </button>
+        )}
       </div>
+      <p className="template-notice" role="status">{templateNotice}</p>
     </form>
   );
 };
