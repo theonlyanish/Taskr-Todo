@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Task } from '../types/Task';
-import { MAX_IMPORT_TASKS, parseCsv, parseDueDate, parseImportFile, toMarkdown } from './importExport';
+import { MAX_IMPORT_TASKS, parseCsv, parseDueDate, parseImportFile, skipExisting, toMarkdown } from './importExport';
 
 // Saturday 17 October 2026
 const TODAY = new Date(2026, 9, 17, 10, 0);
@@ -68,6 +68,39 @@ describe('importing the sample files', () => {
   it('refuses files over the size limit', () => {
     const rows = Array.from({ length: MAX_IMPORT_TASKS + 1 }, (_, i) => `Task ${i}`);
     expect(() => parseImportFile(['Title', ...rows].join('\n'), TODAY)).toThrow(/limit/);
+  });
+});
+
+describe('importing the same file twice', () => {
+  it('skips tasks the list already has, with their subtasks', () => {
+    const first = parseImportFile(sample('generic-sample.csv'), TODAY);
+    const again = skipExisting(parseImportFile(sample('generic-sample.csv'), TODAY), first.tasks);
+    expect(again.tasks).toHaveLength(0);
+    expect(again.taskCount).toBe(0);
+    expect(again.skipped).toBe(first.tasks.length);
+  });
+
+  it('matches on title (ignoring case and spacing) and due date', () => {
+    const result = parseImportFile(
+      ['Title,Due Date', 'Renew passport,2026-11-01', 'Renew Passport,2026-12-01', 'Call bank,'].join('\n'),
+      TODAY
+    );
+    const existing = parseImportFile(
+      ['Title,Due Date', '  renew   PASSPORT ,2026-11-01', 'call bank,'].join('\n'),
+      TODAY
+    ).tasks;
+    const left = skipExisting(result, existing);
+    // Only the passport task with a different date is new
+    expect(left.tasks.map(task => [task.title, task.dueDate?.toISOString().slice(0, 10)])).toEqual([['Renew Passport', '2026-12-01']]);
+    expect(left.skipped).toBe(2);
+  });
+
+  it('keeps everything when nothing matches', () => {
+    const result = parseImportFile(sample('todoist-sample.csv'), TODAY);
+    const left = skipExisting(result, []);
+    expect(left.tasks).toHaveLength(result.tasks.length);
+    expect(left.taskCount).toBe(result.taskCount);
+    expect(left.skipped).toBe(0);
   });
 });
 

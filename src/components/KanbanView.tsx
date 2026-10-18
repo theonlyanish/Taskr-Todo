@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Task, TaskStatus } from '../types/Task';
-import { isEqual } from 'lodash';
+import isEqual from 'lodash/isEqual';
 import { useStatusMorph } from '../utils/statusMorph';
 import { DueDate } from './DueDate';
 import { SubtaskProgress } from './SubtaskProgress';

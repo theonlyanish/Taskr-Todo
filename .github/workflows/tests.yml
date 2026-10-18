@@ -1,0 +1,36 @@
+# Type-checks the code (npm run typecheck) and runs the test suite
+# (npm run test:ci) on every push to main and on pull requests, so a change
+# that breaks task order, due dates, the offline outbox, import/export or the
+# other tested pieces shows up as a red check.
+#
+# Free on public repositories (and within the free minutes on private ones);
+# a run takes about a minute.
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm run test:ci

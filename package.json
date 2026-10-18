@@ -9,16 +9,11 @@
     "@fullcalendar/daygrid": "^6.1.15",
     "@fullcalendar/interaction": "^6.1.15",
     "@fullcalendar/react": "^6.1.15",
-    "@mantine/core": "^7.17.0",
-    "@mantine/dates": "^7.17.0",
-    "@mantine/hooks": "^7.17.0",
     "@supabase/supabase-js": "^2.39.3",
-    "@types/react-calendar": "^3.9.0",
     "@vercel/analytics": "^2.0.1",
     "chrono-node": "2.10.1",
-    "dayjs": "^1.11.13",
+    "lodash": "^4.18.1",
     "react": "18.3.1",
-    "react-beautiful-dnd": "^13.1.1",
     "react-dom": "18.3.1",
     "react-scripts": "5.0.1"
   },
@@ -27,7 +22,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "test:ci": "react-scripts test --watchAll=false"
+    "test:ci": "react-scripts test --watchAll=false",
+    "typecheck": "tsc --noEmit"
   },
   "eslintConfig": {
     "extends": [
@@ -56,7 +52,6 @@
     "@types/lodash": "^4.17.15",
     "@types/node": "^22.10.1",
     "@types/react": "^19.0.1",
-    "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^19.0.1",
     "typescript": "^4.9.5"
   },

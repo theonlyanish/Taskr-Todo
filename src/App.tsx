@@ -34,14 +34,13 @@ import { DeleteAccountDialog, DeleteAccountState } from './components/DeleteAcco
 import { DevicesDialog } from './components/DevicesDialog';
 import { RecentlyDeletedDialog } from './components/RecentlyDeletedDialog';
 import { BulkActionBar } from './components/BulkActionBar';
-import { exportFileName, parseImportFile, toMarkdown } from './utils/importExport';
+import { exportFileName, parseImportFile, skipExisting, toMarkdown } from './utils/importExport';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from './utils/quickAdd';
 import { SupabaseTaskService } from './services/supabaseTaskService';
 import { AuthService, SignOutScope } from './services/authService';
 import { Task, TaskStatus } from './types/Task';
 import { User } from '@supabase/supabase-js';
 import { loadTasks } from './utils/taskOperations';
-import { MantineProvider } from '@mantine/core';
 import './styles.css';
 import { getPresetTasks, hasSeenPresetTasks, isUntouchedPresetTask, markPresetTasksAsSeen } from './utils/presetTasks';
 import { offlineStorage, OutboxChange } from './utils/offlineStorage';
@@ -639,7 +638,7 @@ function App() {
     let status = taskData.status;
     if (subtaskParentId || taskData.parentId) {
       const parentId = subtaskParentId || taskData.parentId;
-      const parentTask = findTaskById(tasks, parentId!);
+      const parentTask = findTaskById(tasksRef.current, parentId!);
       if (parentTask) {
         // Inherit parent's status unless explicitly set otherwise
         status = taskData.status === 'To Do' ? parentTask.status : taskData.status;
@@ -708,8 +707,12 @@ function App() {
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
     try {
+      // The latest list, not the `tasks` this render started with: a second
+      // change made before React re-renders (two checkboxes ticked quickly)
+      // would otherwise be built on the old list and undo the first
+      const latest = tasksRef.current;
       // Find the task to check if it's a subtask
-      const taskToUpdate = findTaskById(tasks, taskId);
+      const taskToUpdate = findTaskById(latest, taskId);
       if (!taskToUpdate) {
         console.error('Task not found:', taskId);
         return;
@@ -722,7 +725,7 @@ function App() {
       if (updates.status && taskToUpdate.status !== updates.status) {
         
         // Create an optimistic update for the UI
-        const updatedTasks = tasks.map(t => {
+        const updatedTasks = latest.map(t => {
           // If this is the task being updated directly
           if (t.id === taskId) {
             // If this is a parent task being completed, also update its subtasks
@@ -780,11 +783,13 @@ function App() {
         });
         
         // Update UI immediately
+        tasksRef.current = updatedTasks;
         setTasks(updatedTasks);
         nextTasks = updatedTasks;
       } else {
-        nextTasks = withTaskUpdated(tasks, taskId, { ...updates, updatedAt: new Date() });
+        nextTasks = withTaskUpdated(latest, taskId, { ...updates, updatedAt: new Date() });
         // Straight away too, so a dragged task doesn't jump back while it saves
+        tasksRef.current = nextTasks;
         setTasks(nextTasks);
       }
 
@@ -801,7 +806,7 @@ function App() {
       // Offline, each change is queued to be sent later.
       const userId = user?.id;
       if (userId) {
-        const changedTasks = [completeTaskWithUpdates, ...cascadedStatusChanges(tasks, nextTasks, taskId)];
+        const changedTasks = [completeTaskWithUpdates, ...cascadedStatusChanges(latest, nextTasks, taskId)];
         for (const changed of changedTasks) {
           try {
             const success = await SupabaseTaskService.updateTask(changed.id, changed);
@@ -827,6 +832,16 @@ function App() {
     } catch (error) {
       console.error('Error updating task:', error);
     }
+  };
+
+  // The checkbox: completes a task (and its subtasks; a subtask completed under
+  // a To Do parent moves the parent to In Progress), or unticks it back to To
+  // Do. handleTaskUpdate applies those rules; this just flips the task's own
+  // status, read from the latest list.
+  const handleTaskToggle = (taskId: string) => {
+    const task = findTaskById(tasksRef.current, taskId);
+    if (!task) return;
+    handleTaskUpdate(taskId, { status: task.status === 'Completed' ? 'To Do' : 'Completed' });
   };
 
   // A task dragged (or moved with the keyboard) to a new place in its section
@@ -1325,7 +1340,17 @@ function App() {
       return;
     }
     try {
-      const result = parseImportFile(await file.text());
+      // Tasks already in the list (say, from importing this file before) are left out
+      const result = skipExisting(parseImportFile(await file.text()), tasksRef.current);
+      if (result.taskCount === 0) {
+        setImportState({
+          status: 'error',
+          fileName: file.name,
+          title: 'Nothing new to import',
+          message: 'Everything in this file is already in your list.'
+        });
+        return;
+      }
       setImportState({ status: 'preview', fileName: file.name, result });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'The file couldn’t be read.';
@@ -1547,7 +1572,7 @@ function App() {
   };
 
   return (
-    <MantineProvider>
+    <>
       <div className={`app-container ${isDarkMode ? 'dark-theme' : ''}`}>
         <header className="app-header">
           <div className="header">
@@ -1653,56 +1678,7 @@ function App() {
                   <TaskList 
                     tasks={tasks.filter(task => task.status === 'To Do')}
                     onTaskSelect={handleTaskSelect}
-                    onTaskToggle={(taskId) => {
-                      const task = findTaskById(tasks, taskId);
-                      if (task) {
-                        // Optimistic UI update - immediately update the local state
-                        const updatedTasks = tasks.map(t => {
-                          // Direct match for the task being toggled
-                          if (t.id === taskId) {
-                            // If this is a parent task being completed, also update its subtasks
-                            if (t.subtasks && t.subtasks.length > 0) {
-                              return {
-                                ...t,
-                                status: 'Completed' as TaskStatus,
-                                subtasks: t.subtasks.map(subtask => ({
-                                  ...subtask,
-                                  status: 'Completed' as TaskStatus
-                                }))
-                              };
-                            }
-                            
-                            // Regular task update
-                            return { ...t, status: 'Completed' as TaskStatus };
-                          }
-                          
-                          // If this is a parent task that contains the subtask being toggled
-                          if (t.subtasks && t.subtasks.some(subtask => subtask.id === taskId)) {
-                            // If a subtask is being completed and the parent is in "To Do",
-                            // move the parent to "In Progress"
-                            return {
-                              ...t,
-                              status: 'In Progress' as TaskStatus,
-                              subtasks: t.subtasks.map(subtask => 
-                                subtask.id === taskId 
-                                  ? { ...subtask, status: 'Completed' as TaskStatus }
-                                  : subtask
-                              )
-                            };
-                          }
-                          
-                          return t;
-                        });
-                        
-                        // Update the UI immediately
-                        setTasks(updatedTasks);
-                        
-                        // Then update the backend
-                        setTimeout(() => {
-                          handleTaskUpdate(taskId, { status: 'Completed' });
-                        }, 0);
-                      }
-                    }}
+                    onTaskToggle={handleTaskToggle}
                     onAddSubtask={handleAddSubtask}
                     onReorder={handleTaskReorder}
                     bulkSelectedIds={bulkSelectedIds}
@@ -1718,53 +1694,7 @@ function App() {
                   <TaskList
                     tasks={tasks.filter(task => task.status === 'In Progress')}
                     onTaskSelect={handleTaskSelect}
-                    onTaskToggle={(taskId) => {
-                      const task = findTaskById(tasks, taskId);
-                      if (task) {
-                        // Optimistic UI update - immediately update the local state
-                        const updatedTasks = tasks.map(t => {
-                          // Direct match for the task being toggled
-                          if (t.id === taskId) {
-                            // If this is a parent task being completed, also update its subtasks
-                            if (t.subtasks && t.subtasks.length > 0) {
-                              return {
-                                ...t,
-                                status: 'Completed' as TaskStatus,
-                                subtasks: t.subtasks.map(subtask => ({
-                                  ...subtask,
-                                  status: 'Completed' as TaskStatus
-                                }))
-                              };
-                            }
-                            
-                            // Regular task update
-                            return { ...t, status: 'Completed' as TaskStatus };
-                          }
-                          
-                          // If this is a parent task that contains the subtask being toggled
-                          if (t.subtasks && t.subtasks.some(subtask => subtask.id === taskId)) {
-                            return {
-                              ...t,
-                              subtasks: t.subtasks.map(subtask => 
-                                subtask.id === taskId 
-                                  ? { ...subtask, status: 'Completed' as TaskStatus }
-                                  : subtask
-                              )
-                            };
-                          }
-                          
-                          return t;
-                        });
-                        
-                        // Update the UI immediately
-                        setTasks(updatedTasks);
-                        
-                        // Then update the backend
-                        setTimeout(() => {
-                          handleTaskUpdate(taskId, { status: 'Completed' });
-                        }, 0);
-                      }
-                    }}
+                    onTaskToggle={handleTaskToggle}
                     onAddSubtask={handleAddSubtask}
                     onReorder={handleTaskReorder}
                     bulkSelectedIds={bulkSelectedIds}
@@ -1787,41 +1717,7 @@ function App() {
                   <TaskList 
                     tasks={tasks.filter(task => task.status === 'Completed')}
                     onTaskSelect={handleTaskSelect}
-                    onTaskToggle={(taskId) => {
-                      const task = findTaskById(tasks, taskId);
-                      if (task) {
-                        // Optimistic UI update - immediately update the local state
-                        const updatedTasks = tasks.map(t => {
-                          // Direct match for the task being toggled
-                          if (t.id === taskId) {
-                            // If this is a parent task being uncompleted, don't change subtasks
-                            return { ...t, status: 'To Do' as TaskStatus };
-                          }
-                          
-                          // If this is a parent task that contains the subtask being toggled
-                          if (t.subtasks && t.subtasks.some(subtask => subtask.id === taskId)) {
-                            return {
-                              ...t,
-                              subtasks: t.subtasks.map(subtask => 
-                                subtask.id === taskId 
-                                  ? { ...subtask, status: 'To Do' as TaskStatus }
-                                  : subtask
-                              )
-                            };
-                          }
-                          
-                          return t;
-                        });
-                        
-                        // Update the UI immediately
-                        setTasks(updatedTasks);
-                        
-                        // Then update the backend
-                        setTimeout(() => {
-                          handleTaskUpdate(taskId, { status: 'To Do' });
-                        }, 0);
-                      }
-                    }}
+                    onTaskToggle={handleTaskToggle}
                     onAddSubtask={handleAddSubtask}
                     onReorder={handleTaskReorder}
                     bulkSelectedIds={bulkSelectedIds}
@@ -2025,7 +1921,7 @@ function App() {
           />
         )}
       </div>
-    </MantineProvider>
+    </>
   );
 }
 

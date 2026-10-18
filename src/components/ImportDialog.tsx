@@ -3,7 +3,7 @@ import { ImportResult } from '../utils/importExport';
 
 export type ImportState =
   | { status: 'preview' | 'saving' | 'done'; fileName: string; result: ImportResult }
-  | { status: 'error'; fileName: string; message: string; result?: ImportResult };
+  | { status: 'error'; fileName: string; message: string; result?: ImportResult; title?: string };
 
 interface ImportDialogProps {
   state: ImportState;
@@ -32,7 +32,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ state, onConfirm, on
   const { result } = state;
   const title =
     state.status === 'done' ? 'Import complete'
-      : state.status === 'error' ? 'Couldn’t import that file'
+      : state.status === 'error' ? state.title ?? 'Couldn’t import that file'
         : `Import from ${result?.source === 'Todoist' ? 'Todoist' : 'CSV'}`;
 
   return (
@@ -59,6 +59,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ state, onConfirm, on
               {plural(result.taskCount, 'task')}
               {result.subtaskCount > 0 && ` (${plural(result.subtaskCount, 'subtask')})`}.
             </p>
+
+            {(result.skipped ?? 0) > 0 && (
+              <p className="import-note">
+                {plural(result.skipped!, 'task')} already in your list {state.status === 'done' ? (result.skipped === 1 ? 'was' : 'were') : 'will be'} skipped.
+              </p>
+            )}
 
             {state.status !== 'done' && (
               <>

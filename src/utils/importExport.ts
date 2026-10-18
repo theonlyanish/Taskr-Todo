@@ -12,6 +12,8 @@ export interface ImportResult {
   subtaskCount: number;
   // Dates that couldn't be read (e.g. "every Monday"); kept in the description instead
   unreadDates: number;
+  // Tasks left out because the list already has them (see skipExisting)
+  skipped?: number;
 }
 
 // Very large files are almost certainly the wrong file
@@ -278,6 +280,27 @@ export const parseImportFile = (text: string, today = new Date()): ImportResult 
     throw new Error(`The file has ${result.taskCount} tasks; the limit is ${MAX_IMPORT_TASKS} per import.`);
   }
   return result;
+};
+
+/* ---------- Duplicates ---------- */
+
+// Same title (ignoring case and spacing) and same due date: the same task
+const duplicateKey = (task: Task) =>
+  `${task.title.trim().toLowerCase().replace(/\s+/g, ' ')}|${task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : ''}`;
+
+// Leaves out tasks the list already has, with their subtasks, so importing
+// the same file twice doesn't double everything up
+export const skipExisting = (result: ImportResult, existing: Task[]): ImportResult => {
+  const have = new Set(existing.filter(task => !task.isSubtask).map(duplicateKey));
+  const tasks = result.tasks.filter(task => !have.has(duplicateKey(task)));
+  const subtaskCount = tasks.reduce((sum, task) => sum + (task.subtasks?.length ?? 0), 0);
+  return {
+    ...result,
+    tasks,
+    taskCount: tasks.length + subtaskCount,
+    subtaskCount,
+    skipped: result.tasks.length - tasks.length
+  };
 };
 
 /* ---------- Markdown export ---------- */
