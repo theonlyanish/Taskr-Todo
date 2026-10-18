@@ -3,6 +3,8 @@ import { Task } from '../types/Task';
 import { useStatusMorph } from '../utils/statusMorph';
 import { DueDate } from './DueDate';
 import { sortByOrder } from '../utils/taskOrder';
+import { setSubtasksExpanded, useSubtasksExpanded } from '../utils/subtaskExpansion';
+import { SubtaskProgress } from './SubtaskProgress';
 
 // Ticking a task moves it to another section, which remounts its row. This
 // remembers whose checkbox had focus so the new row can take focus back.
@@ -39,6 +41,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const isCompleted = task.status === 'Completed';
   const checkboxRef = useRef<HTMLButtonElement>(null);
   const contentRef = useRef<HTMLButtonElement>(null);
+  const subtasks = task.subtasks ?? [];
+  // Hidden behind the progress chip until opened
+  const subtasksOpen = useSubtasksExpanded(task.id);
+  const subtasksId = `subtasks-${task.id}`;
   // Sweeps the colour strip from the old status colour after a status change
   const morph = useStatusMorph(task.id, task.status);
 
@@ -111,6 +117,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </span>
         )}
       </button>
+      {subtasks.length > 0 && (
+        <SubtaskProgress
+          subtasks={subtasks}
+          expanded={subtasksOpen}
+          onToggle={() => setSubtasksExpanded(task.id, !subtasksOpen)}
+          controlsId={subtasksId}
+        />
+      )}
       {!task.isSubtask && (
         <button
           className="add-subtask-btn"
@@ -124,9 +138,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           <span className="btn-text">Add subtask</span>
         </button>
       )}
-      {task.subtasks && task.subtasks.length > 0 && (
-        <div className="subtasks-container">
-          {sortByOrder(task.subtasks).map(subtask => (
+      {subtasks.length > 0 && (
+        <div id={subtasksId} className="subtasks-container" hidden={!subtasksOpen}>
+          {sortByOrder(subtasks).map(subtask => (
             <TaskCard
               key={subtask.id}
               task={subtask}

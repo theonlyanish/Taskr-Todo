@@ -14,6 +14,7 @@ import { UndoToast } from './components/UndoToast';
 import { FocusTimer } from './components/FocusTimer';
 import { useFocusTimer } from './utils/focusTimer';
 import { TaskPosition } from './utils/taskOrder';
+import { setSubtasksExpanded } from './utils/subtaskExpansion';
 import { CommandPalette, PaletteItem } from './components/CommandPalette';
 import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
@@ -390,6 +391,9 @@ function App() {
     if (!parentTask) return;
 
     
+    // Show the parent's subtasks, so the new one appears once it's added
+    setSubtasksExpanded(parentId, true);
+
     // Clear selected task and set the parent ID for the new subtask
     setSelectedTask(null);
     setNewSubtaskParentId(parentId);
@@ -882,6 +886,9 @@ function App() {
 
   // Open a task from the command palette and bring its row or card into view
   const jumpToTask = (task: Task) => {
+    // A subtask is hidden until its parent is opened
+    const parent = tasks.find(t => t.subtasks?.some(subtask => subtask.id === task.id));
+    if (parent) setSubtasksExpanded(parent.id, true);
     handleTaskSelect(task);
     // On narrow screens revealTaskForm already scrolls to the form instead
     if (window.matchMedia(STACKED_LAYOUT_QUERY).matches) return;

@@ -21,6 +21,8 @@ import { Task, TaskStatus } from '../types/Task';
 import { isEqual } from 'lodash';
 import { useStatusMorph } from '../utils/statusMorph';
 import { DueDate } from './DueDate';
+import { SubtaskProgress } from './SubtaskProgress';
+import { setSubtasksExpanded, useSubtasksExpanded } from '../utils/subtaskExpansion';
 import { TaskPosition, placeAt, positionBetween, sortByOrder, stepPosition } from '../utils/taskOrder';
 
 interface KanbanViewProps {
@@ -106,31 +108,48 @@ const KanbanCardContent: React.FC<{
   task: Task;
   onTaskSelect: (task: Task) => void;
   selectedTaskId?: string;
-}> = ({ task, onTaskSelect, selectedTaskId }) => (
-  <>
-    <div className="kanban-task-title">{task.title}</div>
-    {task.dueDate && (
-      <div className="kanban-task-due-date">
-        <DueDate dueDate={task.dueDate} completed={task.status === 'Completed'} />
-      </div>
-    )}
+  // False for the copy that follows the pointer while dragging
+  interactive?: boolean;
+}> = ({ task, onTaskSelect, selectedTaskId, interactive = true }) => {
+  const subtasks = task.subtasks ?? [];
+  // Hidden behind the progress chip until opened (shared with the list)
+  const subtasksOpen = useSubtasksExpanded(task.id);
+  const subtasksId = `kanban-subtasks-${task.id}`;
 
-    {/* Display subtasks if they exist */}
-    {task.subtasks && task.subtasks.length > 0 && (
-      <div className="kanban-subtasks-container">
-        <div className="kanban-subtasks-header">Subtasks</div>
-        {sortByOrder(task.subtasks).map(subtask => (
-          <SubtaskItem
-            key={subtask.id}
-            subtask={subtask}
-            onTaskSelect={onTaskSelect}
-            selectedTaskId={selectedTaskId}
+  return (
+    <>
+      <div className="kanban-task-title">{task.title}</div>
+      {task.dueDate && (
+        <div className="kanban-task-due-date">
+          <DueDate dueDate={task.dueDate} completed={task.status === 'Completed'} />
+        </div>
+      )}
+
+      {subtasks.length > 0 && (
+        <div className="kanban-subtask-progress">
+          <SubtaskProgress
+            subtasks={subtasks}
+            expanded={subtasksOpen}
+            onToggle={interactive ? () => setSubtasksExpanded(task.id, !subtasksOpen) : undefined}
+            controlsId={subtasksId}
           />
-        ))}
-      </div>
-    )}
-  </>
-);
+        </div>
+      )}
+      {subtasks.length > 0 && subtasksOpen && (
+        <div id={subtasksId} className="kanban-subtasks-container">
+          {sortByOrder(subtasks).map(subtask => (
+            <SubtaskItem
+              key={subtask.id}
+              subtask={subtask}
+              onTaskSelect={onTaskSelect}
+              selectedTaskId={selectedTaskId}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+};
 
 const KanbanCard: React.FC<{
   task: Task;
@@ -496,7 +515,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({
       <DragOverlay>
         {activeTask && (
           <div className="kanban-task-card dragging" data-status={activeTask.status}>
-            <KanbanCardContent task={activeTask} onTaskSelect={() => {}} />
+            <KanbanCardContent task={activeTask} onTaskSelect={() => {}} interactive={false} />
           </div>
         )}
       </DragOverlay>
