@@ -119,7 +119,16 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 
   // JSX for the form
   return (
-    <form key={formKey} onSubmit={handleSubmit} className="task-form">
+    <form
+      key={formKey}
+      onSubmit={handleSubmit}
+      className="task-form"
+      // Esc leaves the field, so the single-key shortcuts (j, k, x…) work again
+      onKeyDown={event => {
+        const field = event.target as HTMLElement;
+        if (event.key === 'Escape' && ['INPUT', 'TEXTAREA', 'SELECT'].includes(field.tagName)) field.blur();
+      }}
+    >
       {formTitle && <h2>{formTitle}</h2>}
       {selectedTask && onStartFocus && selectedTask.status !== 'Completed' && (
         <div className="focus-start" role="group" aria-label="Focus timer">

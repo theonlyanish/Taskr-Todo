@@ -34,6 +34,8 @@ import { DeleteAccountDialog, DeleteAccountState } from './components/DeleteAcco
 import { DevicesDialog } from './components/DevicesDialog';
 import { RecentlyDeletedDialog } from './components/RecentlyDeletedDialog';
 import { BulkActionBar } from './components/BulkActionBar';
+import { ShortcutsDialog } from './components/ShortcutsDialog';
+import { focusTaskById, retryUntil, useKeyboardShortcuts } from './utils/keyboardShortcuts';
 import { exportFileName, parseImportFile, skipExisting, toMarkdown } from './utils/importExport';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from './utils/quickAdd';
 import { SupabaseTaskService } from './services/supabaseTaskService';
@@ -171,6 +173,8 @@ function App() {
   }, []);
 
   const [showPalette, setShowPalette] = useState(false);
+  // The keyboard shortcuts list, opened with ? (not linked from anywhere)
+  const [showShortcuts, setShowShortcuts] = useState(false);
   // Templates the user saved; the built-in ones live in utils/templates
   const [savedTemplates, setSavedTemplates] = useState<TaskTemplate[]>(() => loadSavedTemplates());
   const [showTemplates, setShowTemplates] = useState(false);
@@ -1395,6 +1399,40 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  // The task form's title field, once it shows the task being edited ('' for a new one)
+  const focusTitleField = (expectedTitle: string) =>
+    retryUntil(() => {
+      const field = document.getElementById('task-title') as HTMLInputElement | null;
+      if (!field || field.value !== expectedTitle) return false;
+      field.focus();
+      return document.activeElement === field;
+    });
+
+  // j/k, x, e, n, / and ? (see utils/keyboardShortcuts)
+  useKeyboardShortcuts({
+    onToggle: taskId => {
+      const task = findTaskById(tasksRef.current, taskId);
+      if (!task) return;
+      const status = task.status === 'Completed' ? 'To Do' : 'Completed';
+      handleTaskToggle(taskId);
+      // Completing moves the task to another section; keep the keyboard on it
+      retryUntil(() => focusTaskById(taskId, status));
+    },
+    onEdit: taskId => {
+      const task = findTaskById(tasksRef.current, taskId);
+      if (!task) return;
+      handleTaskSelect(task);
+      focusTitleField(task.title);
+    },
+    onNewTask: () => {
+      setNewSubtaskParentId(null);
+      handleAddNewTask();
+      focusTitleField('');
+    },
+    onSearch: () => setShowPalette(true),
+    onHelp: () => setShowShortcuts(true)
+  });
+
   const paletteItems: PaletteItem[] = [
     {
       id: 'new-task',
@@ -1877,6 +1915,9 @@ function App() {
             onConfirm={handleDeleteAccount}
             onClose={() => setDeleteAccount(null)}
           />
+        )}
+        {showShortcuts && (
+          <ShortcutsDialog isApple={IS_APPLE} onClose={() => setShowShortcuts(false)} />
         )}
         {showPalette && (
           <CommandPalette

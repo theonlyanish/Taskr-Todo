@@ -4227,3 +4227,61 @@ button.kanban-subtask-item {
 .dark-theme .clear-completed-btn:hover {
   color: #ff7b86;
 }
+
+/* Keyboard shortcuts list (opened with ?) */
+.modal-content.shortcuts-dialog {
+  max-width: 28rem;
+  max-height: min(42rem, calc(100vh - 2rem));
+  overflow-y: auto;
+}
+
+.shortcuts-group h4 {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.shortcuts-group dl {
+  margin: 0;
+}
+
+.shortcuts-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
+.shortcuts-row dt {
+  flex: 0 0 9.5rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.shortcuts-row dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.shortcuts-row kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--border-color);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.shortcuts-dialog .modal-actions {
+  margin-top: 1.25rem;
+}
