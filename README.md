@@ -195,7 +195,17 @@ Only the anon key is used. With row-level security on the `tasks` table the requ
 
 ## Search engines and IndexNow
 
-Everything in `public/` is copied into the build as-is, so the crawler-facing files are plain static files served by Vercel: `robots.txt`, `sitemap.xml`, `llms.txt`, the hidden landing block and JSON-LD in `index.html`, and three standalone guide pages (`import-from-todoist.html`, `offline-todo-app.html`, `changelog.html`). The React app never links to the guide pages; they are reached from the sitemap, `llms.txt` and the landing block only.
+Everything in `public/` is copied into the build as-is, so the crawler-facing files are plain static files served by Vercel: `robots.txt`, `sitemap.xml`, `llms.txt`, the hidden landing block and JSON-LD in `index.html`, and four standalone guide pages (`import-from-todoist.html`, `offline-todo-app.html`, `changelog.html`, `how-its-built.html`). The React app never links to the guide pages; they are reached from the sitemap, `llms.txt` and the landing block only.
+
+### Keeping the crawler copy current
+
+The feature list, FAQ and changelog that crawlers see are generated from one file, `content/features.json`. When a feature ships, add it there (name, one-line description, shipped date) and run:
+
+```bash
+npm run seo
+```
+
+That rewrites the hidden landing block and the two JSON-LD blocks in `public/index.html` (between the `<!-- seo:start -->` / `<!-- seo:end -->` and `<!-- seo:jsonld:start -->` / `<!-- seo:jsonld:end -->` markers), all of `public/llms.txt`, the dated list in `public/changelog.html`, and every `<lastmod>` in `public/sitemap.xml` from the page's last git commit. The "Last updated" dates are set to the newest shipped date. The same script runs as `prebuild`, so `npm run build` (and every Vercel deploy) regenerates these files; `node scripts/generate-seo.mjs --check` exits non-zero if the committed files are out of date. Running it twice produces no diff. Hand-edit only outside the markers. The Features list in this README is not generated; update it by hand alongside `content/features.json`.
 
 ### Verify the site in Bing Webmaster Tools
 
@@ -205,7 +215,7 @@ Everything in `public/` is copied into the build as-is, so the crawler-facing fi
 
 ### Submit the sitemap
 
-In Bing Webmaster Tools open **Sitemaps → Submit sitemap** and enter `https://taskr-todo.vercel.app/sitemap.xml`. Google picks the same URL up from the `Sitemap:` line in `robots.txt`, or submit it under **Sitemaps** in Search Console. Update the `<lastmod>` dates in `public/sitemap.xml` whenever one of the listed pages changes.
+In Bing Webmaster Tools open **Sitemaps → Submit sitemap** and enter `https://taskr-todo.vercel.app/sitemap.xml`. Google picks the same URL up from the `Sitemap:` line in `robots.txt`, or submit it under **Sitemaps** in Search Console. The `<lastmod>` dates in `public/sitemap.xml` are set by `npm run seo` from each page's last git commit.
 
 ### Ping IndexNow after a deploy
 

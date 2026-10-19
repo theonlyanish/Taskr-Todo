@@ -27,6 +27,7 @@
     <link rel="manifest" href="%PUBLIC_URL%/favicon_io/site.webmanifest">
     <link rel="shortcut icon" href="%PUBLIC_URL%/favicon_io/favicon.ico">
 
+    <!-- seo:jsonld:start -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -49,24 +50,40 @@
         "Calendar view to see tasks by due date",
         "List view for a plain, fast checklist",
         "Subtasks to break work into smaller steps",
-        "Works offline, with changes kept locally until you are back online",
-        "Dark mode and light mode, following your system or your choice",
+        "Subtask progress on every card, a \"1 of 3 subtasks\" chip with a ring that fills as they are done and expands to show them",
+        "Works offline with changes kept locally until you are back online",
+        "Offline saving for signed-in accounts so changes you make without a connection are kept on your device and sent to your account when you reconnect",
+        "Dark mode and light mode, with a toggle in the header",
+        "Follows your system theme until you pick one yourself, switching live when your device changes between light and dark",
         "No account needed to start; optional free sign-up for cross-device sync",
+        "Live sync so a change in one tab or on one device shows up on your others straight away, with no refresh",
         "Import from Todoist (CSV export) or any CSV with a title column (free account needed)",
         "Export to Markdown as a GitHub-style checklist grouped by status (free account needed)",
         "Ctrl+K command palette to switch views, add tasks, import, export or jump to a task",
+        "Search box in the header that finds any task or subtask by title as you type",
         "Calendar week view with an Unscheduled tray you can drag tasks from onto a day",
         "Natural language due dates when typing a task, such as \"pay rent fri\" or \"dentist 3 Nov\"",
-        "Undo after delete, with five seconds to bring a task back",
-        "Keyboard shortcuts 1, 2 and 3 to switch between List, Board and Calendar"
+        "Relative due dates on cards, such as Tomorrow, Friday or 3 days ago, with overdue tasks marked",
+        "Task reorder by dragging tasks into the order you want within a list or column; the order is kept on every device",
+        "Focus timer to work on one task for 25 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title",
+        "Task templates to add a task with its subtasks in one click, from a built-in template or one you saved from any task",
+        "Bulk actions to select several tasks with Ctrl-click, Shift-click or Select tasks in Ctrl+K, then move, complete or delete them together",
+        "Undo after delete with five seconds to bring a task back",
+        "Recently deleted keeps deleted tasks for 30 days on all your devices so you can restore them (free account needed)",
+        "Signed-in device management to see where you are signed in and sign out other devices, or everywhere, from the account menu",
+        "Account preferences so your theme, view and calendar layout follow you to every device where you sign in",
+        "Account deletion from the account menu, removing your account and all its tasks after a typed confirmation",
+        "Keyboard shortcuts 1, 2 and 3 switch between List, Board and Calendar; j and k move between tasks, x completes, e edits, n adds, / searches and ? shows the full list"
       ],
       "author": {
         "@type": "Person",
         "name": "Anish Kapse",
         "url": "https://anishkapse.com"
       },
-      "sameAs": ["https://github.com/theonlyanish/Taskr-Todo"],
-      "dateModified": "2026-10-17"
+      "sameAs": [
+        "https://github.com/theonlyanish/Taskr-Todo"
+      ],
+      "dateModified": "2026-10-19"
     }
     </script>
     <script type="application/ld+json">
@@ -95,7 +112,7 @@
           "name": "Does it work offline?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, when you use it without an account: your tasks are kept in your browser and everything works without a connection. If you are signed in, changes are saved to the cloud, so you need a connection for them to be saved, and the sync indicator shows when you are offline."
+            "text": "Yes. Without an account, your tasks are kept in your browser and everything works without a connection. If you are signed in, changes made offline are saved on your device and sent to your account automatically when you reconnect."
           }
         },
         {
@@ -127,12 +144,13 @@
           "name": "Where is my data stored?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source on GitHub."
+            "text": "Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source at https://github.com/theonlyanish/Taskr-Todo."
           }
         }
       ]
     }
     </script>
+    <!-- seo:jsonld:end -->
 
     <style>
       /* Plain-HTML landing content for crawlers and no-JS visitors.
@@ -169,19 +187,10 @@
     <div id="root"></div>
 
     <section id="landing" aria-label="About Taskr">
+      <!-- seo:start -->
       <h1>Taskr: a free todo app with Kanban and Calendar views</h1>
-      <p>
-        Taskr is a free todo app that works offline and needs no sign-up. Open
-        <a href="https://taskr-todo.vercel.app/">taskr-todo.vercel.app</a> and start adding
-        tasks straight away. Your list is saved in your browser, so it is still there when you
-        come back, with or without an internet connection.
-      </p>
-      <p>
-        Switch between a Kanban board, a Calendar and a simple list to see the same tasks the
-        way that suits the moment. Break big tasks into subtasks, drag cards between columns,
-        and flip to dark mode when you like. If you ever want your tasks on more than one
-        device, you can create a free account and sync them, but you never have to.
-      </p>
+      <p>Taskr is a free todo app that works offline and needs no sign-up. Open <a href="https://taskr-todo.vercel.app/">taskr-todo.vercel.app</a> and start adding tasks straight away. Your list is saved in your browser, so it is still there when you come back, with or without an internet connection.</p>
+      <p>Switch between a Kanban board, a Calendar and a simple list to see the same tasks the way that suits the moment. Break big tasks into subtasks, drag cards between columns, and flip to dark mode when you like. If you ever want your tasks on more than one device, you can create a free account and sync them, but you never have to.</p>
 
       <h2>Features</h2>
       <ul>
@@ -189,16 +198,30 @@
         <li><strong>Calendar view</strong> to see tasks by due date</li>
         <li><strong>List view</strong> for a plain, fast checklist</li>
         <li><strong>Subtasks</strong> to break work into smaller steps</li>
-        <li><strong>Works offline</strong>, with changes kept locally until you are back online</li>
-        <li><strong>Dark mode</strong> and light mode, following your system or your choice</li>
+        <li><strong>Subtask progress</strong> on every card, a "1 of 3 subtasks" chip with a ring that fills as they are done and expands to show them</li>
+        <li><strong>Works offline</strong> with changes kept locally until you are back online</li>
+        <li><strong>Offline saving for signed-in accounts</strong> so changes you make without a connection are kept on your device and sent to your account when you reconnect</li>
+        <li><strong>Dark mode</strong> and light mode, with a toggle in the header</li>
+        <li><strong>Follows your system theme</strong> until you pick one yourself, switching live when your device changes between light and dark</li>
         <li><strong>No account needed</strong> to start; optional free sign-up for cross-device sync</li>
+        <li><strong>Live sync</strong> so a change in one tab or on one device shows up on your others straight away, with no refresh</li>
         <li><strong>Import from Todoist</strong> (CSV export) or any CSV with a title column (free account needed)</li>
         <li><strong>Export to Markdown</strong> as a GitHub-style checklist grouped by status (free account needed)</li>
         <li><strong>Ctrl+K command palette</strong> to switch views, add tasks, import, export or jump to a task</li>
+        <li><strong>Search box</strong> in the header that finds any task or subtask by title as you type</li>
         <li><strong>Calendar week view</strong> with an Unscheduled tray you can drag tasks from onto a day</li>
         <li><strong>Natural language due dates</strong> when typing a task, such as "pay rent fri" or "dentist 3 Nov"</li>
-        <li><strong>Undo after delete</strong>, with five seconds to bring a task back</li>
-        <li><strong>Keyboard shortcuts 1, 2 and 3</strong> to switch between List, Board and Calendar</li>
+        <li><strong>Relative due dates</strong> on cards, such as Tomorrow, Friday or 3 days ago, with overdue tasks marked</li>
+        <li><strong>Task reorder</strong> by dragging tasks into the order you want within a list or column; the order is kept on every device</li>
+        <li><strong>Focus timer</strong> to work on one task for 25 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title</li>
+        <li><strong>Task templates</strong> to add a task with its subtasks in one click, from a built-in template or one you saved from any task</li>
+        <li><strong>Bulk actions</strong> to select several tasks with Ctrl-click, Shift-click or Select tasks in Ctrl+K, then move, complete or delete them together</li>
+        <li><strong>Undo after delete</strong> with five seconds to bring a task back</li>
+        <li><strong>Recently deleted</strong> keeps deleted tasks for 30 days on all your devices so you can restore them (free account needed)</li>
+        <li><strong>Signed-in device management</strong> to see where you are signed in and sign out other devices, or everywhere, from the account menu</li>
+        <li><strong>Account preferences</strong> so your theme, view and calendar layout follow you to every device where you sign in</li>
+        <li><strong>Account deletion</strong> from the account menu, removing your account and all its tasks after a typed confirmation</li>
+        <li><strong>Keyboard shortcuts</strong> 1, 2 and 3 switch between List, Board and Calendar; j and k move between tasks, x completes, e edits, n adds, / searches and ? shows the full list</li>
       </ul>
 
       <h2>Guides</h2>
@@ -206,6 +229,7 @@
         <li><a href="https://taskr-todo.vercel.app/import-from-todoist.html">Import your tasks from Todoist into Taskr</a></li>
         <li><a href="https://taskr-todo.vercel.app/offline-todo-app.html">How Taskr works offline and without an account</a></li>
         <li><a href="https://taskr-todo.vercel.app/changelog.html">Changelog: what has shipped so far</a></li>
+        <li><a href="https://taskr-todo.vercel.app/how-its-built.html">How Taskr is built (architecture and engineering notes)</a></li>
       </ul>
 
       <h2>Frequently asked questions</h2>
@@ -214,54 +238,25 @@
       <p>Yes. Taskr is completely free to use, with no paid tier, trial period or ads.</p>
 
       <h3>Do I need an account?</h3>
-      <p>
-        No. You can use every view and feature without signing up. Creating an account is
-        optional and only needed if you want to sync your tasks across devices, import tasks
-        or export them.
-      </p>
+      <p>No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them.</p>
 
       <h3>Does it work offline?</h3>
-      <p>
-        Yes, when you use it without an account: your tasks are kept in your browser and
-        everything works without a connection. If you are signed in, changes are saved to the
-        cloud, so you need a connection for them to be saved, and the sync indicator shows when
-        you are offline.
-      </p>
+      <p>Yes. Without an account, your tasks are kept in your browser and everything works without a connection. If you are signed in, changes made offline are saved on your device and sent to your account automatically when you reconnect.</p>
 
       <h3>Can I sync across devices?</h3>
-      <p>
-        Yes, if you want to. Create a free account and your tasks are stored in the cloud and
-        kept in sync on every device where you sign in.
-      </p>
+      <p>Yes, if you want to. Create a free account and your tasks are stored in the cloud and kept in sync on every device where you sign in.</p>
 
       <h3>Can I import my tasks from Todoist?</h3>
-      <p>
-        Yes. In Todoist, open a project and choose Export as CSV (template). Then sign in to
-        Taskr with a free account, open the account menu and choose Import tasks. Tasks,
-        subtasks, descriptions, comments and due dates come across; sections and recurring
-        dates are kept as notes in the task description. Any other CSV with a title column
-        works too. See the step-by-step
-        <a href="https://taskr-todo.vercel.app/import-from-todoist.html">import guide</a>.
-      </p>
+      <p>Yes. In Todoist, open a project and choose Export as CSV (template). Then sign in to Taskr with a free account, open the account menu and choose Import tasks. Tasks, subtasks, descriptions, comments and due dates come across; sections and recurring dates are kept as notes in the task description. Any other CSV with a title column works too. See the step-by-step import guide at <a href="https://taskr-todo.vercel.app/import-from-todoist.html">taskr-todo.vercel.app/import-from-todoist.html</a>.</p>
 
       <h3>Can I export my tasks?</h3>
-      <p>
-        Yes. Sign in with a free account, open the account menu and choose Export tasks. Taskr
-        downloads a Markdown file with every task as a GitHub-style checklist, grouped into
-        To Do, In Progress and Completed, with due dates, descriptions and subtasks included.
-        The file opens in any text editor and pastes into GitHub issues, Obsidian or any
-        Markdown editor.
-      </p>
+      <p>Yes. Sign in with a free account, open the account menu and choose Export tasks. Taskr downloads a Markdown file with every task as a GitHub-style checklist, grouped into To Do, In Progress and Completed, with due dates, descriptions and subtasks included. The file opens in any text editor and pastes into GitHub issues, Obsidian or any Markdown editor.</p>
 
       <h3>Where is my data stored?</h3>
-      <p>
-        Without an account, your tasks live only in your browser (IndexedDB) on your own
-        device. With an account, they are also stored in Taskr's Supabase database so they can
-        be synced. Taskr is open source on
-        <a href="https://github.com/theonlyanish/Taskr-Todo">GitHub</a>.
-      </p>
+      <p>Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source at <a href="https://github.com/theonlyanish/Taskr-Todo">github.com/theonlyanish/Taskr-Todo</a>.</p>
 
-      <p><small>Last updated: <time datetime="2026-10-17">17 October 2026</time></small></p>
+      <p><small>Last updated: <time datetime="2026-10-19">2026-10-19</time></small></p>
+      <!-- seo:end -->
     </section>
   </body>
 </html>

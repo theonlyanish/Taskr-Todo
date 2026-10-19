@@ -1,0 +1,243 @@
+{
+  "_about": "Single source of truth for the crawler-facing copy. scripts/generate-seo.mjs reads this file and regenerates the hidden landing block and JSON-LD in public/index.html, public/llms.txt, the list in public/changelog.html and the lastmod dates in public/sitemap.xml. Run `npm run seo` after editing (it also runs before every build). Features are listed in the order they appear on the page; a feature bullet reads as `name` followed by `description`. Anything shipped that is not a user-facing feature goes in `changelog` instead. The README feature list is not generated: update it by hand.",
+
+  "site": {
+    "name": "Taskr",
+    "url": "https://taskr-todo.vercel.app/",
+    "repo": "https://github.com/theonlyanish/Taskr-Todo",
+    "positioning": "free todo app with Kanban and Calendar views that works offline and needs no sign-up",
+    "tagline": "Taskr is a free todo app with Kanban, Calendar and list views. It works offline, needs no sign-up, and keeps your tasks in your browser until you choose to sync.",
+    "heading": "Taskr: a free todo app with Kanban and Calendar views",
+    "intro": [
+      "Taskr is a free todo app that works offline and needs no sign-up. Open https://taskr-todo.vercel.app/ and start adding tasks straight away. Your list is saved in your browser, so it is still there when you come back, with or without an internet connection.",
+      "Switch between a Kanban board, a Calendar and a simple list to see the same tasks the way that suits the moment. Break big tasks into subtasks, drag cards between columns, and flip to dark mode when you like. If you ever want your tasks on more than one device, you can create a free account and sync them, but you never have to."
+    ],
+    "tech": "React 18, TypeScript, Mantine UI, Supabase, deployed on Vercel",
+    "author": {
+      "name": "Anish Kapse",
+      "url": "https://anishkapse.com"
+    }
+  },
+
+  "features": [
+    {
+      "name": "Kanban board",
+      "description": "with drag and drop between To Do, In Progress and Done",
+      "shipped": "2025-02-24"
+    },
+    {
+      "name": "Calendar view",
+      "description": "to see tasks by due date",
+      "shipped": "2025-02-24"
+    },
+    {
+      "name": "List view",
+      "description": "for a plain, fast checklist",
+      "shipped": "2024-12-07",
+      "changelog": "List, edit and delete tasks; rebuilt in React"
+    },
+    {
+      "name": "Subtasks",
+      "description": "to break work into smaller steps",
+      "shipped": "2025-02-25"
+    },
+    {
+      "name": "Subtask progress",
+      "description": "on every card, a \"1 of 3 subtasks\" chip with a ring that fills as they are done and expands to show them",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Works offline",
+      "description": "with changes kept locally until you are back online",
+      "shipped": "2024-12-08",
+      "changelog": "Local storage in the browser so tasks survive a reload"
+    },
+    {
+      "name": "Offline saving for signed-in accounts",
+      "description": "so changes you make without a connection are kept on your device and sent to your account when you reconnect",
+      "shipped": "2026-10-17"
+    },
+    {
+      "name": "Dark mode",
+      "description": "and light mode, with a toggle in the header",
+      "shipped": "2024-12-07"
+    },
+    {
+      "name": "Follows your system theme",
+      "description": "until you pick one yourself, switching live when your device changes between light and dark",
+      "shipped": "2026-10-17"
+    },
+    {
+      "name": "No account needed",
+      "description": "to start; optional free sign-up for cross-device sync",
+      "shipped": "2025-02-24",
+      "changelog": "Optional accounts with email verification and cross-device sync"
+    },
+    {
+      "name": "Live sync",
+      "description": "so a change in one tab or on one device shows up on your others straight away, with no refresh",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Import from Todoist",
+      "description": "(CSV export) or any CSV with a title column (free account needed)",
+      "shipped": "2026-10-17",
+      "changelog": "Import from Todoist (CSV export) or any CSV with a title column, and export to Markdown"
+    },
+    {
+      "name": "Export to Markdown",
+      "description": "as a GitHub-style checklist grouped by status (free account needed)",
+      "shipped": "2026-10-17",
+      "changelog": null
+    },
+    {
+      "name": "Ctrl+K command palette",
+      "description": "to switch views, add tasks, import, export or jump to a task",
+      "shipped": "2026-10-17"
+    },
+    {
+      "name": "Search box",
+      "description": "in the header that finds any task or subtask by title as you type",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Calendar week view",
+      "description": "with an Unscheduled tray you can drag tasks from onto a day",
+      "shipped": "2026-10-17",
+      "changelog": "Wider calendar, a week view, and an Unscheduled tray you can drag tasks from onto a day"
+    },
+    {
+      "name": "Natural language due dates",
+      "description": "when typing a task, such as \"pay rent fri\" or \"dentist 3 Nov\"",
+      "shipped": "2026-10-17"
+    },
+    {
+      "name": "Relative due dates",
+      "description": "on cards, such as Tomorrow, Friday or 3 days ago, with overdue tasks marked",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Task reorder",
+      "description": "by dragging tasks into the order you want within a list or column; the order is kept on every device",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Focus timer",
+      "description": "to work on one task for 25 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Task templates",
+      "description": "to add a task with its subtasks in one click, from a built-in template or one you saved from any task",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Bulk actions",
+      "description": "to select several tasks with Ctrl-click, Shift-click or Select tasks in Ctrl+K, then move, complete or delete them together",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Undo after delete",
+      "description": "with five seconds to bring a task back",
+      "shipped": "2026-10-17"
+    },
+    {
+      "name": "Recently deleted",
+      "description": "keeps deleted tasks for 30 days on all your devices so you can restore them (free account needed)",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Signed-in device management",
+      "description": "to see where you are signed in and sign out other devices, or everywhere, from the account menu",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Account preferences",
+      "description": "so your theme, view and calendar layout follow you to every device where you sign in",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Account deletion",
+      "description": "from the account menu, removing your account and all its tasks after a typed confirmation",
+      "shipped": "2026-10-18"
+    },
+    {
+      "name": "Keyboard shortcuts",
+      "description": "1, 2 and 3 switch between List, Board and Calendar; j and k move between tasks, x completes, e edits, n adds, / searches and ? shows the full list",
+      "shipped": "2026-10-19",
+      "changelog": "Single-key shortcuts: j and k move between tasks, x completes, e edits, n adds a task, / searches and ? shows the list"
+    }
+  ],
+
+  "guides": [
+    {
+      "title": "Import your tasks from Todoist into Taskr",
+      "url": "https://taskr-todo.vercel.app/import-from-todoist.html"
+    },
+    {
+      "title": "How Taskr works offline and without an account",
+      "url": "https://taskr-todo.vercel.app/offline-todo-app.html"
+    },
+    {
+      "title": "Changelog: what has shipped so far",
+      "url": "https://taskr-todo.vercel.app/changelog.html"
+    },
+    {
+      "title": "How Taskr is built (architecture and engineering notes)",
+      "url": "https://taskr-todo.vercel.app/how-its-built.html"
+    }
+  ],
+
+  "faq": [
+    {
+      "question": "Is Taskr free?",
+      "answer": "Yes. Taskr is completely free to use, with no paid tier, trial period or ads."
+    },
+    {
+      "question": "Do I need an account?",
+      "answer": "No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them."
+    },
+    {
+      "question": "Does it work offline?",
+      "answer": "Yes. Without an account, your tasks are kept in your browser and everything works without a connection. If you are signed in, changes made offline are saved on your device and sent to your account automatically when you reconnect."
+    },
+    {
+      "question": "Can I sync across devices?",
+      "answer": "Yes, if you want to. Create a free account and your tasks are stored in the cloud and kept in sync on every device where you sign in."
+    },
+    {
+      "question": "Can I import my tasks from Todoist?",
+      "answer": "Yes. In Todoist, open a project and choose Export as CSV (template). Then sign in to Taskr with a free account, open the account menu and choose Import tasks. Tasks, subtasks, descriptions, comments and due dates come across; sections and recurring dates are kept as notes in the task description. Any other CSV with a title column works too. See the step-by-step import guide at https://taskr-todo.vercel.app/import-from-todoist.html."
+    },
+    {
+      "question": "Can I export my tasks?",
+      "answer": "Yes. Sign in with a free account, open the account menu and choose Export tasks. Taskr downloads a Markdown file with every task as a GitHub-style checklist, grouped into To Do, In Progress and Completed, with due dates, descriptions and subtasks included. The file opens in any text editor and pastes into GitHub issues, Obsidian or any Markdown editor."
+    },
+    {
+      "question": "Where is my data stored?",
+      "answer": "Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source at https://github.com/theonlyanish/Taskr-Todo."
+    }
+  ],
+
+  "changelog": [
+    { "date": "2026-10-18", "text": "Automated test suite, run on every push with GitHub Actions" },
+    { "date": "2026-10-18", "text": "New \"How Taskr is built\" page with architecture and engineering notes" },
+    { "date": "2026-10-18", "text": "Switched the app font to IBM Plex Sans and tidied up wording across the app" },
+    { "date": "2026-10-17", "text": "Refreshed sign-in dialog with a segmented Sign in / Create account switch" },
+    { "date": "2026-10-17", "text": "Account menu with Import tasks, Export tasks and Sign out" },
+    { "date": "2026-10-17", "text": "Calendar shows subtasks" },
+    { "date": "2026-10-17", "text": "Touch-friendly drag and drop (dnd-kit), with real buttons and checkboxes for accessibility" },
+    { "date": "2026-10-17", "text": "Faster, colour-only transitions, about 150 ms" },
+    { "date": "2026-10-17", "text": "List / Board / Calendar switcher in the header, with 1, 2 and 3 as keyboard shortcuts" },
+    { "date": "2026-10-17", "text": "Vercel Web Analytics for anonymous page-view counts" },
+    { "date": "2026-10-17", "text": "Cloud sync keep-alive, and a clear \"Cloud sync is asleep\" notice if the database is paused" },
+    { "date": "2026-10-17", "text": "Search-friendly landing text, meta tags, robots.txt, sitemap, llms.txt and static guide pages" },
+    { "date": "2025-03-05", "text": "Removed the demo reset button; final polish on starter preset tasks" },
+    { "date": "2025-03-04", "text": "Renamed to Taskr, with preset starter tasks on first visit" },
+    { "date": "2025-02-25", "text": "New favicon and UI fixes" },
+    { "date": "2024-12-09", "text": "Bug fixes for task IDs, delete confirmation and dark mode" },
+    { "date": "2024-12-08", "text": "Supabase backend for signed-in users" },
+    { "date": "2024-12-08", "text": "Task statuses, moving tasks back to To Do, deleting cards, and a new task button" },
+    { "date": "2024-12-05", "text": "First version: add tasks to a list" }
+  ]
+}
