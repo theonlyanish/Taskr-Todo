@@ -611,9 +611,25 @@ function App() {
     };
   }, []);
 
+  // The title field of the form once it's showing a new task (not an edit or a
+  // subtask, which have a heading), keeping anything already typed there
+  const focusNewTaskTitle = () =>
+    retryUntil(() => {
+      const form = document.querySelector('.task-form');
+      const field = document.getElementById('task-title');
+      if (!form || !field || form.querySelector('h2')) return false;
+      field.focus();
+      return document.activeElement === field;
+    });
+
+  // "+ Add new task", n and "New task" in Ctrl+K: back to a new task (from
+  // editing one or adding a subtask) with the cursor in the title, even when
+  // the form was already showing and focus had moved elsewhere
   const handleAddNewTask = () => {
     setSelectedTask(null);
+    setNewSubtaskParentId(null);
     revealTaskForm();
+    focusNewTaskTitle();
   };
 
   const handleAddSubtask = async (parentId: string) => {
@@ -1424,11 +1440,7 @@ function App() {
       handleTaskSelect(task);
       focusTitleField(task.title);
     },
-    onNewTask: () => {
-      setNewSubtaskParentId(null);
-      handleAddNewTask();
-      focusTitleField('');
-    },
+    onNewTask: handleAddNewTask,
     onSearch: () => setShowPalette(true),
     onHelp: () => setShowShortcuts(true)
   });
@@ -1439,11 +1451,7 @@ function App() {
       group: 'Actions',
       label: 'New task',
       keywords: 'add create',
-      run: () => {
-        setNewSubtaskParentId(null);
-        handleAddNewTask();
-        requestAnimationFrame(() => taskFormRef.current?.querySelector('input')?.focus());
-      }
+      run: handleAddNewTask
     },
     ...(Object.keys(VIEW_LABELS) as ViewType[]).map(view => ({
       id: `view-${view}`,

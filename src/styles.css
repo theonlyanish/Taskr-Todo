@@ -4285,3 +4285,36 @@ button.kanban-subtask-item {
 .shortcuts-dialog .modal-actions {
   margin-top: 1.25rem;
 }
+
+/* Task form spacing: the heading ("Edit task", "Add subtask") gets room below
+   it, the Focus row sits under it as its own band, labels stay close to their
+   own field, and the buttons share one height */
+.task-form > h2 {
+  margin: 0 0 1rem;
+  line-height: 1.2;
+}
+
+.task-form > h2 + .form-group {
+  margin-top: 1.5rem;
+}
+
+.task-form .focus-start {
+  margin: 0 0 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.task-form .form-group label {
+  margin-bottom: 0.6rem;
+}
+
+.task-form .form-actions > button:not(.template-link) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
