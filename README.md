@@ -197,6 +197,8 @@ Only the anon key is used. With row-level security on the `tasks` table the requ
 
 Everything in `public/` is copied into the build as-is, so the crawler-facing files are plain static files served by Vercel: `robots.txt`, `sitemap.xml`, `llms.txt`, the hidden landing block and JSON-LD in `index.html`, and three standalone guide pages (`import-from-todoist.html`, `offline-todo-app.html`, `changelog.html`). The React app never links to the guide pages; they are reached from the sitemap, `llms.txt` and the landing block only.
 
+Unknown paths return a real 404. `vercel.json` serves whatever exists in the build first (the app at `/`, the guide pages, assets) and sends every other path to `public/404.html` with a 404 status, replacing the Create React App preset's catch-all rewrite to `index.html` that used to answer 200 for any URL. The app has no client-side routes (state lives in query parameters), so nothing depends on that rewrite.
+
 ### Verify the site in Bing Webmaster Tools
 
 1. Sign in at https://www.bing.com/webmasters and choose **Add a site**. If the site is already verified in Google Search Console, pick **Import from Google Search Console** and skip the rest of this list.
