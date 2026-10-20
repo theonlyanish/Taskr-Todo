@@ -1,0 +1,10 @@
+Title,Notes,Status,Due Date,Parent
+Plan holiday,"Somewhere warm, under $3,000",In Progress,2026-12-20,
+Compare flights,,Done,,Plan holiday
+Book accommodation,"Check reviews first, then ""free cancellation"" options",To Do,2026-11-15,Plan holiday
+Renew passport,,To Do,2026-11-01,
+Pay electricity bill,Account 4471,Completed,2026-10-20,
+Fix leaking tap,,,03/11/2026,
+Read a book,"Fiction this time
+something light",doing,,
+Call the bank,,To Do,,Missing parent task

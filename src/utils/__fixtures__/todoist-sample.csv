@@ -1,0 +1,15 @@
+TYPE,CONTENT,DESCRIPTION,PRIORITY,INDENT,AUTHOR,RESPONSIBLE,DATE,DATE_LANG,TIMEZONE,DURATION,DURATION_UNIT
+section,Errands,,,,,,,,,,
+task,Buy groceries @shopping,"Milk, eggs, bread",4,1,Sample (1),,tomorrow,en,Australia/Sydney,,
+task,Check the pantry first,,4,2,Sample (1),,,en,Australia/Sydney,,
+task,Use the reusable bags,,4,2,Sample (1),,,en,Australia/Sydney,,
+note,Shop closes at 9pm on weekdays,,,,,,,,,,
+task,Post the parcel,,3,1,Sample (1),,Oct 28,en,Australia/Sydney,,
+,,,,,,,,,,,
+section,Work,,,,,,,,,,
+task,Weekly review,"Go through the inbox
+and plan next week",1,1,Sample (1),,every friday,en,Australia/Sydney,,
+task,Prepare Q4 report,,2,1,Sample (1),,2026-11-14,en,Australia/Sydney,,
+task,Collect numbers from finance,,2,2,Sample (1),,2026-11-07,en,Australia/Sydney,,
+task,Draft summary slide,,2,2,Sample (1),,,en,Australia/Sydney,,
+task,Book team lunch,,4,1,Sample (1),,25 November,en,Australia/Sydney,,
