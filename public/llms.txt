@@ -2,7 +2,7 @@
 
 > Taskr is a free todo app with Kanban, Calendar and list views. It works offline, needs no sign-up, and keeps your tasks in your browser until you choose to sync.
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 Taskr is a free todo app that works offline and needs no sign-up. Open https://taskr-todo.vercel.app/ and start adding tasks straight away. Your list is saved in your browser, so it is still there when you come back, with or without an internet connection.
 
@@ -14,22 +14,36 @@ Switch between a Kanban board, a Calendar and a simple list to see the same task
 - Calendar view to see tasks by due date
 - List view for a plain, fast checklist
 - Subtasks to break work into smaller steps
-- Works offline, with changes kept locally until you are back online
-- Dark mode and light mode, following your system or your choice
+- Subtask progress on every card, a "1 of 3 subtasks" chip with a ring that fills as they are done and expands to show them
+- Works offline with changes kept locally until you are back online
+- Offline saving for signed-in accounts so changes you make without a connection are kept on your device and sent to your account when you reconnect
+- Dark mode and light mode, with a toggle in the header
+- Follows your system theme until you pick one yourself, switching live when your device changes between light and dark
 - No account needed to start; optional free sign-up for cross-device sync
+- Live sync so a change in one tab or on one device shows up on your others straight away, with no refresh
 - Import from Todoist (CSV export) or any CSV with a title column (free account needed)
 - Export to Markdown as a GitHub-style checklist grouped by status (free account needed)
 - Ctrl+K command palette to switch views, add tasks, import, export or jump to a task
+- Search box in the header that finds any task or subtask by title as you type
 - Calendar week view with an Unscheduled tray you can drag tasks from onto a day
 - Natural language due dates when typing a task, such as "pay rent fri" or "dentist 3 Nov"
-- Undo after delete, with five seconds to bring a task back
-- Keyboard shortcuts 1, 2 and 3 to switch between List, Board and Calendar
+- Relative due dates on cards, such as Tomorrow, Friday or 3 days ago, with overdue tasks marked
+- Task reorder by dragging tasks into the order you want within a list or column; the order is kept on every device
+- Focus timer to work on one task for 25 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title
+- Task templates to add a task with its subtasks in one click, from a built-in template or one you saved from any task
+- Bulk actions to select several tasks with Ctrl-click, Shift-click or Select tasks in Ctrl+K, then move, complete or delete them together
+- Undo after delete with five seconds to bring a task back
+- Recently deleted keeps deleted tasks for 30 days on all your devices so you can restore them (free account needed)
+- Signed-in device management to see where you are signed in and sign out other devices, or everywhere, from the account menu
+- Account preferences so your theme, view and calendar layout follow you to every device where you sign in
+- Account deletion from the account menu, removing your account and all its tasks after a typed confirmation
+- Keyboard shortcuts 1, 2 and 3 switch between List, Board and Calendar; j and k move between tasks, x completes, e edits, n adds, / searches and ? shows the full list
 
 ## Guides
 
 - Import your tasks from Todoist into Taskr: https://taskr-todo.vercel.app/import-from-todoist.html
 - How Taskr works offline and without an account: https://taskr-todo.vercel.app/offline-todo-app.html
-- Changelog, what has shipped so far: https://taskr-todo.vercel.app/changelog.html
+- Changelog: what has shipped so far: https://taskr-todo.vercel.app/changelog.html
 - How Taskr is built (architecture and engineering notes): https://taskr-todo.vercel.app/how-its-built.html
 
 ## FAQ
@@ -60,7 +74,7 @@ Yes. Sign in with a free account, open the account menu and choose Export tasks.
 
 ### Where is my data stored?
 
-Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source on GitHub.
+Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source at https://github.com/theonlyanish/Taskr-Todo.
 
 ## Links
 
