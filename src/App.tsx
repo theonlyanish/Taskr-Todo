@@ -135,7 +135,7 @@ function App() {
   const [tasks, setTasks] = useState<Task[]>([] as Task[]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   // Starts in the device's light or dark mode until the user picks one
-  const { isDark: isDarkMode, theme, setTheme, toggleTheme } = useTheme();
+  const { isDark: isDarkMode, theme, setTheme, toggleTheme, followSystem } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -1556,6 +1556,17 @@ function App() {
       keywords: 'theme mode dark light colour color',
       run: toggleTheme
     },
+    // Only once a theme has been picked; until then the app already follows the device
+    ...(theme
+      ? [{
+          id: 'theme-auto',
+          group: 'Actions' as const,
+          label: 'Theme: match my device',
+          hint: 'Theme',
+          keywords: 'theme mode dark light auto system device automatic os colour color',
+          run: followSystem
+        }]
+      : []),
     user
       ? { id: 'sign-out', group: 'Actions', label: 'Sign out', keywords: 'log out account', run: () => handleSignOut() }
       : {
@@ -1659,6 +1670,7 @@ function App() {
                 onDeleteAccount={openDeleteAccount}
                 onDevices={() => setShowDevices(true)}
                 onRecentlyDeleted={() => setShowRecentlyDeleted(true)}
+                onFollowSystemTheme={theme ? followSystem : undefined}
               />
             ) : (
               <button

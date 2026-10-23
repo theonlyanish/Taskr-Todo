@@ -64,5 +64,16 @@ export const useTheme = () => {
 
   const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
 
-  return { isDark, theme, setTheme, toggleTheme };
+  // Forget the choice and go back to following the device
+  const followSystem = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Nothing saved to forget
+    }
+    setChosenTheme(null);
+    setIsDark(systemPrefersDark());
+  };
+
+  return { isDark, theme, setTheme, toggleTheme, followSystem };
 };

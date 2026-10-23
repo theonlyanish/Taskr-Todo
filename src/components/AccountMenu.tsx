@@ -8,12 +8,14 @@ interface AccountMenuProps {
   onDeleteAccount: () => void;
   onDevices: () => void;
   onRecentlyDeleted: () => void;
+  // Set once a theme has been picked, to go back to following the device
+  onFollowSystemTheme?: () => void;
 }
 
 // Signed-in user's menu in the header: account details, import, export, sign out
 // and deleting the account.
 // Follows the WAI-ARIA menu button pattern for keyboard and screen reader users.
-export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExport, onSignOut, onDeleteAccount, onDevices, onRecentlyDeleted }) => {
+export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExport, onSignOut, onDeleteAccount, onDevices, onRecentlyDeleted, onFollowSystemTheme }) => {
   const [open, setOpen] = useState(false);
   // Which item takes focus once the menu has rendered
   const [focusOnOpen, setFocusOnOpen] = useState<'first' | 'last' | null>(null);
@@ -137,6 +139,13 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExp
             Recently deleted
             <span className="account-menu-item-hint">30 days</span>
           </button>
+          {onFollowSystemTheme && (
+            <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={() => choose(onFollowSystemTheme)}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 4a8 8 0 0 1 0 16z" style={{ fill: 'currentColor' }} /></svg>
+              Theme
+              <span className="account-menu-item-hint">Match my device</span>
+            </button>
+          )}
           <div className="account-menu-separator" role="separator" />
           <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={() => choose(onDevices)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="13" height="9" rx="1.5" /><path d="M6 18h6M9 14v4" /><rect x="16.5" y="8" width="5" height="11" rx="1.2" /></svg>

@@ -307,22 +307,6 @@ transform: translateY(-2px);
 box-shadow: 0 3px 6px var(--shadow-color);
 }
 
-/* Theme toggle specific transitions */
-.theme-toggle {
-background: none;
-border: none;
-font-size: 1.5rem;
-cursor: pointer;
-padding: 0.5rem;
-border-radius: 50%;
-opacity: 0.8;
-}
-
-.theme-toggle:hover {
-opacity: 1;
-transform: scale(1.1);
-}
-
 /* Smooth scrolling */
 html {
 scroll-behavior: smooth;
@@ -4317,4 +4301,82 @@ button.kanban-subtask-item {
   padding-bottom: 0.5rem;
   font-size: 0.95rem;
   line-height: 1.2;
+}
+
+/* Theme toggle: a sun that turns into a moon. The body grows and a shadow
+   slides over it to leave a crescent while the rays fold away; switching
+   back reverses it. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.theme-icon {
+  width: 1.3rem;
+  height: 1.3rem;
+  overflow: visible;
+}
+
+.theme-icon-body {
+  fill: currentColor;
+  transform-origin: 12px 12px;
+  transition: transform 0.5s cubic-bezier(0.5, 1.25, 0.75, 1.25);
+}
+
+.theme-icon-rays {
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform-origin: 12px 12px;
+  transition: transform 0.5s cubic-bezier(0.5, 1.5, 0.75, 1.25), opacity 0.5s cubic-bezier(0.25, 0, 0.3, 1);
+}
+
+.theme-icon-shadow {
+  transition: transform 0.25s cubic-bezier(0, 0, 0, 1);
+}
+
+/* Moon */
+.theme-toggle.is-dark .theme-icon-body {
+  transform: scale(1.65);
+  transition-timing-function: cubic-bezier(0.25, 0, 0.3, 1);
+  transition-duration: 0.25s;
+}
+
+.theme-toggle.is-dark .theme-icon-rays {
+  opacity: 0;
+  transform: rotate(-25deg) scale(0.5);
+  transition-duration: 0.15s;
+}
+
+.theme-toggle.is-dark .theme-icon-shadow {
+  transform: translate(-7px, 0);
+  transition-delay: 0.25s;
+  transition-duration: 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-icon-body,
+  .theme-icon-rays,
+  .theme-icon-shadow {
+    transition: none;
+  }
 }
