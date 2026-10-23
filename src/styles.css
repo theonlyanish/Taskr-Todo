@@ -1372,7 +1372,7 @@ flex: 0 0 auto;
 
 .sync-icon-spinner {
   stroke-dasharray: 10 5.1;
-  transform-origin: 12px 14.2px;
+  transform-origin: 12px 13.1px;
   animation: rotate 1s linear infinite;
 }
 

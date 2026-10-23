@@ -24,14 +24,15 @@ export const syncState = ({ isSignedIn, isOnline, isSyncing, pendingChanges, syn
 
 const changes = (count: number) => `${count} change${count === 1 ? '' : 's'}`;
 
-// Cloud outline shared by every signed-in state; the mark inside says which
+// Cloud outline shared by every signed-in state; the mark inside says which.
+// The cloud's filled shape centres on about (12, 13), so each mark does too.
 const CLOUD = 'M7 18.5h10.5a4 4 0 0 0 .4-7.98A6 6 0 0 0 6.3 9.6 4.5 4.5 0 0 0 7 18.5z';
 
 const marks: Record<Exclude<SyncState, 'guest'>, React.ReactNode> = {
-  saved: <path d="M9.6 14.2l1.8 1.8 3.2-3.4" />,
-  syncing: <circle className="sync-icon-spinner" cx="12" cy="14.2" r="2.4" />,
-  waiting: <path d="M12 16.6v-4.4M10.1 14l1.9-1.9 1.9 1.9" />,
-  failed: <path d="M12 11.6v2.8M12 16.8h.01" />,
+  saved: <path d="M9.5 13.1l1.7 1.7 3.3-3.3" />,
+  syncing: <circle className="sync-icon-spinner" cx="12" cy="13.1" r="2.4" />,
+  waiting: <path d="M12 15.4v-4.4M10.1 12.8l1.9-1.9 1.9 1.9" />,
+  failed: <path d="M12 10.6v2.8M12 15.8h.01" />,
   offline: <path d="M3.5 4.5l17 16" />
 };
 
