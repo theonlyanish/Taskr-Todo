@@ -7,8 +7,20 @@ import { isSupabaseUnavailable } from './supabaseErrors';
 // asleep) are kept in an outbox on this device and replayed in order later:
 // on reconnect, on load, on sign-in and from the sync button.
 
-export const queueChange = (userId: string, change: OutboxChange) =>
-  offlineStorage.addToOutbox({ userId, queuedAt: Date.now(), change });
+// Told whenever the outbox may have grown or shrunk (see useOutboxSize)
+const listeners = new Set<() => void>();
+export const onOutboxChange = (listener: () => void) => {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+};
+const notify = () => listeners.forEach(listener => listener());
+
+export const queueChange = async (userId: string, change: OutboxChange) => {
+  await offlineStorage.addToOutbox({ userId, queuedAt: Date.now(), change });
+  notify();
+};
 
 export const outboxSize = async (userId: string) => (await offlineStorage.getOutbox(userId)).length;
 
@@ -17,6 +29,7 @@ export const discardOutbox = async (userId: string) => {
   for (const entry of await offlineStorage.getOutbox(userId)) {
     await offlineStorage.removeFromOutbox(entry.seq!);
   }
+  notify();
 };
 
 export interface FlushResult {
@@ -79,6 +92,7 @@ export const flushOutbox = (userId: string): Promise<FlushResult> => {
     return { sent, dropped, remaining: 0 };
   })().finally(() => {
     flushing = null;
+    notify();
   });
   return flushing;
 };

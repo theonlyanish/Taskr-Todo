@@ -16,6 +16,7 @@ import { useFocusTimer } from './utils/focusTimer';
 import { TaskPosition, sortByOrder } from './utils/taskOrder';
 import { setSubtasksExpanded } from './utils/subtaskExpansion';
 import { useLiveSync } from './utils/liveSync';
+import { useOutboxSize } from './utils/useOutboxSize';
 import { TemplatePicker } from './components/TemplatePicker';
 import { TemplateService } from './services/templateService';
 import {
@@ -139,6 +140,11 @@ function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
+  // The last sync (button or reconnect) failed; cleared by the next one that works
+  const [syncFailed, setSyncFailed] = useState(false);
+  useEffect(() => setSyncFailed(false), [user?.id]);
+  // Changes made here that haven't reached the account yet, for the sync button
+  const pendingChanges = useOutboxSize(user?.id);
   const [showAuthModal, setShowAuthModal] = useState(false);
   // Why the sign-in dialog was opened, shown in place of its default line
   const [authMessage, setAuthMessage] = useState<string | undefined>(undefined);
@@ -451,6 +457,7 @@ function App() {
     setTasks(fresh);
     await saveOnDevice(fresh, userId);
     setCloudNotice(current => (current === OFFLINE_QUEUED_MESSAGE || current === CLOUD_ASLEEP_MESSAGE ? null : current));
+    setSyncFailed(false);
   };
   // For the "online" listener, which is registered once on mount
   const syncWithServerRef = useRef(syncWithServer);
@@ -593,10 +600,14 @@ function App() {
       setIsOnline(true);
       const signedIn = userRef.current;
       if (signedIn) {
-        syncWithServerRef.current(signedIn.id).catch(error => {
-          console.error('Sync after reconnecting failed:', error);
-          reportCloudError(error);
-        });
+        setIsSyncing(true);
+        syncWithServerRef.current(signedIn.id)
+          .catch(error => {
+            console.error('Sync after reconnecting failed:', error);
+            reportCloudError(error);
+            setSyncFailed(true);
+          })
+          .finally(() => setIsSyncing(false));
       }
     };
     const handleOffline = () => setIsOnline(false);
@@ -1125,6 +1136,7 @@ function App() {
     } catch (error) {
       console.error('Sync failed:', error);
       reportCloudError(error);
+      setSyncFailed(true);
     } finally {
       setIsSyncing(false);
     }
@@ -1652,11 +1664,15 @@ function App() {
               <span className="palette-trigger-label" aria-hidden="true">Search…</span>
               <kbd className="palette-trigger-keys">{IS_APPLE ? '⌘' : 'Ctrl'} K</kbd>
             </button>
-              <SyncIndicator
+            <SyncIndicator
+              isSignedIn={!!user}
               isOnline={isOnline}
               isSyncing={isSyncing}
-                onSync={handleSync}
-              />
+              pendingChanges={pendingChanges}
+              syncFailed={syncFailed}
+              onSync={handleSync}
+              onSignIn={() => openAuth('Sign in to keep your tasks in sync on all your devices.')}
+            />
             <ThemeToggle
               isDark={isDarkMode}
               onToggle={toggleTheme}
