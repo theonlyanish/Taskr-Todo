@@ -3,7 +3,46 @@ import { supabase, toTask, TaskRow } from './supabaseClient';
 import { AuthService } from './authService';
 import { isSupabaseUnavailable } from './supabaseErrors';
 
-// Shape of a new row in the tasks table
+const isoOrNull = (date: Date | null | undefined) => (date ? new Date(date).toISOString() : null);
+
+// Columns added by later migrations (task_position, task_status_times). Until
+// a migration has run, the server rejects writes that mention its column, so
+// the write is retried without it and that value stays on this device only.
+const OPTIONAL_COLUMNS: Record<string, string> = {
+  position: 'Task order is saved on this device only until the task_position migration is run.',
+  started_at: 'Stats are kept on this device only until the task_status_times migration is run.',
+  completed_at: 'Stats are kept on this device only until the task_status_times migration is run.'
+};
+const missingColumns = new Set<string>();
+
+// PostgREST's "column not found in the schema cache", or Postgres's own
+// "undefined column", naming one of the optional columns
+const missingOptionalColumn = (error: { code?: string; message?: string }) =>
+  error.code === 'PGRST204' || error.code === '42703'
+    ? Object.keys(OPTIONAL_COLUMNS).find(column => new RegExp(column, 'i').test(error.message ?? ''))
+    : undefined;
+
+const withoutMissingColumns = (data: Record<string, any>) =>
+  Object.fromEntries(Object.entries(data).filter(([column]) => !missingColumns.has(column)));
+
+// Sends a write, dropping optional columns the server doesn't have yet
+const writeWithOptionalColumns = async <T extends { error: any }>(
+  data: Record<string, any>,
+  send: (data: Record<string, any>) => PromiseLike<T>
+): Promise<T> => {
+  let result = await send(withoutMissingColumns(data));
+  while (result.error) {
+    const column = missingOptionalColumn(result.error);
+    if (!column || !(column in data) || missingColumns.has(column)) break;
+    missingColumns.add(column);
+    console.warn(OPTIONAL_COLUMNS[column]);
+    result = await send(withoutMissingColumns(data));
+  }
+  return result;
+};
+
+// Shape of a new row in the tasks table. The status times are only included
+// when set, so a row without them still saves before task_status_times runs.
 const toRow = (task: Omit<Task, 'createdAt' | 'updatedAt'>, userId: string) => ({
   id: task.id,
   title: task.title,
@@ -13,16 +52,10 @@ const toRow = (task: Omit<Task, 'createdAt' | 'updatedAt'>, userId: string) => (
   user_id: userId,
   parent_id: task.parentId || null,
   is_subtask: task.isSubtask || false,
-  subtasks: task.subtasks && task.subtasks.length > 0 ? task.subtasks : []
+  subtasks: task.subtasks && task.subtasks.length > 0 ? task.subtasks : [],
+  ...(task.startedAt ? { started_at: isoOrNull(task.startedAt) } : {}),
+  ...(task.completedAt ? { completed_at: isoOrNull(task.completedAt) } : {})
 });
-
-// Set once the server says the tasks table has no position column yet
-let positionColumnMissing = false;
-
-// PostgREST's "column not found in the schema cache", or Postgres's own
-// "undefined column", mentioning position
-const isMissingPositionColumn = (error: { code?: string; message?: string }) =>
-  (error.code === 'PGRST204' || error.code === '42703') && /position/i.test(error.message ?? '');
 
 // Set once the server says the tasks table has no deleted_at column yet (the
 // recently_deleted migration); until then deleting removes tasks straight away
@@ -131,11 +164,9 @@ export class SupabaseTaskService {
   // can queue the change instead of losing it.
 
   static async insertTaskOrThrow(task: Omit<Task, 'createdAt' | 'updatedAt'>, userId: string): Promise<Task> {
-    const { data, error, status } = await supabase
-      .from('tasks')
-      .insert([toRow(task, userId)])
-      .select()
-      .single();
+    const { data, error, status } = await writeWithOptionalColumns(toRow(task, userId), row =>
+      supabase.from('tasks').insert([row]).select().single()
+    );
     if (error) throw Object.assign(error, { status });
     return toTask(data);
   }
@@ -154,7 +185,9 @@ export class SupabaseTaskService {
     if (updates.parentId !== undefined) updateData.parent_id = updates.parentId || null;
     if (updates.isSubtask !== undefined) updateData.is_subtask = updates.isSubtask;
     if (updates.subtasks !== undefined) updateData.subtasks = updates.subtasks;
-    if (updates.position !== undefined && !positionColumnMissing) updateData.position = updates.position;
+    if (updates.position !== undefined) updateData.position = updates.position;
+    if (updates.startedAt !== undefined) updateData.started_at = isoOrNull(updates.startedAt);
+    if (updates.completedAt !== undefined) updateData.completed_at = isoOrNull(updates.completedAt);
     updateData.updated_at = new Date().toISOString();
 
     const send = (data: Record<string, any>) =>
@@ -166,15 +199,7 @@ export class SupabaseTaskService {
         .select('*')
         .single();
 
-    let { data, error, status } = await send(updateData);
-    // The position column needs the task_position migration. Until it has run,
-    // save everything else and keep the order on this device only.
-    if (error && 'position' in updateData && isMissingPositionColumn(error)) {
-      positionColumnMissing = true;
-      console.warn('Task order is saved on this device only until the task_position migration is run.');
-      const { position, ...withoutPosition } = updateData;
-      ({ data, error, status } = await send(withoutPosition));
-    }
+    const { data, error, status } = await writeWithOptionalColumns(updateData, send);
     if (error) throw Object.assign(error, { status });
     return toTask(data);
   }

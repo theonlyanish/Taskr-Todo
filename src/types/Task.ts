@@ -11,6 +11,10 @@ export interface Task {
   // Where the user dragged it within its section; tasks never moved go by
   // creation time (see utils/taskOrder)
   position?: number;
+  // When it last moved to In Progress, and when it was completed, for the
+  // stats (see utils/statusTimes). null means cleared, e.g. reopened.
+  startedAt?: Date | null;
+  completedAt?: Date | null;
   parentId?: string;
   isSubtask?: boolean;
   subtasks?: Task[];

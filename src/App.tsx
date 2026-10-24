@@ -18,6 +18,7 @@ import { setSubtasksExpanded } from './utils/subtaskExpansion';
 import { useLiveSync } from './utils/liveSync';
 import { useOutboxSize } from './utils/useOutboxSize';
 import { useDueReminders } from './utils/reminders';
+import { initialStatusTimes, withStatusTimes } from './utils/statusTimes';
 import { TemplatePicker } from './components/TemplatePicker';
 import { TemplateService } from './services/templateService';
 import {
@@ -34,6 +35,7 @@ import { ImportDialog, ImportState } from './components/ImportDialog';
 import { AccountMenu } from './components/AccountMenu';
 import { DeleteAccountDialog, DeleteAccountState } from './components/DeleteAccountDialog';
 import { DevicesDialog } from './components/DevicesDialog';
+import { StatsDialog } from './components/StatsDialog';
 import { RecentlyDeletedDialog } from './components/RecentlyDeletedDialog';
 import { BulkActionBar } from './components/BulkActionBar';
 import { ShortcutsDialog } from './components/ShortcutsDialog';
@@ -206,6 +208,7 @@ function App() {
   const [savedTemplates, setSavedTemplates] = useState<TaskTemplate[]>(() => loadSavedTemplates());
   const [showTemplates, setShowTemplates] = useState(false);
   const [showDevices, setShowDevices] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [showRecentlyDeleted, setShowRecentlyDeleted] = useState(false);
   // Tasks picked for a bulk action. null when not selecting; sticky keeps select
   // mode on with nothing picked (started from "Select tasks" in Ctrl+K).
@@ -701,6 +704,7 @@ function App() {
     const newTask: Task = {
       ...taskData,
       status,
+      ...initialStatusTimes(status, now),
       id: crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
@@ -836,10 +840,10 @@ function App() {
           return t;
         });
         
-        // Update UI immediately
-        tasksRef.current = updatedTasks;
-        setTasks(updatedTasks);
-        nextTasks = updatedTasks;
+        // Update UI immediately, with the time of each status change (for the stats)
+        nextTasks = withStatusTimes(latest, updatedTasks, new Date());
+        tasksRef.current = nextTasks;
+        setTasks(nextTasks);
       } else {
         nextTasks = withTaskUpdated(latest, taskId, { ...updates, updatedAt: new Date() });
         // Straight away too, so a dragged task doesn't jump back while it saves
@@ -848,7 +852,7 @@ function App() {
       }
 
       // For the actual async update, we need to get the complete task with the updates
-      const completeTaskWithUpdates = {
+      const completeTaskWithUpdates = findTaskById(nextTasks, taskId) ?? {
         ...taskToUpdate,
         ...updates,
         updatedAt: new Date()
@@ -1056,12 +1060,15 @@ function App() {
       return updated;
     });
     if (changed.length === 0) return;
-    tasksRef.current = nextTasks;
-    setTasks(nextTasks);
+    // With the time of each status change, for the stats
+    const stamped = withStatusTimes(tasksRef.current, nextTasks, now);
+    const toSave = changed.map(task => findTaskById(stamped, task.id) ?? task);
+    tasksRef.current = stamped;
+    setTasks(stamped);
 
     const userId = user?.id;
     if (userId) {
-      for (const task of changed) {
+      for (const task of toSave) {
         try {
           await SupabaseTaskService.updateTask(task.id, task);
         } catch (error) {
@@ -1071,7 +1078,7 @@ function App() {
         }
       }
     }
-    await saveOnDevice(nextTasks, userId);
+    await saveOnDevice(stamped, userId);
     announceChange();
   };
 
@@ -1583,6 +1590,13 @@ function App() {
           run: () => setShowDevices(true)
         }]
       : []),
+    {
+      id: 'stats',
+      group: 'Actions',
+      label: 'Your stats',
+      keywords: 'statistics streak progress done completed week productivity chart',
+      run: () => setShowStats(true)
+    },
     ...(reminders.status === 'unsupported'
       ? []
       : [{
@@ -1727,6 +1741,7 @@ function App() {
                 onDeleteAccount={openDeleteAccount}
                 onDevices={() => setShowDevices(true)}
                 onRecentlyDeleted={() => setShowRecentlyDeleted(true)}
+                onStats={() => setShowStats(true)}
                 onFollowSystemTheme={theme ? followSystem : undefined}
               />
             ) : (
@@ -1999,6 +2014,14 @@ function App() {
               announceChange();
             }}
             onClose={() => setShowRecentlyDeleted(false)}
+          />
+        )}
+        {showStats && (
+          <StatsDialog
+            tasks={tasks}
+            isSignedIn={!!user}
+            onOpenTask={jumpToTask}
+            onClose={() => setShowStats(false)}
           />
         )}
         {showDevices && user && (

@@ -3926,6 +3926,273 @@ button.kanban-subtask-item {
   cursor: pointer;
 }
 
+
+/* Stats dialog: three figures, a column per week, then what's in progress.
+   The chart has one series, so its heading names it and there's no legend;
+   each week's tooltip and a screen-reader table carry the exact numbers. */
+.modal-content.stats-dialog {
+  max-width: 32rem;
+  max-height: min(44rem, calc(100vh - 2rem));
+  overflow-y: auto;
+}
+
+.stats-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.stats-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-primary);
+}
+
+.stats-tile-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.stats-tile-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.stats-tile-note {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.stats-heading {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stats-chart {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  margin-bottom: 1.5rem;
+}
+
+/* The whole column is the hover target, not just the bar */
+.stats-column {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.stats-plot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  height: 7rem;
+  /* Value labels sit above the tallest bar */
+  padding-top: 1.1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stats-bar {
+  width: 100%;
+  max-width: 24px;
+  min-height: 3px;
+  border-radius: 4px 4px 0 0;
+  background-color: #0984e3;
+}
+
+.dark-theme .stats-bar {
+  background-color: #4a9be0;
+}
+
+.stats-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1rem;
+}
+
+.stats-week {
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.stats-week.is-current {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stats-tip {
+  position: absolute;
+  bottom: calc(100% - 0.5rem);
+  left: 50%;
+  z-index: 1;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--card-bg);
+  box-shadow: 0 2px 8px var(--shadow-color);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+/* Keep the first and last tooltips inside the dialog */
+.stats-column:first-child .stats-tip {
+  left: 0;
+  transform: none;
+}
+
+.stats-column:last-child .stats-tip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.stats-column:hover .stats-tip {
+  opacity: 1;
+}
+
+.stats-column:hover .stats-bar {
+  filter: brightness(1.12);
+}
+
+.stats-dialog .stats-empty {
+  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+}
+
+/* Under the chart, closer to it than to what follows */
+.stats-dialog .stats-chart-empty {
+  margin-top: -0.75rem;
+}
+
+.stats-progress {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+}
+
+.stats-progress-task {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stats-progress-task:hover {
+  background-color: var(--bg-primary);
+}
+
+.stats-progress-task:focus-visible,
+.stats-close:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.stats-progress-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-progress-time {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.stats-progress-more {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.stats-dialog .stats-footnote {
+  margin: 0 0 1rem;
+  font-size: 0.78rem;
+}
+
+.stats-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.stats-dialog .stats-close {
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+/* On narrow screens: every other week's date, so they don't run together, and
+   the figures as compact rows rather than three tall cards */
+@media (max-width: 420px) {
+  .stats-column:nth-child(even):not(:last-child) .stats-week {
+    visibility: hidden;
+  }
+
+  .stats-tiles {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .stats-tile {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: 'label value' 'note value';
+    align-items: center;
+    column-gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .stats-tile-label {
+    grid-area: label;
+  }
+
+  .stats-tile-value {
+    grid-area: value;
+    font-size: 1.2rem;
+  }
+
+  .stats-tile-note {
+    grid-area: note;
+  }
+}
+
 /* Recently deleted */
 .modal-content.bin-dialog {
   max-width: 32rem;

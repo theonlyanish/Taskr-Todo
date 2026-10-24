@@ -24,6 +24,8 @@ export interface TaskRow {
   subtasks: any[] | null;
   position?: number | null; // absent until the task_position migration has run
   deleted_at?: string | null; // set while in Recently deleted (recently_deleted migration)
+  started_at?: string | null; // these two need the task_status_times migration
+  completed_at?: string | null;
 }
 
 // Helper functions to convert between our app's Task type and Supabase's format
@@ -38,5 +40,7 @@ export const toTask = (row: TaskRow): Task => ({
   parentId: row.parent_id || undefined,
   isSubtask: row.is_subtask || false,
   subtasks: row.subtasks ? row.subtasks.map(st => toTask(st as TaskRow)) : [],
-  position: row.position ?? undefined
+  position: row.position ?? undefined,
+  startedAt: row.started_at ? new Date(row.started_at) : undefined,
+  completedAt: row.completed_at ? new Date(row.completed_at) : undefined
 });

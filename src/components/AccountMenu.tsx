@@ -8,6 +8,7 @@ interface AccountMenuProps {
   onDeleteAccount: () => void;
   onDevices: () => void;
   onRecentlyDeleted: () => void;
+  onStats: () => void;
   // Set once a theme has been picked, to go back to following the device
   onFollowSystemTheme?: () => void;
 }
@@ -15,7 +16,7 @@ interface AccountMenuProps {
 // Signed-in user's menu in the header: account details, import, export, sign out
 // and deleting the account.
 // Follows the WAI-ARIA menu button pattern for keyboard and screen reader users.
-export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExport, onSignOut, onDeleteAccount, onDevices, onRecentlyDeleted, onFollowSystemTheme }) => {
+export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExport, onSignOut, onDeleteAccount, onDevices, onRecentlyDeleted, onStats, onFollowSystemTheme }) => {
   const [open, setOpen] = useState(false);
   // Which item takes focus once the menu has rendered
   const [focusOnOpen, setFocusOnOpen] = useState<'first' | 'last' | null>(null);
@@ -124,6 +125,10 @@ export const AccountMenu: React.FC<AccountMenuProps> = ({ email, onImport, onExp
             Signed in as <strong>{email}</strong>
           </div>
           <div className="account-menu-separator" role="separator" />
+          <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={() => choose(onStats)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-4M12 16V7M17 16v-7" /></svg>
+            Your stats
+          </button>
           <button type="button" role="menuitem" tabIndex={-1} className="account-menu-item" onClick={() => choose(onImport)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
             Import tasks
