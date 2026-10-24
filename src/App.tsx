@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TaskList } from './components/TaskList';
+import { TaskSection } from './components/TaskSection';
 import { TaskForm } from './components/TaskForm';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Auth, AuthMode } from './components/Auth';
@@ -39,7 +39,7 @@ import { StatsDialog } from './components/StatsDialog';
 import { RecentlyDeletedDialog } from './components/RecentlyDeletedDialog';
 import { BulkActionBar } from './components/BulkActionBar';
 import { ShortcutsDialog } from './components/ShortcutsDialog';
-import { focusTaskById, retryUntil, useKeyboardShortcuts } from './utils/keyboardShortcuts';
+import { focusTaskById, moveTaskFocus, retryUntil, useKeyboardShortcuts } from './utils/keyboardShortcuts';
 import { exportFileName, parseImportFile, skipExisting, toMarkdown } from './utils/importExport';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from './utils/quickAdd';
 import { SupabaseTaskService } from './services/supabaseTaskService';
@@ -55,6 +55,8 @@ import { discardOutbox, flushOutbox, outboxSize, queueChange } from './services/
 
 // Matches the stacked layout breakpoint in styles.css
 const STACKED_LAYOUT_QUERY = '(max-width: 900px)';
+
+const COMPLETED_COLLAPSED_KEY = 'completedCollapsed';
 
 const REMINDERS_BLOCKED_MESSAGE =
   'Notifications are blocked for Taskr, so reminders can’t be shown. You can allow them in your browser’s site settings.';
@@ -209,6 +211,21 @@ function App() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showDevices, setShowDevices] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  // The list view's Completed section folded away, remembered on this device
+  const [completedCollapsed, setCompletedCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(COMPLETED_COLLAPSED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(COMPLETED_COLLAPSED_KEY, completedCollapsed ? '1' : '0');
+    } catch {
+      // Not remembered; applies for this visit
+    }
+  }, [completedCollapsed]);
   const [showRecentlyDeleted, setShowRecentlyDeleted] = useState(false);
   // Tasks picked for a bulk action. null when not selecting; sticky keeps select
   // mode on with nothing picked (started from "Select tasks" in Ctrl+K).
@@ -1083,8 +1100,12 @@ function App() {
   };
 
   // Top-level tasks in the order they're shown: To Do, In Progress, Completed
+  // (leaving out Completed while it's folded away in the list)
   const tasksInDisplayOrder = () =>
-    (['To Do', 'In Progress', 'Completed'] as TaskStatus[]).flatMap(status =>
+    (viewType === 'normal' && completedCollapsed
+      ? (['To Do', 'In Progress'] as TaskStatus[])
+      : (['To Do', 'In Progress', 'Completed'] as TaskStatus[])
+    ).flatMap(status =>
       sortByOrder(tasks.filter(task => !task.isSubtask && task.status === status))
     );
 
@@ -1137,6 +1158,18 @@ function App() {
 
   const completedTaskIds = tasks.filter(task => !task.isSubtask && task.status === 'Completed').map(task => task.id);
   const handleClearCompleted = () => deleteTasksWithUndo(completedTaskIds);
+
+  // What every section of the list view shares
+  const listProps = {
+    onTaskSelect: handleTaskSelect,
+    onTaskToggle: handleTaskToggle,
+    onAddSubtask: handleAddSubtask,
+    onReorder: handleTaskReorder,
+    bulkSelectedIds,
+    selecting: !!selection,
+    onSelectClick: handleSelectClick,
+    selectedTaskId: selectedTask?.id
+  };
 
   const handleUndoDelete = () => {
     const pending = pendingDeleteRef.current;
@@ -1363,6 +1396,8 @@ function App() {
     // A subtask is hidden until its parent is opened
     const parent = tasks.find(t => t.subtasks?.some(subtask => subtask.id === task.id));
     if (parent) setSubtasksExpanded(parent.id, true);
+    // A completed task is hidden while that section is folded away
+    if ((parent ?? task).status === 'Completed') setCompletedCollapsed(false);
     handleTaskSelect(task);
     // On narrow screens revealTaskForm already scrolls to the form instead
     if (window.matchMedia(STACKED_LAYOUT_QUERY).matches) return;
@@ -1472,6 +1507,14 @@ function App() {
       const task = findTaskById(tasksRef.current, taskId);
       if (!task) return;
       const status = task.status === 'Completed' ? 'To Do' : 'Completed';
+      // Completed is folded away in the list: move on to the next task instead
+      if (status === 'Completed' && completedCollapsed && viewType === 'normal') {
+        moveTaskFocus(1);
+        const focused = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('[data-task-id]');
+        if (focused?.dataset.taskId === taskId) moveTaskFocus(-1);
+        handleTaskToggle(taskId);
+        return;
+      }
       handleTaskToggle(taskId);
       // Completing moves the task to another section; keep the keyboard on it
       retryUntil(() => focusTaskById(taskId, status));
@@ -1829,60 +1872,29 @@ function App() {
                   </button>
                 </div>
                 
-                {/* To Do Section */}
-                <div className="task-section">
-                  <h2>To Do</h2>
-                  <TaskList 
-                    tasks={tasks.filter(task => task.status === 'To Do')}
-                    onTaskSelect={handleTaskSelect}
-                    onTaskToggle={handleTaskToggle}
-                    onAddSubtask={handleAddSubtask}
-                    onReorder={handleTaskReorder}
-                    bulkSelectedIds={bulkSelectedIds}
-                    selecting={!!selection}
-                    onSelectClick={handleSelectClick}
-                    selectedTaskId={selectedTask?.id}
-                  />
-                </div>
-
-                {/* In Progress Section */}
-                <div className="task-section in-progress-section">
-                  <h2>In Progress</h2>
-                  <TaskList
-                    tasks={tasks.filter(task => task.status === 'In Progress')}
-                    onTaskSelect={handleTaskSelect}
-                    onTaskToggle={handleTaskToggle}
-                    onAddSubtask={handleAddSubtask}
-                    onReorder={handleTaskReorder}
-                    bulkSelectedIds={bulkSelectedIds}
-                    selecting={!!selection}
-                    onSelectClick={handleSelectClick}
-                    selectedTaskId={selectedTask?.id}
-                  />
-                </div>
-
-                {/* Completed Section */}
-                <div className="task-section completed-section">
-                  <div className="section-header">
-                    <h2>Completed</h2>
-                    {completedTaskIds.length > 0 && (
-                      <button type="button" className="clear-completed-btn" onClick={handleClearCompleted}>
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                  <TaskList 
-                    tasks={tasks.filter(task => task.status === 'Completed')}
-                    onTaskSelect={handleTaskSelect}
-                    onTaskToggle={handleTaskToggle}
-                    onAddSubtask={handleAddSubtask}
-                    onReorder={handleTaskReorder}
-                    bulkSelectedIds={bulkSelectedIds}
-                    selecting={!!selection}
-                    onSelectClick={handleSelectClick}
-                    selectedTaskId={selectedTask?.id}
-                  />
-                </div>
+                <TaskSection
+                  title="To Do"
+                  tasks={tasks.filter(task => task.status === 'To Do')}
+                  emptyText="Nothing waiting. New tasks start here."
+                  {...listProps}
+                />
+                <TaskSection
+                  title="In Progress"
+                  className="in-progress-section"
+                  tasks={tasks.filter(task => task.status === 'In Progress')}
+                  emptyText="Nothing in progress. Set a task to In Progress when you start it."
+                  {...listProps}
+                />
+                <TaskSection
+                  title="Completed"
+                  className="completed-section"
+                  tasks={tasks.filter(task => task.status === 'Completed')}
+                  emptyText="Nothing done yet. Tick a task to complete it."
+                  collapsed={completedCollapsed}
+                  onToggleCollapsed={() => setCompletedCollapsed(collapsed => !collapsed)}
+                  onClear={handleClearCompleted}
+                  {...listProps}
+                />
               </div>
 
               <div className="task-detail-column" ref={taskFormRef}>

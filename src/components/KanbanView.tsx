@@ -42,12 +42,14 @@ interface KanbanViewProps {
 interface ColumnDefinition {
   id: TaskStatus;
   title: string;
+  // Shown in the column while it has no cards
+  emptyText: string;
 }
 
 const COLUMNS: ColumnDefinition[] = [
-  { id: 'To Do', title: 'To Do' },
-  { id: 'In Progress', title: 'In Progress' },
-  { id: 'Completed', title: 'Completed' }
+  { id: 'To Do', title: 'To Do', emptyText: 'Nothing waiting. New tasks start here.' },
+  { id: 'In Progress', title: 'In Progress', emptyText: 'Drag a card here when you start it.' },
+  { id: 'Completed', title: 'Completed', emptyText: 'Drag a card here when it’s done.' }
 ];
 
 const isColumnId = (id: unknown): id is TaskStatus => COLUMNS.some(column => column.id === id);
@@ -245,7 +247,13 @@ const KanbanColumn: React.FC<{
   return (
     <div ref={setNodeRef} className="kanban-column">
       <div className="kanban-column-header">
-        <h2 className="kanban-column-title">{column.title}</h2>
+        <h2 className="kanban-column-title">
+          <span aria-hidden="true">
+            {column.title}
+            <span className="section-count">{taskIds.length}</span>
+          </span>
+          <span className="sr-only">{`${column.title}, ${taskIds.length} task${taskIds.length === 1 ? '' : 's'}`}</span>
+        </h2>
         {onClear && taskIds.length > 0 && (
           <button type="button" className="clear-completed-btn" onClick={onClear}>
             Clear
@@ -528,7 +536,7 @@ const KanbanView: React.FC<KanbanViewProps> = ({
               onClear={column.id === 'Completed' ? onClearCompleted : undefined}
             >
               {tasksByStatus[column.id].length === 0 && (
-                <div className="kanban-no-tasks">No tasks in this column</div>
+                <p className="kanban-no-tasks">{column.emptyText}</p>
               )}
               {tasksByStatus[column.id].map((task) => (
                 <KanbanCard

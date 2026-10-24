@@ -209,10 +209,22 @@ justify-content: flex-end;
 margin-top: 1rem;
 }
 
-.no-tasks {
-text-align: center;
-color: #666;
-margin-top: 2rem;
+/* A section or column with nothing in it: a quiet hint, in a dashed outline
+   where the cards would be */
+.no-tasks,
+.kanban-no-tasks {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.dark-theme .no-tasks,
+.dark-theme .kanban-no-tasks {
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
 /* Base theme transition settings. Kept short: every element fades its
@@ -2501,13 +2513,6 @@ button.subtask-progress:focus-visible {
   word-break: break-word;
 }
 
-.kanban-no-tasks {
-  padding: 15px;
-  text-align: center;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
 /* Footer styles */
 .footer-text {
   text-align: center;
@@ -4551,6 +4556,78 @@ button.kanban-subtask-item {
 
 .section-header h2 {
   margin-bottom: 0;
+}
+
+/* How many tasks a section or board column holds, beside its name */
+.section-count {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-left: 0.45rem;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background-color: var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  vertical-align: 0.1em;
+}
+
+.dark-theme .section-count {
+  background-color: #1f1f26;
+}
+
+/* Completed's heading folds the section away */
+.section-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin: -0.2rem 0 -0.2rem -0.35rem;
+  padding: 0.2rem 0.35rem;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.section-toggle:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.dark-theme .section-toggle:hover {
+  background-color: #1a1a1f;
+}
+
+.section-toggle:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.section-toggle-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+
+.section-toggle[aria-expanded='false'] .section-toggle-icon {
+  transform: rotate(0deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-toggle-icon {
+    transition: none;
+  }
 }
 
 .kanban-column-header {

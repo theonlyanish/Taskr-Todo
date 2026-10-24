@@ -15,9 +15,10 @@ import { Task, TaskStatus } from '../types/Task';
 import { TaskPosition, placeAt, sortByOrder, stepPosition } from '../utils/taskOrder';
 import { TaskCard, TaskCardProps } from './TaskCard';
 
-// Define the interface for TaskListProps
-interface TaskListProps {
+export interface TaskListProps {
   tasks: Task[];
+  // Shown when the section has no tasks
+  emptyText?: string;
   onTaskSelect: (task: Task) => void;
   onTaskToggle: (taskId: string) => void;
   onAddSubtask: (parentId: string) => void;
@@ -57,6 +58,7 @@ const SortableTaskCard: React.FC<TaskCardProps> = props => {
 // TaskList component definition
 export const TaskList: React.FC<TaskListProps> = ({
   tasks,
+  emptyText = 'Nothing here yet.',
   onTaskSelect,
   onTaskToggle,
   onAddSubtask,
@@ -144,7 +146,7 @@ export const TaskList: React.FC<TaskListProps> = ({
         mainTasks.map(task => <TaskCard key={task.id} {...cardProps(task)} />)
       )}
       {mainTasks.length === 0 && (
-        <div className="no-tasks">No tasks in this section</div>
+        <p className="no-tasks">{emptyText}</p>
       )}
     </div>
   );

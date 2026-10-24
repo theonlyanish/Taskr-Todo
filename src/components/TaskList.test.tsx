@@ -69,7 +69,9 @@ describe('the task list', () => {
   });
 
   it('says when a section is empty', () => {
-    render(<TaskList tasks={[]} onTaskSelect={jest.fn()} onTaskToggle={jest.fn()} onAddSubtask={jest.fn()} />);
-    expect(screen.getByText('No tasks in this section')).toBeInTheDocument();
+    render(
+      <TaskList tasks={[]} emptyText="Nothing done yet." onTaskSelect={jest.fn()} onTaskToggle={jest.fn()} onAddSubtask={jest.fn()} />
+    );
+    expect(screen.getByText('Nothing done yet.')).toBeInTheDocument();
   });
 });
