@@ -646,6 +646,22 @@ color: #999;
   background-color: rgba(220, 53, 69, 0.1);
 }
 
+.dark-theme .delete-task-btn:hover {
+  color: #ff7b86;
+  border-color: #ff7b86;
+}
+
+.delete-task-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* Tags styles */
 .tags-container {
 display: flex;
