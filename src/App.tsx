@@ -17,6 +17,7 @@ import { TaskPosition, sortByOrder } from './utils/taskOrder';
 import { setSubtasksExpanded } from './utils/subtaskExpansion';
 import { useLiveSync } from './utils/liveSync';
 import { useOutboxSize } from './utils/useOutboxSize';
+import { useDueReminders } from './utils/reminders';
 import { TemplatePicker } from './components/TemplatePicker';
 import { TemplateService } from './services/templateService';
 import {
@@ -52,6 +53,9 @@ import { discardOutbox, flushOutbox, outboxSize, queueChange } from './services/
 
 // Matches the stacked layout breakpoint in styles.css
 const STACKED_LAYOUT_QUERY = '(max-width: 900px)';
+
+const REMINDERS_BLOCKED_MESSAGE =
+  'Notifications are blocked for Taskr, so reminders can’t be shown. You can allow them in your browser’s site settings.';
 
 // Show ⌘ on Apple devices and Ctrl elsewhere in the shortcut hint
 const IS_APPLE = /Mac|iPhone|iPad/.test(navigator.userAgent);
@@ -168,6 +172,23 @@ function App() {
   // Latest tasks, for saving a guest's list when a delayed delete is committed
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
+
+  // Notifications on the morning a task is due, if turned on (utils/reminders).
+  // Clicking one about a single task opens it.
+  const reminders = useDueReminders(tasks, task => {
+    const latest = task && findTaskById(tasksRef.current, task.id);
+    if (latest) jumpToTask(latest);
+  });
+  // Offered once, the first time a task is given a due date
+  const [showReminderOffer, setShowReminderOffer] = useState(false);
+  const offerReminders = (dueDate: Date | undefined) => {
+    if (dueDate && reminders.canOffer) setShowReminderOffer(true);
+  };
+  const turnOnReminders = async () => {
+    setShowReminderOffer(false);
+    const result = await reminders.enable();
+    if (result === 'blocked') setCloudNotice(REMINDERS_BLOCKED_MESSAGE);
+  };
 
   // Save the pending delete now (undo window over, toast dismissed, or another delete started)
   const commitPendingDelete = useCallback(() => {
@@ -664,6 +685,7 @@ function App() {
     subtaskParentId: string | null = newSubtaskParentId
   ) => {
     const now = new Date();
+    offerReminders(taskData.dueDate);
 
     // If this is a subtask, find the parent task to inherit its status
     let status = taskData.status;
@@ -737,6 +759,7 @@ function App() {
   };
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
+    offerReminders(updates.dueDate);
     try {
       // The latest list, not the `tasks` this render started with: a second
       // change made before React re-renders (two checkboxes ticked quickly)
@@ -1560,6 +1583,24 @@ function App() {
           run: () => setShowDevices(true)
         }]
       : []),
+    ...(reminders.status === 'unsupported'
+      ? []
+      : [{
+          id: 'reminders',
+          group: 'Actions' as const,
+          label: {
+            on: 'Turn off due-date reminders',
+            off: 'Turn on due-date reminders',
+            blocked: 'Due-date reminders are blocked'
+          }[reminders.status],
+          hint: 'Reminders',
+          keywords: 'notification notify alert remind due today morning',
+          run: () => {
+            if (reminders.status === 'on') reminders.disable();
+            else if (reminders.status === 'blocked') setCloudNotice(REMINDERS_BLOCKED_MESSAGE);
+            else turnOnReminders();
+          }
+        }]),
     {
       id: 'toggle-theme',
       group: 'Actions',
@@ -1710,6 +1751,33 @@ function App() {
             >
               ×
             </button>
+          </div>
+        )}
+
+        {showReminderOffer && reminders.canOffer && (
+          <div className="reminder-offer" role="region" aria-label="Due-date reminders">
+            <svg className="reminder-offer-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5h4" />
+            </svg>
+            <p>
+              Want a reminder on the morning a task is due? Taskr shows a notification
+              while it’s open in a tab.
+            </p>
+            <div className="reminder-offer-actions">
+              <button type="button" className="reminder-offer-yes" onClick={turnOnReminders}>
+                Turn on
+              </button>
+              <button
+                type="button"
+                className="reminder-offer-no"
+                onClick={() => {
+                  reminders.dismissOffer();
+                  setShowReminderOffer(false);
+                }}
+              >
+                Not now
+              </button>
+            </div>
           </div>
         )}
 

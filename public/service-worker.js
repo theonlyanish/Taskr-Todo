@@ -47,3 +47,20 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// A due-date reminder was clicked (shown through here on Android; see
+// src/utils/reminders). Bring Taskr forward, or open it, and say which task.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const taskId = event.notification.data?.taskId ?? null;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      const open = windows[0];
+      if (open) {
+        open.postMessage({ type: 'taskr-open-task', taskId });
+        return open.focus();
+      }
+      return self.clients.openWindow('/');
+    })
+  );
+});

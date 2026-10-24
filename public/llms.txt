@@ -21,7 +21,6 @@ Switch between a Kanban board, a Calendar and a simple list to see the same task
 - Follows your system theme until you pick one yourself, switching live when your device changes between light and dark
 - No account needed to start; optional free sign-up for cross-device sync
 - Live sync so a change in one tab or on one device shows up on your others straight away, with no refresh
-- Sync status in the header showing whether everything is saved, syncing, offline with a count of changes waiting, or failed and ready to retry
 - Import from Todoist (CSV export) or any CSV with a title column (free account needed)
 - Export to Markdown as a GitHub-style checklist grouped by status (free account needed)
 - Ctrl+K command palette to switch views, add tasks, import, export or jump to a task

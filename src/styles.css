@@ -1342,6 +1342,72 @@ flex: 0 0 auto;
   color: var(--text-primary);
 }
 
+/* One-time offer of due-date reminders, shown the first time a task gets a
+   due date. Same card as the cloud notice, with a choice instead of a ×. */
+.reminder-offer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin: 0.75rem auto 0;
+  max-width: 800px;
+  padding: 0.6rem 0.75rem 0.6rem 1rem;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--accent-color);
+  border-radius: 8px;
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.reminder-offer p {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+
+.reminder-offer-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--accent-color);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.reminder-offer-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.reminder-offer-yes,
+.reminder-offer-no {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.reminder-offer-yes {
+  border: none;
+  background-color: var(--accent-color);
+  color: #fff;
+  font-weight: 500;
+}
+
+.reminder-offer-no {
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text-secondary);
+}
+
+.reminder-offer-no:hover {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
 /* Sync status in the header (the button itself shares the theme toggle's
    styles further down). A cloud with a mark inside for the account's state,
    or a screen for a guest, whose tasks stay on this device. */
