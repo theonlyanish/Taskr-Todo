@@ -36,17 +36,11 @@ export interface TaskFormProps {
   currentListId?: string;
   // Closes the task being edited (or the new subtask), back to adding a task
   onClose?: () => void;
+  // Whether "Add details" is open when adding a task; App remembers it (and
+  // syncs it with the account). Without these the form keeps its own.
+  detailsOpen?: boolean;
+  onDetailsOpenChange?: (open: boolean) => void;
 }
-
-// Whether "Add details" was left open, remembered on this device
-const DETAILS_KEY = 'addDetailsOpen';
-const detailsWereOpen = () => {
-  try {
-    return localStorage.getItem(DETAILS_KEY) === '1';
-  } catch {
-    return false;
-  }
-};
 
 export const TaskForm: React.FC<TaskFormProps> = ({
   selectedTask,
@@ -60,20 +54,17 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   onSaveTemplate,
   lists = [],
   currentListId = DEFAULT_LIST_ID,
-  onClose
+  onClose,
+  detailsOpen: detailsOpenProp,
+  onDetailsOpenChange
 }) => {
   // Adding a task: a title line, with the other fields behind "Add details".
   // Editing one shows every field.
-  const [detailsOpen, setDetailsOpen] = useState(detailsWereOpen);
+  const [ownDetailsOpen, setOwnDetailsOpen] = useState(false);
+  const detailsOpen = detailsOpenProp ?? ownDetailsOpen;
   const toggleDetails = () => {
-    setDetailsOpen(open => {
-      try {
-        localStorage.setItem(DETAILS_KEY, open ? '0' : '1');
-      } catch {
-        // Not remembered; applies for this visit
-      }
-      return !open;
-    });
+    if (onDetailsOpenChange) onDetailsOpenChange(!detailsOpen);
+    else setOwnDetailsOpen(!detailsOpen);
   };
   const isEditing = !!selectedTask;
   const showDetails = isEditing || detailsOpen;

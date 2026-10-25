@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef } from 'react';
 import { AuthService } from '../services/authService';
 import { Preferences, parsePreferences, preferencesKey } from './preferences';
 
-// Keeps the signed-in user's settings (theme, view, calendar layout) on their
-// account, so another device opens the way they left it.
+// Keeps the signed-in user's settings (theme, view, calendar layout, the list
+// showing, the folded Completed section, "Add details") on their account, so
+// another device opens the way they left it.
 //
 // On sign-in, or on loading while signed in, the account's settings are
 // applied, unless this device changed them while it couldn't reach the account,

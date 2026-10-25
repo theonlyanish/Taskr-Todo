@@ -18,6 +18,21 @@ describe('settings that follow you', () => {
     expect(parsePreferences('dark')).toBeNull();
   });
 
+  it('reads the open list and the folded and unfolded sections', () => {
+    expect(
+      parsePreferences({ listId: '7d56d555-158d-4ab4-9034-5fe5ebb713b7', completedCollapsed: true, addDetailsOpen: false })
+    ).toEqual({ listId: '7d56d555-158d-4ab4-9034-5fe5ebb713b7', completedCollapsed: true, addDetailsOpen: false });
+    // Anything that isn't a plain id or a true/false is ignored
+    expect(parsePreferences({ listId: '<script>', completedCollapsed: 'yes', addDetailsOpen: 1 })).toEqual({});
+  });
+
+  it('notices when only one of the newer settings changes', () => {
+    expect(preferencesKey({ view: 'kanban', completedCollapsed: true })).not.toBe(
+      preferencesKey({ view: 'kanban', completedCollapsed: false })
+    );
+    expect(preferencesKey({ listId: 'work' })).not.toBe(preferencesKey({ listId: 'personal' }));
+  });
+
   it('compares settings regardless of how they were written', () => {
     expect(preferencesKey({ view: 'kanban', theme: 'dark' })).toBe(preferencesKey({ theme: 'dark', view: 'kanban' }));
     expect(preferencesKey({ theme: 'dark' })).not.toBe(preferencesKey({ theme: 'light' }));

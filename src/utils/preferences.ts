@@ -12,7 +12,16 @@ export interface Preferences {
   theme?: ThemeChoice;
   view?: ViewType;
   calendarLayout?: CalendarLayout;
+  // The list showing (utils/taskLists); one that isn't known shows Personal
+  listId?: string;
+  // The list view's Completed section folded away
+  completedCollapsed?: boolean;
+  // "Add details" left open in the add-task card
+  addDetailsOpen?: boolean;
 }
+
+// Reminders aren't here on purpose: the browser asks for permission to show
+// notifications on each device, and only when the user clicks something.
 
 const THEMES: readonly ThemeChoice[] = ['dark', 'light'];
 const VIEWS: readonly ViewType[] = ['normal', 'kanban', 'calendar'];
@@ -54,10 +63,20 @@ export const parsePreferences = (value: unknown): Preferences | null => {
   return {
     theme: oneOf(THEMES, raw.theme),
     view: oneOf(VIEWS, raw.view),
-    calendarLayout: oneOf(CALENDAR_LAYOUTS, raw.calendarLayout)
+    calendarLayout: oneOf(CALENDAR_LAYOUTS, raw.calendarLayout),
+    listId: typeof raw.listId === 'string' && /^[\w-]{1,64}$/.test(raw.listId) ? raw.listId : undefined,
+    completedCollapsed: typeof raw.completedCollapsed === 'boolean' ? raw.completedCollapsed : undefined,
+    addDetailsOpen: typeof raw.addDetailsOpen === 'boolean' ? raw.addDetailsOpen : undefined
   };
 };
 
 // A stable key for comparing two sets of settings
 export const preferencesKey = (prefs: Preferences) =>
-  JSON.stringify([prefs.theme ?? null, prefs.view ?? null, prefs.calendarLayout ?? null]);
+  JSON.stringify([
+    prefs.theme ?? null,
+    prefs.view ?? null,
+    prefs.calendarLayout ?? null,
+    prefs.listId ?? null,
+    prefs.completedCollapsed ?? null,
+    prefs.addDetailsOpen ?? null
+  ]);

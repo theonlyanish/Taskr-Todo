@@ -35,7 +35,7 @@ Switch between a Kanban board, a Calendar and a simple list to see the same task
 - Undo after delete with five seconds to bring a task back
 - Recently deleted keeps deleted tasks for 30 days on all your devices so you can restore them (free account needed)
 - Signed-in device management to see where you are signed in and sign out other devices, or everywhere, from the account menu
-- Account preferences so your theme, view and calendar layout follow you to every device where you sign in
+- Account preferences so your theme, view, calendar layout, the list you had open, a folded Completed section and Add details follow you to every device where you sign in
 - Account deletion from the account menu, removing your account and all its tasks after a typed confirmation
 - Keyboard shortcuts 1, 2 and 3 switch between List, Board and Calendar; j and k move between tasks, x completes, e edits, n adds, / searches and ? shows the full list
 

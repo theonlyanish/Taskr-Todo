@@ -17,6 +17,7 @@ import { TaskPosition, sortByOrder } from './utils/taskOrder';
 import { setSubtasksExpanded } from './utils/subtaskExpansion';
 import { useLiveSync } from './utils/liveSync';
 import { useOutboxSize } from './utils/useOutboxSize';
+import { useDeviceFlag } from './utils/useDeviceFlag';
 import { useDueReminders } from './utils/reminders';
 import { initialStatusTimes, withStatusTimes } from './utils/statusTimes';
 import { useTaskLists } from './utils/useTaskLists';
@@ -61,8 +62,6 @@ import { discardOutbox, flushOutbox, outboxSize, queueChange } from './services/
 
 // Matches the stacked layout breakpoint in styles.css
 const STACKED_LAYOUT_QUERY = '(max-width: 900px)';
-
-const COMPLETED_COLLAPSED_KEY = 'completedCollapsed';
 
 const REMINDERS_BLOCKED_MESSAGE =
   'Notifications are blocked for Taskr, so reminders can’t be shown. You can allow them in your browser’s site settings.';
@@ -218,21 +217,10 @@ function App() {
   const [showDevices, setShowDevices] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [listsDialog, setListsDialog] = useState<'new' | 'manage' | null>(null);
-  // The list view's Completed section folded away, remembered on this device
-  const [completedCollapsed, setCompletedCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem(COMPLETED_COLLAPSED_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
-  useEffect(() => {
-    try {
-      localStorage.setItem(COMPLETED_COLLAPSED_KEY, completedCollapsed ? '1' : '0');
-    } catch {
-      // Not remembered; applies for this visit
-    }
-  }, [completedCollapsed]);
+  // The list view's Completed section folded away, and "Add details" left
+  // open in the add-task card: kept on this device and with the account
+  const [completedCollapsed, setCompletedCollapsed] = useDeviceFlag('completedCollapsed');
+  const [addDetailsOpen, setAddDetailsOpen] = useDeviceFlag('addDetailsOpen');
   const [showRecentlyDeleted, setShowRecentlyDeleted] = useState(false);
   // Tasks picked for a bulk action. null when not selecting; sticky keeps select
   // mode on with nothing picked (started from "Select tasks" in Ctrl+K).
@@ -628,15 +616,26 @@ function App() {
   useEffect(() => saveView(viewType), [viewType]);
   useEffect(() => saveCalendarLayout(calendarLayout), [calendarLayout]);
 
-  // Theme, view and calendar layout follow a signed-in user between devices
+  // Theme, view, calendar layout, the list showing, the folded Completed
+  // section and "Add details" follow a signed-in user between devices
   const applyAccountPreferences = (preferences: Preferences) => {
     if (preferences.theme) setTheme(preferences.theme);
     if (preferences.view) setViewType(preferences.view);
     if (preferences.calendarLayout) setCalendarLayout(preferences.calendarLayout);
+    if (preferences.listId) taskLists.switchTo(preferences.listId);
+    if (preferences.completedCollapsed !== undefined) setCompletedCollapsed(preferences.completedCollapsed);
+    if (preferences.addDetailsOpen !== undefined) setAddDetailsOpen(preferences.addDetailsOpen);
   };
   useAccountPreferences(
     user?.id,
-    { theme: theme ?? undefined, view: viewType, calendarLayout },
+    {
+      theme: theme ?? undefined,
+      view: viewType,
+      calendarLayout,
+      listId: currentListId,
+      completedCollapsed,
+      addDetailsOpen
+    },
     applyAccountPreferences
   );
 
@@ -2146,6 +2145,8 @@ function App() {
                   lists={lists}
                   currentListId={currentListId}
                   onClose={closeTaskPanel}
+                  detailsOpen={addDetailsOpen}
+                  onDetailsOpenChange={setAddDetailsOpen}
                 />
                 {!selectedTask && !newSubtaskParentId && (
                   <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} />
@@ -2179,6 +2180,8 @@ function App() {
                   lists={lists}
                   currentListId={currentListId}
                   onClose={closeTaskPanel}
+                  detailsOpen={addDetailsOpen}
+                  onDetailsOpenChange={setAddDetailsOpen}
                 />
                 {!selectedTask && !newSubtaskParentId && (
                   <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} />
@@ -2211,6 +2214,8 @@ function App() {
                   lists={lists}
                   currentListId={currentListId}
                   onClose={closeTaskPanel}
+                  detailsOpen={addDetailsOpen}
+                  onDetailsOpenChange={setAddDetailsOpen}
                 />
                 {!selectedTask && !newSubtaskParentId && (
                   <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} />
