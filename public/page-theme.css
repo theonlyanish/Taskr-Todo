@@ -1,0 +1,55 @@
+/* Light and dark colours for the plain text pages (the guides, changelog,
+   privacy policy and 404). Linked after each page's own styles so these win.
+   The light values are the pages' original colours. Dark follows the device,
+   or the theme picked in the app: each page's head script copies the app's
+   saved "theme" onto <html data-theme>. Same palette as how-its-built.html. */
+
+:root {
+  --page-bg: #fff;
+  --page-text: #1a1a1f;
+  --page-lede: #3a3a44;
+  --page-muted: #6b6f78;
+  --page-link: #3d7199;
+  --page-border: #e3e6ea;
+  --page-rule: #eef0f2;
+  --page-code-bg: #f1f3f5;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: #0a0a0c;
+    --page-text: #ececf0;
+    --page-lede: #c9ccd3;
+    --page-muted: #a2a6b0;
+    --page-link: #8fbde3;
+    --page-border: #24242b;
+    --page-rule: #1d1d23;
+    --page-code-bg: #1d1d23;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --page-bg: #0a0a0c;
+  --page-text: #ececf0;
+  --page-lede: #c9ccd3;
+  --page-muted: #a2a6b0;
+  --page-link: #8fbde3;
+  --page-border: #24242b;
+  --page-rule: #1d1d23;
+  --page-code-bg: #1d1d23;
+  color-scheme: dark;
+}
+
+body { background: var(--page-bg); color: var(--page-text); }
+a { color: var(--page-link); }
+.lede { color: var(--page-lede); }
+.meta, footer, .log time { color: var(--page-muted); }
+footer { border-top-color: var(--page-border); }
+th, td { border-bottom-color: var(--page-border); }
+.log li { border-bottom-color: var(--page-rule); }
+code { background: var(--page-code-bg); }
+
+/* The button keeps white text on the accent in both themes */
+a.cta { color: #fff; }

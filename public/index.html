@@ -204,6 +204,11 @@
       #landing ul { padding-left: 1.25rem; }
       #landing a { color: #3d7199; }
       body.app-mounted #landing { display: none; }
+      /* Dark mode is applied (below) before the app's styles load, so the text
+         shown for that moment needs its own light colours */
+      body.dark-theme { background-color: #040406; }
+      body.dark-theme #landing { color: #e4e9ed; }
+      body.dark-theme #landing a { color: #8fbde3; }
     </style>
   </head>
   <body>

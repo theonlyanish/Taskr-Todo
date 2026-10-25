@@ -23,6 +23,15 @@
     <meta name="twitter:description" content="Export a Todoist project as CSV, then import it into Taskr in a few clicks. Tasks, subtasks, descriptions, comments and due dates come across." />
     <meta name="twitter:image" content="https://taskr-todo.vercel.app/og-image.png" />
 
+    <script>
+      // Match the theme picked in the app (same storage key), else the device's
+      try {
+        var savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+      } catch (e) {}
+    </script>
     <style>
       body {
         margin: 0;
@@ -46,6 +55,8 @@
       .meta { color: #6b6f78; font-size: 0.9rem; }
       footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e3e6ea; color: #6b6f78; font-size: 0.9rem; }
     </style>
+    <!-- Light and dark colours, after the styles above so they win -->
+    <link rel="stylesheet" href="/page-theme.css" />
   </head>
   <body>
     <main>
