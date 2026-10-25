@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Taskr privacy policy</title>
+    <meta name="description" content="What Taskr, the free todo app, stores about you, where it is kept, who else is involved, and how to delete it. Guests' tasks never leave their browser." />
+    <link rel="canonical" href="https://taskr-todo.vercel.app/privacy.html" />
+    <meta name="theme-color" content="#3d7199" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://taskr-todo.vercel.app/privacy.html" />
+    <meta property="og:site_name" content="Taskr" />
+    <meta property="og:title" content="Taskr privacy policy" />
+    <meta property="og:description" content="What Taskr stores, where it is kept, and how to delete it." />
+    <meta property="og:image" content="https://taskr-todo.vercel.app/og-image.png" />
+    <meta property="og:image:alt" content="Taskr logo with the line: free todo app, Kanban, Calendar, offline, no sign-up" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary" />
+
+    <style>
+      body {
+        margin: 0;
+        background: #fff;
+        color: #1a1a1f;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+      }
+      main { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+      h1 { font-size: 2rem; margin: 0 0 0.5rem; line-height: 1.2; }
+      h2 { font-size: 1.25rem; margin: 2rem 0 0.5rem; }
+      p, li { margin-bottom: 0.5rem; }
+      ul { padding-left: 1.25rem; }
+      a { color: #3d7199; }
+      table { border-collapse: collapse; width: 100%; margin: 0.75rem 0 1rem; font-size: 0.95rem; }
+      th, td { text-align: left; vertical-align: top; padding: 0.4rem 0.5rem; border-bottom: 1px solid #e3e6ea; }
+      th { font-weight: 600; }
+      .lede { font-size: 1.1rem; color: #3a3a44; }
+      .meta { color: #6b6f78; font-size: 0.9rem; }
+      footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e3e6ea; color: #6b6f78; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="meta"><a href="https://taskr-todo.vercel.app/">Taskr</a> &rsaquo; Privacy</p>
+      <h1>Taskr privacy policy</h1>
+      <p class="lede">
+        Taskr is a free todo app made by one person, Anish Kapse. It has no ads, sells nothing and
+        doesn't track you across other sites. If you use it without an account, your tasks never
+        leave your browser. This page says exactly what is kept, where, and how to delete it.
+      </p>
+      <p class="meta">Last updated 25 October 2026.</p>
+
+      <h2>Without an account</h2>
+      <p>
+        Everything you add stays on your own device: your tasks in your browser's IndexedDB, and
+        your settings (theme, view, lists, saved templates, reminders and similar) in its
+        localStorage. None of it is sent to a server. Clearing site data for
+        taskr-todo.vercel.app in your browser removes all of it.
+      </p>
+
+      <h2>With an account</h2>
+      <p>An account is optional. If you create one, Taskr keeps these in its database so your tasks sync between your devices:</p>
+      <table>
+        <thead>
+          <tr><th>What</th><th>Why</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Your email address, and a password stored only as a secure hash by Supabase Auth</td>
+            <td>To sign you in. Taskr itself never sees your password.</td>
+          </tr>
+          <tr>
+            <td>If you sign in with Google: the name, email address and profile picture Google shares</td>
+            <td>To sign you in. Taskr asks Google for nothing else, and can't see your Google account, email or files.</td>
+          </tr>
+          <tr>
+            <td>Your tasks and subtasks, with their descriptions, statuses, due dates, repeats, order, lists and saved templates</td>
+            <td>To show the same tasks on every device where you sign in.</td>
+          </tr>
+          <tr>
+            <td>When a task was started and completed</td>
+            <td>For your stats (tasks done per week, streaks).</td>
+          </tr>
+          <tr>
+            <td>Settings such as theme, view and the list you had open</td>
+            <td>So your devices open the way you left them.</td>
+          </tr>
+          <tr>
+            <td>Your signed-in sessions, with the browser and device type and when each was last used</td>
+            <td>To keep you signed in, and to list them under Signed-in devices so you can sign others out.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Deleted tasks go to Recently deleted, where you can restore them for 30 days; after that
+        they are removed for good. When your devices sync live, the message between them only
+        says that something changed, never what.
+      </p>
+
+      <h2>Reminders and notifications</h2>
+      <p>
+        If you turn on due-date reminders, the notifications are created in your browser from the
+        tasks already on your device. Nothing is sent to a server to make them.
+      </p>
+
+      <h2>Analytics</h2>
+      <p>
+        Taskr uses Vercel Web Analytics to count page views. It doesn't use cookies, doesn't see
+        your tasks and doesn't identify you.
+      </p>
+
+      <h2>Who else is involved</h2>
+      <ul>
+        <li><strong>Supabase</strong> hosts the database and handles sign-in for accounts.</li>
+        <li><strong>Vercel</strong> hosts the website and counts page views.</li>
+        <li><strong>Google</strong>, only if you choose Sign in with Google, to confirm who you are.</li>
+      </ul>
+      <p>Your data isn't sold or shared with anyone else, and isn't used for advertising.</p>
+
+      <h2>Your choices</h2>
+      <ul>
+        <li><strong>Use Taskr without an account</strong>, and nothing leaves your device.</li>
+        <li><strong>Export your tasks</strong> from the account menu as a Markdown file at any time.</li>
+        <li><strong>Delete your account</strong> from the account menu. Your account and all its tasks, lists and templates are removed straight away.</li>
+        <li><strong>Sign out other devices</strong> from Signed-in devices in the account menu.</li>
+      </ul>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about your data, or a request about it: email
+        <a href="mailto:kapseanish@gmail.com">kapseanish@gmail.com</a>.
+      </p>
+
+      <h2>Changes</h2>
+      <p>
+        If what Taskr keeps changes, this page will be updated and the date at the top changed.
+        Taskr is open source, so you can check any of this against the code on
+        <a href="https://github.com/theonlyanish/Taskr-Todo">GitHub</a>.
+      </p>
+
+      <footer>
+        <p><a href="https://taskr-todo.vercel.app/">Open Taskr</a> &middot; <a href="https://taskr-todo.vercel.app/offline-todo-app.html">Offline and no-account guide</a> &middot; <a href="https://taskr-todo.vercel.app/changelog.html">Changelog</a></p>
+      </footer>
+    </main>
+  </body>
+</html>

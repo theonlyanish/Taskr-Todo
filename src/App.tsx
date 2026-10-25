@@ -761,7 +761,23 @@ function App() {
         setAuthMode('updatePassword');
         setShowAuthModal(true);
       }
+      // Back from signing in with Google: bring a guest's tasks into the
+      // account, as signing in with a password does
+      if (user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && AuthService.finishingOAuthSignIn()) {
+        handleAuthStateChangeRef.current(true);
+      }
     });
+
+    // Back from Google without signing in (cancelled, or refused): say so, and
+    // take the error out of the address
+    const returned = new URLSearchParams(window.location.hash.replace(/^#/, '') || window.location.search);
+    const oauthError = returned.get('error_description') ?? returned.get('error');
+    if (oauthError && AuthService.finishingOAuthSignIn()) {
+      window.history.replaceState(null, '', window.location.pathname);
+      setAuthMessage(`Google sign-in didn’t finish (${oauthError.replace(/\+/g, ' ')}). Try again, or use your email.`);
+      setAuthMode('signIn');
+      setShowAuthModal(true);
+    }
 
     // Set up online/offline listeners
     // Back online: send changes queued while offline, then refresh
@@ -1409,6 +1425,10 @@ function App() {
       setIsSyncing(false);
     }
   };
+
+  // For the auth listener, which is registered once on mount
+  const handleAuthStateChangeRef = useRef<(isLoggedIn: boolean) => Promise<void>>(async () => {});
+  handleAuthStateChangeRef.current = (isLoggedIn: boolean) => handleAuthStateChange(isLoggedIn);
 
   const handleAuthStateChange = async (isLoggedIn: boolean) => {
     setShowAuthModal(false);
@@ -2272,6 +2292,13 @@ function App() {
               className="transition-colors duration-200 hover:text-[#da4167] underline-offset-2 hover:underline"
             >
               How it’s built
+            </a>
+            <span aria-hidden="true"> · </span>
+            <a
+              href="/privacy.html"
+              className="transition-colors duration-200 hover:text-[#da4167] underline-offset-2 hover:underline"
+            >
+              Privacy
             </a>
           </p>
         {importState && (

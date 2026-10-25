@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase, supabaseConfig } from './supabaseClient';
 import { AuthChangeEvent, User } from '@supabase/supabase-js';
 import { isSupabaseUnavailable } from './supabaseErrors';
 import type { Preferences } from '../utils/preferences';
@@ -20,6 +20,29 @@ interface SessionRow {
   user_agent: string | null;
   is_current: boolean;
 }
+
+let googleEnabled: Promise<boolean> | null = null;
+
+const OAUTH_KEY = 'oauthSignInStarted';
+
+const markOAuthSignIn = () => {
+  try {
+    sessionStorage.setItem(OAUTH_KEY, '1');
+  } catch {
+    // The guest's tasks then stay on this device instead of moving across
+  }
+};
+
+// Reads and clears the note
+const takeOAuthSignIn = () => {
+  try {
+    const started = sessionStorage.getItem(OAUTH_KEY) === '1';
+    sessionStorage.removeItem(OAUTH_KEY);
+    return started;
+  } catch {
+    return false;
+  }
+};
 
 export class AuthService {
   static async signUp(email: string, password: string) {
@@ -47,6 +70,37 @@ export class AuthService {
       redirectTo: window.location.origin,
     });
     if (error) throw error;
+  }
+
+  // Whether Google sign-in is switched on for this Supabase project (its
+  // public auth settings), so the button only shows once it works. Asked
+  // once per visit; false if the project can't be reached.
+  static googleSignInEnabled(): Promise<boolean> {
+    googleEnabled ??= fetch(`${supabaseConfig.url}/auth/v1/settings`, { headers: { apikey: supabaseConfig.key } })
+      .then(response => (response.ok ? response.json() : null))
+      .then(settings => settings?.external?.google === true)
+      .catch(() => false);
+    return googleEnabled;
+  }
+
+  // Leaves for Google and comes back to this page signed in. A note in the
+  // tab says the sign-in was started here, so the app can then move a guest's
+  // tasks into the account, as after signing in with a password.
+  static async signInWithGoogle() {
+    markOAuthSignIn();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin }
+    });
+    if (error) {
+      takeOAuthSignIn();
+      throw error;
+    }
+  }
+
+  // True once, on the page Google sent the user back to
+  static finishingOAuthSignIn(): boolean {
+    return takeOAuthSignIn();
   }
 
   static async updatePassword(password: string) {

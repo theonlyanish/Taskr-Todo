@@ -2,7 +2,7 @@
 
 > Taskr is a free todo app with Kanban, Calendar and list views. It works offline, needs no sign-up, and keeps your tasks in your browser until you choose to sync.
 
-Last updated: 2026-10-19
+Last updated: 2026-10-25
 
 Taskr is a free todo app that works offline and needs no sign-up. Open https://taskr-todo.vercel.app/ and start adding tasks straight away. Your list is saved in your browser, so it is still there when you come back, with or without an internet connection.
 
@@ -13,29 +13,37 @@ Switch between a Kanban board, a Calendar and a simple list to see the same task
 - Kanban board with drag and drop between To Do, In Progress and Done
 - Calendar view to see tasks by due date
 - List view for a plain, fast checklist
+- Lists to keep separate sets of tasks, such as Work, Home or a trip, each with its own List, Board and Calendar views, switched from a menu beside the logo or Ctrl+K; works without an account
 - Subtasks to break work into smaller steps
 - Subtask progress on every card, a "1 of 3 subtasks" chip with a ring that fills as they are done and expands to show them
 - Works offline with changes kept locally until you are back online
 - Offline saving for signed-in accounts so changes you make without a connection are kept on your device and sent to your account when you reconnect
-- Dark mode and light mode, with a toggle in the header
-- Follows your system theme until you pick one yourself, switching live when your device changes between light and dark
+- Dark mode and light mode, with a toggle in the header where the sun turns into a moon
+- Follows your system theme until you pick one yourself, switching live when your device changes between light and dark; "Theme: match my device" in Ctrl+K or the account menu goes back to following it
 - No account needed to start; optional free sign-up for cross-device sync
 - Live sync so a change in one tab or on one device shows up on your others straight away, with no refresh
+- Sync status in the header showing whether everything is saved, syncing, offline with a count of changes waiting, or failed and ready to retry
 - Import from Todoist (CSV export) or any CSV with a title column (free account needed)
-- Export to Markdown as a GitHub-style checklist grouped by status (free account needed)
+- Export to Markdown as a GitHub-style checklist grouped by list and status (free account needed)
 - Ctrl+K command palette to switch views, add tasks, import, export or jump to a task
 - Search box in the header that finds any task or subtask by title as you type
 - Calendar week view with an Unscheduled tray you can drag tasks from onto a day
 - Natural language due dates when typing a task, such as "pay rent fri" or "dentist 3 Nov"
+- Repeating tasks from typing "gym every friday", "pay rent every month" or "standup every weekday", or picking a Repeat option; completing one adds the next, with undo
+- Due-date reminders you can turn on, shown as a browser notification at 9am on the day a task is due while Taskr is open in a tab
 - Relative due dates on cards, such as Tomorrow, Friday or 3 days ago, with overdue tasks marked
+- Add task box that adds a task from one line, with Add details for the description, status, due date, list and repeat
+- Coming up beside the list, showing overdue tasks, today's and the rest of the week
+- Section counts on every list section and board column, a Completed section you can fold away, and a short hint when a section is empty
 - Task reorder by dragging tasks into the order you want within a list or column; the order is kept on every device
 - Focus timer to work on one task for 25 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title
+- Stats showing tasks done this week and per week for the last eight weeks, your current and best streak, the typical time from In Progress to done, and what has been in progress longest
 - Task templates to add a task with its subtasks in one click, from a built-in template or one you saved from any task
-- Bulk actions to select several tasks with Ctrl-click, Shift-click or Select tasks in Ctrl+K, then move, complete or delete them together
+- Bulk actions to select several tasks with Ctrl-click, Shift-click or Select tasks in Ctrl+K, then move, complete or delete them together, or move them to another list
 - Undo after delete with five seconds to bring a task back
 - Recently deleted keeps deleted tasks for 30 days on all your devices so you can restore them (free account needed)
 - Signed-in device management to see where you are signed in and sign out other devices, or everywhere, from the account menu
-- Account preferences so your theme, view and calendar layout follow you to every device where you sign in
+- Account preferences so your theme, view, calendar layout and the list you had open follow you to every device where you sign in
 - Account deletion from the account menu, removing your account and all its tasks after a typed confirmation
 - Keyboard shortcuts 1, 2 and 3 switch between List, Board and Calendar; j and k move between tasks, x completes, e edits, n adds, / searches and ? shows the full list
 
@@ -66,7 +74,7 @@ Yes, if you want to. Create a free account and your tasks are stored in the clou
 
 ### Can I import my tasks from Todoist?
 
-Yes. In Todoist, open a project and choose Export as CSV (template). Then sign in to Taskr with a free account, open the account menu and choose Import tasks. Tasks, subtasks, descriptions, comments and due dates come across; sections and recurring dates are kept as notes in the task description. Any other CSV with a title column works too. See the step-by-step import guide at https://taskr-todo.vercel.app/import-from-todoist.html.
+Yes. In Todoist, open a project and choose Export as CSV (template). Then sign in to Taskr with a free account, open the account menu and choose Import tasks. Tasks, subtasks, descriptions, comments and due dates come across, and recurring dates such as every Monday become repeating tasks; sections, and dates Taskr can't read, are kept as notes in the task description. Any other CSV with a title column works too. See the step-by-step import guide at https://taskr-todo.vercel.app/import-from-todoist.html.
 
 ### Can I export my tasks?
 

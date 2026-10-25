@@ -5478,3 +5478,76 @@ button.kanban-subtask-item {
   font-size: 0.85rem;
   color: var(--text-secondary);
 }
+
+/* Continue with Google, above the email form, in Google's own style: a white
+   button with the four-colour mark (a dark one in dark mode) */
+.auth-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin-bottom: 0.25rem;
+  padding: 0.65rem;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  background-color: #fff;
+  color: #1f1f1f;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.auth-google:hover:not(:disabled) {
+  background-color: #f8f9fa;
+  border-color: #c6c9cd;
+}
+
+.auth-google:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.auth-google:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.dark-theme .auth-google {
+  border-color: #8e918f;
+  background-color: #131314;
+  color: #e3e3e3;
+}
+
+.dark-theme .auth-google:hover:not(:disabled) {
+  background-color: #1f1f21;
+}
+
+.auth-google-mark {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.9rem 0 0.6rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--border-color);
+}
+
+.dark-theme .auth-divider::before,
+.dark-theme .auth-divider::after {
+  background-color: rgba(255, 255, 255, 0.12);
+}

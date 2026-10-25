@@ -10,6 +10,10 @@ if (!supabaseUrl || !supabaseKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// For the few requests supabase-js has no call for (the auth settings). The
+// anon key is public by design; row level security protects the data.
+export const supabaseConfig = { url: supabaseUrl, key: supabaseKey };
+
 // Define the Supabase table structure
 export interface TaskRow {
   id: string;
