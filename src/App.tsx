@@ -40,6 +40,7 @@ import { DevicesDialog } from './components/DevicesDialog';
 import { StatsDialog } from './components/StatsDialog';
 import { ListMenu } from './components/ListMenu';
 import { ListsDialog } from './components/ListsDialog';
+import { ComingUp } from './components/ComingUp';
 import { RecentlyDeletedDialog } from './components/RecentlyDeletedDialog';
 import { BulkActionBar } from './components/BulkActionBar';
 import { ShortcutsDialog } from './components/ShortcutsDialog';
@@ -709,6 +710,13 @@ function App() {
     setSelectedTask(null);
     setNewSubtaskParentId(null);
     revealTaskForm();
+    focusNewTaskTitle();
+  };
+
+  // The × on the task being edited (or a new subtask): back to adding a task
+  const closeTaskPanel = () => {
+    setSelectedTask(null);
+    setNewSubtaskParentId(null);
     focusNewTaskTitle();
   };
 
@@ -2040,7 +2048,11 @@ function App() {
                   parentId={newSubtaskParentId}
                   lists={lists}
                   currentListId={currentListId}
+                  onClose={closeTaskPanel}
                 />
+                {!selectedTask && !newSubtaskParentId && (
+                  <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} />
+                )}
               </div>
             </>
           )}
@@ -2070,7 +2082,11 @@ function App() {
                   parentId={newSubtaskParentId}
                   lists={lists}
                   currentListId={currentListId}
+                  onClose={closeTaskPanel}
                 />
+                {!selectedTask && !newSubtaskParentId && (
+                  <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} />
+                )}
               </div>
             </>
           )}
@@ -2099,7 +2115,11 @@ function App() {
                   parentId={newSubtaskParentId}
                   lists={lists}
                   currentListId={currentListId}
+                  onClose={closeTaskPanel}
                 />
+                {!selectedTask && !newSubtaskParentId && (
+                  <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} />
+                )}
               </div>
             </>
           )}

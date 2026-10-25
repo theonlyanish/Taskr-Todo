@@ -3645,8 +3645,7 @@ button.kanban-subtask-item {
 .template-use:focus-visible,
 .template-delete:focus-visible,
 .templates-button:focus-visible,
-.template-save-btn:focus-visible,
-.template-link:focus-visible {
+.template-save-btn:focus-visible {
   outline: 2px solid var(--accent-color);
   outline-offset: 2px;
 }
@@ -3767,22 +3766,6 @@ button.kanban-subtask-item {
 .template-save-btn:hover {
   border-color: var(--accent-color);
   color: var(--text-primary);
-}
-
-.template-link {
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--accent-color);
-  font: inherit;
-  font-size: 0.9rem;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-}
-
-.dark-theme .template-link {
-  color: #8fbde3;
 }
 
 .template-notice:empty {
@@ -4847,6 +4830,7 @@ button.kanban-subtask-item {
 /* List menu beside the logo: the list showing, and switching lists */
 .list-menu {
   position: relative;
+  flex: 0 1 auto;
   min-width: 0;
 }
 
@@ -4854,7 +4838,8 @@ button.kanban-subtask-item {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  max-width: 14rem;
+  /* Never wider than the room left beside the logo; the name shortens */
+  max-width: min(14rem, 100%);
   padding: 0.35rem 0.55rem 0.35rem 0.65rem;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -5183,13 +5168,19 @@ button.kanban-subtask-item {
   margin-right: 1rem;
 }
 
+.sign-in-btn {
+  white-space: nowrap;
+}
+
 @media (max-width: 600px) {
   .app-header .header {
     margin-right: 0.5rem;
   }
+}
 
-  /* The logo names the app on phones, leaving the room for the list; the
-     heading is still there for screen readers */
+/* The logo names the app on narrow screens, leaving the room for the list;
+   the heading is still there for screen readers */
+@media (max-width: 760px) {
   .app-header h1 {
     position: absolute;
     width: 1px;
@@ -5198,8 +5189,272 @@ button.kanban-subtask-item {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
   }
+}
 
-  .list-menu-trigger {
-    max-width: 100%;
-  }
+/* Right column while no task is open: a small add-task card (a title line;
+   the other fields behind "Add details"), with Coming up below it. Editing a
+   task shows the full form, with a close button. */
+.task-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.task-form-header h2 {
+  margin: 0;
+}
+
+.task-form-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.task-form-close:hover {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.task-form-close:focus-visible,
+.coming-up-task:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.task-form-close svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.task-form.task-form-compact {
+  padding: 1.25rem 1.5rem;
+}
+
+.task-form-compact .task-form-header {
+  margin-bottom: 0.75rem;
+}
+
+.task-form-compact .task-form-header h2 {
+  font-size: 1.05rem;
+}
+
+.task-form-compact .form-group {
+  margin-bottom: 1rem;
+}
+
+.task-form-compact .task-title-group {
+  margin-bottom: 0.4rem;
+}
+
+.task-form-compact .form-group label {
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+/* In a narrow column (the board's) the Add button drops below the title */
+.task-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.task-title-row .form-input {
+  flex: 1 1 11rem;
+  min-width: 0;
+}
+
+.add-task-btn.add-task-inline {
+  min-width: 0;
+  padding: 0 1.1rem;
+}
+
+/* "Add details" and "From a template": quiet outlined buttons, like Templates
+   and Clear elsewhere, rather than links */
+.task-form-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.task-form-extra {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-primary);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.task-form-extra:hover {
+  border-color: var(--accent-color);
+  color: var(--text-primary);
+}
+
+.task-form-extra[aria-expanded="true"] {
+  color: var(--text-primary);
+}
+
+.task-form-extra:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.task-form-extra svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.task-form-extra .task-form-extra-caret {
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-left: -0.1rem;
+}
+
+.dark-theme .task-form-extra {
+  border-color: rgba(255, 255, 255, 0.12);
+  background-color: transparent;
+}
+
+.dark-theme .task-form-extra:hover {
+  border-color: var(--accent-color);
+}
+
+.task-form-compact #task-form-details:not([hidden]) {
+  margin-top: 0.75rem;
+}
+
+.task-form-compact .form-actions {
+  margin-top: 0.5rem;
+}
+
+.form-actions:empty {
+  display: none;
+}
+
+/* Coming up, under the add card; both fill the right column */
+.coming-up {
+  margin-top: 1.5rem;
+}
+
+.task-detail-column .task-form {
+  max-width: none;
+  margin: 0;
+}
+
+.coming-up-title {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.coming-up-heading {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.coming-up-heading.is-overdue {
+  color: #c82333;
+}
+
+.dark-theme .coming-up-heading.is-overdue {
+  color: #ff7b86;
+}
+
+.coming-up-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.coming-up-task {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  width: 100%;
+  margin-bottom: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.coming-up-task:hover {
+  border-color: var(--accent-color);
+}
+
+.coming-up-task-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coming-up-parent {
+  margin-left: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.coming-up-due {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.coming-up-due.is-overdue {
+  color: #c82333;
+}
+
+.dark-theme .coming-up-due.is-overdue {
+  color: #ff7b86;
+}
+
+.coming-up-more {
+  padding: 0.1rem 0.75rem 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.coming-up-empty {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
