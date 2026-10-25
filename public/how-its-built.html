@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>How Taskr is built</title>
-    <meta name="description" content="The engineering behind Taskr, a free todo app that works offline and without an account: local-first storage, an offline outbox, natural language dates, and the bugs worth learning from." />
+    <meta name="description" content="The engineering behind Taskr, a free todo app that works offline and without an account: local-first storage, an offline outbox, lists, repeating tasks, stats, reminders, Google sign-in, and the bugs worth learning from." />
     <link rel="canonical" href="https://taskr-todo.vercel.app/how-its-built.html" />
     <meta name="theme-color" content="#3d7199" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
@@ -14,14 +14,14 @@
     <meta property="og:url" content="https://taskr-todo.vercel.app/how-its-built.html" />
     <meta property="og:site_name" content="Taskr" />
     <meta property="og:title" content="How Taskr is built" />
-    <meta property="og:description" content="Local-first storage, an offline outbox for signed-in users, natural language dates and a Ctrl+K palette, in a React and Supabase todo app." />
+    <meta property="og:description" content="Local-first storage, an offline outbox, lists without foreign keys, repeating tasks, stats, reminders and Google sign-in, in a React and Supabase todo app." />
     <meta property="og:image" content="https://taskr-todo.vercel.app/og-image.png" />
     <meta property="og:image:alt" content="Taskr logo with the line: free todo app, Kanban, Calendar, offline, no sign-up" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="How Taskr is built" />
-    <meta name="twitter:description" content="Local-first storage, an offline outbox for signed-in users, natural language dates and a Ctrl+K palette, in a React and Supabase todo app." />
+    <meta name="twitter:description" content="Local-first storage, an offline outbox, lists without foreign keys, repeating tasks, stats, reminders and Google sign-in, in a React and Supabase todo app." />
     <meta name="twitter:image" content="https://taskr-todo.vercel.app/og-image.png" />
 
     <script>
@@ -236,7 +236,7 @@
     <main>
       <p class="breadcrumb"><a href="/">Taskr</a> &rsaquo; How it’s built</p>
       <h1>How Taskr is built</h1>
-      <p class="byline">By <a href="https://anishkapse.com">Anish Kapse</a> &middot; Updated 18 October 2026</p>
+      <p class="byline">By <a href="https://anishkapse.com">Anish Kapse</a> &middot; Updated 25 October 2026</p>
 
       <p class="lede">
         Taskr is a free todo app with List, Board and Calendar views. It has been running since December 2024,
@@ -253,10 +253,12 @@
           <tbody>
             <tr><td>App</td><td>React 18 and TypeScript, built with Create React App</td></tr>
             <tr><td>On the device</td><td>IndexedDB for tasks and the offline queue, with a service worker so the app opens offline</td></tr>
-            <tr><td>Accounts</td><td>Supabase: Postgres for tasks, Supabase Auth for sign-in and password resets</td></tr>
+            <tr><td>Accounts</td><td>Supabase: Postgres for tasks, lists and templates, Supabase Auth for email sign-in, Google sign-in and password resets</td></tr>
             <tr><td>Hosting</td><td>Vercel, with Vercel Web Analytics for anonymous page views</td></tr>
             <tr><td>Drag and drop</td><td>dnd-kit for the board (mouse, touch and keyboard), FullCalendar for the calendar</td></tr>
             <tr><td>Dates</td><td>chrono-node, loaded only when you start typing a task</td></tr>
+            <tr><td>Tests</td><td>Jest and Testing Library, 23 test files, run with a type check on every push by GitHub Actions</td></tr>
+            <tr><td>Search copy</td><td>The feature list, FAQ and changelog that crawlers see are generated from one JSON file before every build</td></tr>
           </tbody>
         </table>
       </div>
@@ -298,6 +300,23 @@
         When a guest signs up, the tasks they already made come with them. Each task and subtask gets a fresh ID so it
         can’t clash with anything on the server. Two kinds are skipped: welcome tasks left exactly as they were (in
         current or older wording, so returning visitors are covered), and tasks the account already has.
+      </p>
+
+      <h3>Signing in with Google</h3>
+      <p>
+        Google sign-in goes through Supabase Auth’s OAuth flow, so Taskr never handles a Google token itself. The
+        button only appears when the provider is switched on for the project: on load, the app reads Supabase’s
+        public <code>/auth/v1/settings</code> endpoint and shows the button if <code>external.google</code> is true.
+        Turning the provider off in the Supabase dashboard removes the button without a deploy.
+      </p>
+
+      <h3>Columns that may not exist yet</h3>
+      <p>
+        Features that add a column to the tasks table (order, status times, lists, repeats) ship before anyone has
+        to run the migration. A write that mentions a column the server doesn’t have comes back as PostgREST
+        <code>PGRST204</code> or Postgres <code>42703</code>; the app notes the missing column, retries the write
+        without it, and keeps that value on the device only. Once the migration runs, the next write includes it
+        again.
       </p>
 
       <h2 class="progress">Offline changes for signed-in users</h2>
@@ -348,6 +367,56 @@
         Unless the text is already a task, the last option creates it, with a live preview of any date it found.
       </p>
 
+      <h2 class="todo">Lists, repeats, stats and reminders</h2>
+
+      <h3>Lists without a foreign key</h3>
+      <p>
+        A list (Work, Home, a trip) is a row in a <code>task_lists</code> table: an ID, a name of up to 40
+        characters and a colour, owned by one user. A task points at its list through a plain
+        <code>tasks.list_id</code> column with no foreign key, on purpose. Personal isn’t stored at all: it’s every
+        task with no list ID, and an unknown list ID shows in Personal too. So deleting a list can’t leave orphans,
+        the column can be added without rewriting existing rows, and a device that hasn’t heard about a new list yet
+        still shows the task somewhere. Guests get the same feature with their lists kept in localStorage. Each list
+        has its own List, Board and Calendar views, and the one you had open is remembered.
+      </p>
+
+      <h3>Repeating tasks</h3>
+      <p>
+        A repeat is a short string on the task, such as <code>week:1</code> (every week), <code>weekday:1</code> or
+        <code>month:1@31</code>. The part after <code>@</code> is the day of the month to come back to, so a task
+        due on the 31st still lands on the 31st after a 30-day month. A repeat always goes with a due date. Nothing
+        is scheduled on a server: when you complete a repeating task, the app creates the next one on the device,
+        due on the next date after the current one (skipping any already in the past), copies its subtasks unticked,
+        and offers an undo that removes the new task again. Typing <code>gym every friday</code> sets both the date
+        and the repeat.
+      </p>
+
+      <h3>Stats from two timestamps</h3>
+      <p>
+        Moving a task to In Progress stamps <code>started_at</code>; completing it stamps <code>completed_at</code>
+        and keeps the start, so the time in progress is the difference. Moving it back to To Do clears both. The stats
+        dialog works entirely from the tasks already on the device: tasks done per week for the last eight weeks
+        (weeks start on Monday), the current and best streak of days with a completion, the typical time from In
+        Progress to done, and what has been in progress longest. Tasks completed before these timestamps existed
+        count by their last edit, as long as that was at least a minute after they were created.
+      </p>
+
+      <h3>Reminders without a server</h3>
+      <p>
+        Due-date reminders are ordinary browser notifications. Once a minute, while a Taskr tab is open, the app
+        checks the time and the tasks on the device; at 9am, or the first time Taskr is open after 9am, it shows one
+        notification listing the tasks due today that aren’t done, and remembers which it has announced so each is
+        mentioned once a day. There is no push: a closed app gets no reminder, and the setting and permission belong
+        to the device, so it’s deliberately not synced to the account.
+      </p>
+
+      <h3>Live sync that says nothing</h3>
+      <p>
+        When a signed-in device saves a change, it sends a Supabase Realtime broadcast to the account’s other devices
+        containing only its own device ID, and a <code>BroadcastChannel</code> message to other tabs on the same
+        device. Receivers reload from the server; the task content never travels in the message.
+      </p>
+
       <h2>Small details</h2>
 
       <h3>Colours that travel round the colour wheel</h3>
@@ -375,16 +444,43 @@
 
       <h3>Settings that follow you</h3>
       <p>
-        For signed-in users, the theme, the last view used and the calendar’s Month or Week choice are stored in the
+        For signed-in users, the theme, the last view used, the calendar’s Month or Week choice, the list that was
+        open, whether the Completed section is folded away and whether Add details is open are stored in the
         account’s Supabase user metadata, so no extra table is needed. A new device opens the way you left the last
-        one. A change made offline is marked on the device and wins the next time it connects.
+        one. A change made offline is marked on the device and wins the next time it connects. The reminders setting
+        is left out on purpose, because it depends on a browser permission granted per device.
       </p>
 
       <h3>Deleting an account</h3>
       <p>
         A browser can’t delete a Supabase user directly. Taskr calls a small Postgres function instead. It runs with
         elevated rights (<code>SECURITY DEFINER</code>), but can only ever delete the caller’s own tasks and account,
-        identified by <code>auth.uid()</code>. Afterwards the app clears that account’s copy and outbox from the device.
+        identified by <code>auth.uid()</code>; lists and templates go with the account through
+        <code>ON DELETE CASCADE</code>. Afterwards the app clears that account’s copy and outbox from the device.
+      </p>
+
+      <h3>Deleted, but not gone for 30 days</h3>
+      <p>
+        For accounts, deleting a task sets a <code>deleted_at</code> time rather than removing the row, and every
+        query hides rows that have one. Recently deleted in the account menu lists them for 30 days and clears the
+        time to restore one. Guests don’t have the column, so they get the five-second undo instead.
+      </p>
+
+      <h3>The copy search engines see</h3>
+      <p>
+        The app is a single page that renders in the browser, so a crawler that doesn’t run JavaScript would see an
+        empty page. Underneath the React root there is a plain-HTML block with the feature list, guides and FAQ,
+        hidden the moment the app mounts, plus two JSON-LD blocks and an <code>llms.txt</code> for AI crawlers. All
+        of it, and the changelog page, is generated from one file, <code>content/features.json</code>, by a script
+        that runs before every build, so shipping a feature means adding a line there rather than editing five
+        pages by hand.
+      </p>
+
+      <h3>Tests</h3>
+      <p>
+        Task order, due-date parsing, repeats, the offline outbox, import and export, lists, stats, reminders and
+        the keyboard shortcuts each have a Jest test file, 23 in all, with the outbox tested against a fake Supabase
+        server that can be switched off. GitHub Actions type-checks the code and runs them on every push.
       </p>
 
       <h3>Usable without a mouse</h3>
@@ -441,8 +537,8 @@
 
       <h2>What’s next</h2>
       <ul>
-        <li><strong>Automated tests.</strong> Import, export and date parsing were checked by hand with scripts. They should become a test suite.</li>
         <li><strong>Moving off Create React App,</strong> which is no longer maintained, to a current build tool.</li>
+        <li><strong>Reminders when Taskr is closed</strong> would need push notifications from a server, which is the one piece the local-first design doesn’t cover.</li>
       </ul>
       <p>Everything that has shipped so far is in the <a href="/changelog.html">changelog</a>.</p>
 
@@ -455,7 +551,8 @@
           <a href="/">Open Taskr</a> &middot;
           <a href="/offline-todo-app.html">Offline and no-account guide</a> &middot;
           <a href="/import-from-todoist.html">Import from Todoist</a> &middot;
-          <a href="/changelog.html">Changelog</a>
+          <a href="/changelog.html">Changelog</a> &middot;
+          <a href="/privacy.html">Privacy</a>
         </p>
       </footer>
     </main>

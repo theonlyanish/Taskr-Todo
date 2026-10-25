@@ -10,9 +10,9 @@
     "heading": "Taskr: a free todo app with Kanban and Calendar views",
     "intro": [
       "Taskr is a free todo app that works offline and needs no sign-up. Open https://taskr-todo.vercel.app/ and start adding tasks straight away. Your list is saved in your browser, so it is still there when you come back, with or without an internet connection.",
-      "Switch between a Kanban board, a Calendar and a simple list to see the same tasks the way that suits the moment. Break big tasks into subtasks, drag cards between columns, and flip to dark mode when you like. If you ever want your tasks on more than one device, you can create a free account and sync them, but you never have to."
+      "Switch between a Kanban board, a Calendar and a simple list to see the same tasks the way that suits the moment. Keep separate lists for work, home or a trip, break big tasks into subtasks, set a task to repeat every Friday or every month, drag cards between columns, and flip to dark mode when you like. If you ever want your tasks on more than one device, you can create a free account with an email address or Google and sync them, but you never have to."
     ],
-    "tech": "React 18, TypeScript, Mantine UI, Supabase, deployed on Vercel",
+    "tech": "React 18, TypeScript, Supabase (Postgres and Auth), FullCalendar, dnd-kit, chrono-node, deployed on Vercel",
     "author": {
       "name": "Anish Kapse",
       "url": "https://anishkapse.com"
@@ -37,6 +37,11 @@
       "changelog": "List, edit and delete tasks; rebuilt in React"
     },
     {
+      "name": "Lists",
+      "description": "to keep separate sets of tasks, such as Work, Home or a trip, each with its own List, Board and Calendar views, switched from a menu beside the logo or Ctrl+K; works without an account",
+      "shipped": "2026-10-25"
+    },
+    {
       "name": "Subtasks",
       "description": "to break work into smaller steps",
       "shipped": "2025-02-25"
@@ -59,17 +64,17 @@
     },
     {
       "name": "Dark mode",
-      "description": "and light mode, with a toggle in the header",
+      "description": "and light mode, with a toggle in the header where the sun turns into a moon",
       "shipped": "2024-12-07"
     },
     {
       "name": "Follows your system theme",
-      "description": "until you pick one yourself, switching live when your device changes between light and dark",
+      "description": "until you pick one yourself, switching live when your device changes between light and dark; \"Theme: match my device\" in Ctrl+K or the account menu goes back to following it",
       "shipped": "2026-10-17"
     },
     {
       "name": "No account needed",
-      "description": "to start; optional free sign-up for cross-device sync",
+      "description": "to start; optional free sign-up with email or Google for cross-device sync",
       "shipped": "2025-02-24",
       "changelog": "Optional accounts with email verification and cross-device sync"
     },
@@ -79,6 +84,11 @@
       "shipped": "2026-10-18"
     },
     {
+      "name": "Sync status",
+      "description": "in the header showing whether everything is saved, syncing, offline with a count of changes waiting, or failed and ready to retry",
+      "shipped": "2026-10-24"
+    },
+    {
       "name": "Import from Todoist",
       "description": "(CSV export) or any CSV with a title column (free account needed)",
       "shipped": "2026-10-17",
@@ -86,7 +96,7 @@
     },
     {
       "name": "Export to Markdown",
-      "description": "as a GitHub-style checklist grouped by status (free account needed)",
+      "description": "as a GitHub-style checklist grouped by list and status (free account needed)",
       "shipped": "2026-10-17",
       "changelog": null
     },
@@ -112,9 +122,35 @@
       "shipped": "2026-10-17"
     },
     {
+      "name": "Repeating tasks",
+      "description": "from typing \"gym every friday\", \"pay rent every month\" or \"standup every weekday\", or picking a Repeat option; completing one adds the next, with undo",
+      "shipped": "2026-10-25"
+    },
+    {
+      "name": "Due-date reminders",
+      "description": "you can turn on, shown as a browser notification at 9am on the day a task is due while Taskr is open in a tab",
+      "shipped": "2026-10-24"
+    },
+    {
       "name": "Relative due dates",
       "description": "on cards, such as Tomorrow, Friday or 3 days ago, with overdue tasks marked",
       "shipped": "2026-10-18"
+    },
+    {
+      "name": "Add task box",
+      "description": "that adds a task from one line, with Add details for the description, status, due date, list and repeat",
+      "shipped": "2026-10-25"
+    },
+    {
+      "name": "Coming up",
+      "description": "beside the list, showing overdue tasks, today's and the rest of the week",
+      "shipped": "2026-10-25",
+      "changelog": null
+    },
+    {
+      "name": "Section counts",
+      "description": "on every list section and board column, a Completed section you can fold away, and a short hint when a section is empty",
+      "shipped": "2026-10-24"
     },
     {
       "name": "Task reorder",
@@ -127,13 +163,18 @@
       "shipped": "2026-10-18"
     },
     {
+      "name": "Stats",
+      "description": "showing tasks done this week and per week for the last eight weeks, your current and best streak, the typical time from In Progress to done, and what has been in progress longest",
+      "shipped": "2026-10-24"
+    },
+    {
       "name": "Task templates",
       "description": "to add a task with its subtasks in one click, from a built-in template or one you saved from any task",
       "shipped": "2026-10-18"
     },
     {
       "name": "Bulk actions",
-      "description": "to select several tasks with Ctrl-click, Shift-click or Select tasks in Ctrl+K, then move, complete or delete them together",
+      "description": "to select several tasks with Ctrl-click, Shift-click or Select tasks in Ctrl+K, then move, complete or delete them together, or move them to another list",
       "shipped": "2026-10-18"
     },
     {
@@ -153,7 +194,7 @@
     },
     {
       "name": "Account preferences",
-      "description": "so your theme, view and calendar layout follow you to every device where you sign in",
+      "description": "so your theme, view, calendar layout and the list you had open follow you to every device where you sign in",
       "shipped": "2026-10-18"
     },
     {
@@ -185,6 +226,10 @@
     {
       "title": "How Taskr is built (architecture and engineering notes)",
       "url": "https://taskr-todo.vercel.app/how-its-built.html"
+    },
+    {
+      "title": "Privacy policy: what Taskr keeps, where, and how to delete it",
+      "url": "https://taskr-todo.vercel.app/privacy.html"
     }
   ],
 
@@ -195,7 +240,7 @@
     },
     {
       "question": "Do I need an account?",
-      "answer": "No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them."
+      "answer": "No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them. You can sign up with an email address and password, or with your Google account."
     },
     {
       "question": "Does it work offline?",
@@ -206,8 +251,20 @@
       "answer": "Yes, if you want to. Create a free account and your tasks are stored in the cloud and kept in sync on every device where you sign in."
     },
     {
+      "question": "Can I keep separate lists, such as work and home?",
+      "answer": "Yes. Taskr starts with one list, Personal, and you can add your own, such as Work, Home or a trip. Each list has its own List, Board and Calendar views, and you switch between them from the menu beside the logo or with Ctrl+K. Lists work without an account; with one, they sync to every device where you sign in."
+    },
+    {
+      "question": "Can tasks repeat?",
+      "answer": "Yes. Type a task such as \"gym every friday\", \"pay rent every month\" or \"standup every weekday\", or pick a Repeat option under Add details. A repeating task always has a due date; when you complete it, the next one is added with the next due date, and you can undo that if you did not mean to."
+    },
+    {
+      "question": "Does Taskr send reminders?",
+      "answer": "Only while it is open. You can turn on due-date reminders, and Taskr then shows a browser notification at 9am on the day a task is due, but only while Taskr is open in a browser tab on that device. It does not send push notifications to a closed app, and it does not send emails. The setting is kept per device."
+    },
+    {
       "question": "Can I import my tasks from Todoist?",
-      "answer": "Yes. In Todoist, open a project and choose Export as CSV (template). Then sign in to Taskr with a free account, open the account menu and choose Import tasks. Tasks, subtasks, descriptions, comments and due dates come across; sections and recurring dates are kept as notes in the task description. Any other CSV with a title column works too. See the step-by-step import guide at https://taskr-todo.vercel.app/import-from-todoist.html."
+      "answer": "Yes. In Todoist, open a project and choose Export as CSV (template). Then sign in to Taskr with a free account, open the account menu and choose Import tasks. Tasks, subtasks, descriptions, comments and due dates come across, and recurring dates such as every Monday become repeating tasks; sections, and dates Taskr can't read, are kept as notes in the task description. Any other CSV with a title column works too. See the step-by-step import guide at https://taskr-todo.vercel.app/import-from-todoist.html."
     },
     {
       "question": "Can I export my tasks?",
@@ -215,11 +272,18 @@
     },
     {
       "question": "Where is my data stored?",
-      "answer": "Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source at https://github.com/theonlyanish/Taskr-Todo."
+      "answer": "Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. The privacy policy at https://taskr-todo.vercel.app/privacy.html lists everything Taskr keeps, and Taskr is open source at https://github.com/theonlyanish/Taskr-Todo."
     }
   ],
 
   "changelog": [
+    { "date": "2026-10-25", "text": "Sign in with Google, and a privacy policy page" },
+    { "date": "2026-10-25", "text": "Account preferences also keep the list you had open, a folded Completed section and Add details open or closed on every device" },
+    { "date": "2026-10-25", "text": "Bulk actions can move the selected tasks to another list, with undo" },
+    { "date": "2026-10-25", "text": "Todoist and CSV imports turn recurring dates such as every Monday into repeating tasks" },
+    { "date": "2026-10-25", "text": "New task layout: the Add task box and Coming up share the right-hand side, and an open task has a close button" },
+    { "date": "2026-10-24", "text": "Line icons in place of emoji for the theme toggle, sync status and delete button, with a sun that turns into a moon" },
+    { "date": "2026-10-21", "text": "A proper page for addresses that don't exist, and a larger image for link previews" },
     { "date": "2026-10-18", "text": "Automated test suite, run on every push with GitHub Actions" },
     { "date": "2026-10-18", "text": "New \"How Taskr is built\" page with architecture and engineering notes" },
     { "date": "2026-10-18", "text": "Switched the app font to IBM Plex Sans and tidied up wording across the app" },

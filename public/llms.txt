@@ -6,7 +6,7 @@ Last updated: 2026-10-25
 
 Taskr is a free todo app that works offline and needs no sign-up. Open https://taskr-todo.vercel.app/ and start adding tasks straight away. Your list is saved in your browser, so it is still there when you come back, with or without an internet connection.
 
-Switch between a Kanban board, a Calendar and a simple list to see the same tasks the way that suits the moment. Break big tasks into subtasks, drag cards between columns, and flip to dark mode when you like. If you ever want your tasks on more than one device, you can create a free account and sync them, but you never have to.
+Switch between a Kanban board, a Calendar and a simple list to see the same tasks the way that suits the moment. Keep separate lists for work, home or a trip, break big tasks into subtasks, set a task to repeat every Friday or every month, drag cards between columns, and flip to dark mode when you like. If you ever want your tasks on more than one device, you can create a free account with an email address or Google and sync them, but you never have to.
 
 ## Features
 
@@ -20,7 +20,7 @@ Switch between a Kanban board, a Calendar and a simple list to see the same task
 - Offline saving for signed-in accounts so changes you make without a connection are kept on your device and sent to your account when you reconnect
 - Dark mode and light mode, with a toggle in the header where the sun turns into a moon
 - Follows your system theme until you pick one yourself, switching live when your device changes between light and dark; "Theme: match my device" in Ctrl+K or the account menu goes back to following it
-- No account needed to start; optional free sign-up for cross-device sync
+- No account needed to start; optional free sign-up with email or Google for cross-device sync
 - Live sync so a change in one tab or on one device shows up on your others straight away, with no refresh
 - Sync status in the header showing whether everything is saved, syncing, offline with a count of changes waiting, or failed and ready to retry
 - Import from Todoist (CSV export) or any CSV with a title column (free account needed)
@@ -53,6 +53,7 @@ Switch between a Kanban board, a Calendar and a simple list to see the same task
 - How Taskr works offline and without an account: https://taskr-todo.vercel.app/offline-todo-app.html
 - Changelog: what has shipped so far: https://taskr-todo.vercel.app/changelog.html
 - How Taskr is built (architecture and engineering notes): https://taskr-todo.vercel.app/how-its-built.html
+- Privacy policy: what Taskr keeps, where, and how to delete it: https://taskr-todo.vercel.app/privacy.html
 
 ## FAQ
 
@@ -62,7 +63,7 @@ Yes. Taskr is completely free to use, with no paid tier, trial period or ads.
 
 ### Do I need an account?
 
-No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them.
+No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them. You can sign up with an email address and password, or with your Google account.
 
 ### Does it work offline?
 
@@ -71,6 +72,18 @@ Yes. Without an account, your tasks are kept in your browser and everything work
 ### Can I sync across devices?
 
 Yes, if you want to. Create a free account and your tasks are stored in the cloud and kept in sync on every device where you sign in.
+
+### Can I keep separate lists, such as work and home?
+
+Yes. Taskr starts with one list, Personal, and you can add your own, such as Work, Home or a trip. Each list has its own List, Board and Calendar views, and you switch between them from the menu beside the logo or with Ctrl+K. Lists work without an account; with one, they sync to every device where you sign in.
+
+### Can tasks repeat?
+
+Yes. Type a task such as "gym every friday", "pay rent every month" or "standup every weekday", or pick a Repeat option under Add details. A repeating task always has a due date; when you complete it, the next one is added with the next due date, and you can undo that if you did not mean to.
+
+### Does Taskr send reminders?
+
+Only while it is open. You can turn on due-date reminders, and Taskr then shows a browser notification at 9am on the day a task is due, but only while Taskr is open in a browser tab on that device. It does not send push notifications to a closed app, and it does not send emails. The setting is kept per device.
 
 ### Can I import my tasks from Todoist?
 
@@ -82,10 +95,10 @@ Yes. Sign in with a free account, open the account menu and choose Export tasks.
 
 ### Where is my data stored?
 
-Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source at https://github.com/theonlyanish/Taskr-Todo.
+Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. The privacy policy at https://taskr-todo.vercel.app/privacy.html lists everything Taskr keeps, and Taskr is open source at https://github.com/theonlyanish/Taskr-Todo.
 
 ## Links
 
 - App: https://taskr-todo.vercel.app/
 - Source code: https://github.com/theonlyanish/Taskr-Todo
-- Tech: React 18, TypeScript, Mantine UI, Supabase, deployed on Vercel
+- Tech: React 18, TypeScript, Supabase (Postgres and Auth), FullCalendar, dnd-kit, chrono-node, deployed on Vercel

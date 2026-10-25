@@ -58,7 +58,7 @@
         "Offline saving for signed-in accounts so changes you make without a connection are kept on your device and sent to your account when you reconnect",
         "Dark mode and light mode, with a toggle in the header where the sun turns into a moon",
         "Follows your system theme until you pick one yourself, switching live when your device changes between light and dark; \"Theme: match my device\" in Ctrl+K or the account menu goes back to following it",
-        "No account needed to start; optional free sign-up for cross-device sync",
+        "No account needed to start; optional free sign-up with email or Google for cross-device sync",
         "Live sync so a change in one tab or on one device shows up on your others straight away, with no refresh",
         "Sync status in the header showing whether everything is saved, syncing, offline with a count of changes waiting, or failed and ready to retry",
         "Import from Todoist (CSV export) or any CSV with a title column (free account needed)",
@@ -114,7 +114,7 @@
           "name": "Do I need an account?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them."
+            "text": "No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them. You can sign up with an email address and password, or with your Google account."
           }
         },
         {
@@ -131,6 +131,30 @@
           "acceptedAnswer": {
             "@type": "Answer",
             "text": "Yes, if you want to. Create a free account and your tasks are stored in the cloud and kept in sync on every device where you sign in."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I keep separate lists, such as work and home?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Taskr starts with one list, Personal, and you can add your own, such as Work, Home or a trip. Each list has its own List, Board and Calendar views, and you switch between them from the menu beside the logo or with Ctrl+K. Lists work without an account; with one, they sync to every device where you sign in."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can tasks repeat?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Type a task such as \"gym every friday\", \"pay rent every month\" or \"standup every weekday\", or pick a Repeat option under Add details. A repeating task always has a due date; when you complete it, the next one is added with the next due date, and you can undo that if you did not mean to."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Taskr send reminders?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Only while it is open. You can turn on due-date reminders, and Taskr then shows a browser notification at 9am on the day a task is due, but only while Taskr is open in a browser tab on that device. It does not send push notifications to a closed app, and it does not send emails. The setting is kept per device."
           }
         },
         {
@@ -154,7 +178,7 @@
           "name": "Where is my data stored?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source at https://github.com/theonlyanish/Taskr-Todo."
+            "text": "Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. The privacy policy at https://taskr-todo.vercel.app/privacy.html lists everything Taskr keeps, and Taskr is open source at https://github.com/theonlyanish/Taskr-Todo."
           }
         }
       ]
@@ -200,7 +224,7 @@
       <!-- seo:start -->
       <h1>Taskr: a free todo app with Kanban and Calendar views</h1>
       <p>Taskr is a free todo app that works offline and needs no sign-up. Open <a href="https://taskr-todo.vercel.app/">taskr-todo.vercel.app</a> and start adding tasks straight away. Your list is saved in your browser, so it is still there when you come back, with or without an internet connection.</p>
-      <p>Switch between a Kanban board, a Calendar and a simple list to see the same tasks the way that suits the moment. Break big tasks into subtasks, drag cards between columns, and flip to dark mode when you like. If you ever want your tasks on more than one device, you can create a free account and sync them, but you never have to.</p>
+      <p>Switch between a Kanban board, a Calendar and a simple list to see the same tasks the way that suits the moment. Keep separate lists for work, home or a trip, break big tasks into subtasks, set a task to repeat every Friday or every month, drag cards between columns, and flip to dark mode when you like. If you ever want your tasks on more than one device, you can create a free account with an email address or Google and sync them, but you never have to.</p>
 
       <h2>Features</h2>
       <ul>
@@ -214,7 +238,7 @@
         <li><strong>Offline saving for signed-in accounts</strong> so changes you make without a connection are kept on your device and sent to your account when you reconnect</li>
         <li><strong>Dark mode</strong> and light mode, with a toggle in the header where the sun turns into a moon</li>
         <li><strong>Follows your system theme</strong> until you pick one yourself, switching live when your device changes between light and dark; "Theme: match my device" in Ctrl+K or the account menu goes back to following it</li>
-        <li><strong>No account needed</strong> to start; optional free sign-up for cross-device sync</li>
+        <li><strong>No account needed</strong> to start; optional free sign-up with email or Google for cross-device sync</li>
         <li><strong>Live sync</strong> so a change in one tab or on one device shows up on your others straight away, with no refresh</li>
         <li><strong>Sync status</strong> in the header showing whether everything is saved, syncing, offline with a count of changes waiting, or failed and ready to retry</li>
         <li><strong>Import from Todoist</strong> (CSV export) or any CSV with a title column (free account needed)</li>
@@ -248,6 +272,7 @@
         <li><a href="https://taskr-todo.vercel.app/offline-todo-app.html">How Taskr works offline and without an account</a></li>
         <li><a href="https://taskr-todo.vercel.app/changelog.html">Changelog: what has shipped so far</a></li>
         <li><a href="https://taskr-todo.vercel.app/how-its-built.html">How Taskr is built (architecture and engineering notes)</a></li>
+        <li><a href="https://taskr-todo.vercel.app/privacy.html">Privacy policy: what Taskr keeps, where, and how to delete it</a></li>
       </ul>
 
       <h2>Frequently asked questions</h2>
@@ -256,13 +281,22 @@
       <p>Yes. Taskr is completely free to use, with no paid tier, trial period or ads.</p>
 
       <h3>Do I need an account?</h3>
-      <p>No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them.</p>
+      <p>No. You can use every view and feature without signing up. Creating an account is optional and only needed if you want to sync your tasks across devices, import tasks or export them. You can sign up with an email address and password, or with your Google account.</p>
 
       <h3>Does it work offline?</h3>
       <p>Yes. Without an account, your tasks are kept in your browser and everything works without a connection. If you are signed in, changes made offline are saved on your device and sent to your account automatically when you reconnect.</p>
 
       <h3>Can I sync across devices?</h3>
       <p>Yes, if you want to. Create a free account and your tasks are stored in the cloud and kept in sync on every device where you sign in.</p>
+
+      <h3>Can I keep separate lists, such as work and home?</h3>
+      <p>Yes. Taskr starts with one list, Personal, and you can add your own, such as Work, Home or a trip. Each list has its own List, Board and Calendar views, and you switch between them from the menu beside the logo or with Ctrl+K. Lists work without an account; with one, they sync to every device where you sign in.</p>
+
+      <h3>Can tasks repeat?</h3>
+      <p>Yes. Type a task such as "gym every friday", "pay rent every month" or "standup every weekday", or pick a Repeat option under Add details. A repeating task always has a due date; when you complete it, the next one is added with the next due date, and you can undo that if you did not mean to.</p>
+
+      <h3>Does Taskr send reminders?</h3>
+      <p>Only while it is open. You can turn on due-date reminders, and Taskr then shows a browser notification at 9am on the day a task is due, but only while Taskr is open in a browser tab on that device. It does not send push notifications to a closed app, and it does not send emails. The setting is kept per device.</p>
 
       <h3>Can I import my tasks from Todoist?</h3>
       <p>Yes. In Todoist, open a project and choose Export as CSV (template). Then sign in to Taskr with a free account, open the account menu and choose Import tasks. Tasks, subtasks, descriptions, comments and due dates come across, and recurring dates such as every Monday become repeating tasks; sections, and dates Taskr can't read, are kept as notes in the task description. Any other CSV with a title column works too. See the step-by-step import guide at <a href="https://taskr-todo.vercel.app/import-from-todoist.html">taskr-todo.vercel.app/import-from-todoist.html</a>.</p>
@@ -271,7 +305,7 @@
       <p>Yes. Sign in with a free account, open the account menu and choose Export tasks. Taskr downloads a Markdown file with every task as a GitHub-style checklist, grouped into To Do, In Progress and Completed, with due dates, descriptions and subtasks included. The file opens in any text editor and pastes into GitHub issues, Obsidian or any Markdown editor.</p>
 
       <h3>Where is my data stored?</h3>
-      <p>Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. Taskr is open source at <a href="https://github.com/theonlyanish/Taskr-Todo">github.com/theonlyanish/Taskr-Todo</a>.</p>
+      <p>Without an account, your tasks live only in your browser (IndexedDB) on your own device. With an account, they are also stored in Taskr's Supabase database so they can be synced. The privacy policy at <a href="https://taskr-todo.vercel.app/privacy.html">taskr-todo.vercel.app/privacy.html</a> lists everything Taskr keeps, and Taskr is open source at <a href="https://github.com/theonlyanish/Taskr-Todo">github.com/theonlyanish/Taskr-Todo</a>.</p>
 
       <p><small>Last updated: <time datetime="2026-10-25">2026-10-25</time></small></p>
       <!-- seo:end -->

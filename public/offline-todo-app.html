@@ -63,9 +63,10 @@
       <p>
         Open <a href="https://taskr-todo.vercel.app/">taskr-todo.vercel.app</a> and start typing.
         Every view and feature is available straight away: the list, the Kanban board, the
-        Calendar with its week view and Unscheduled tray, subtasks, natural language due dates,
-        the Ctrl+K command palette, undo after delete, dark mode and the 1, 2, 3 keyboard
-        shortcuts. There is no trial, no sign-up wall and no "upgrade" button.
+        Calendar with its week view and Unscheduled tray, separate lists for work, home or a trip,
+        subtasks, natural language due dates, repeating tasks, task templates, the focus timer,
+        stats, due-date reminders, the Ctrl+K command palette, undo after delete, dark mode and
+        the keyboard shortcuts. There is no trial, no sign-up wall and no "upgrade" button.
       </p>
       <p>
         Your tasks are saved on your own device as you go. Close the tab, come back tomorrow, and
@@ -79,7 +80,7 @@
         </thead>
         <tbody>
           <tr>
-            <td>Your tasks, subtasks, statuses, descriptions and due dates</td>
+            <td>Your tasks, subtasks, statuses, descriptions, due dates, repeats and order</td>
             <td>In your browser's IndexedDB, in a database called <code>TaskrDB</code>, on this device only</td>
             <td>In Taskr's Supabase (PostgreSQL) database, under your user ID, and cached in the browser</td>
           </tr>
@@ -89,9 +90,14 @@
             <td>In Taskr's Supabase database, under your user ID, and cached in the browser</td>
           </tr>
           <tr>
-            <td>Light or dark theme</td>
+            <td>Saved task templates</td>
             <td>In your browser's localStorage</td>
+            <td>In Taskr's Supabase database, under your user ID</td>
+          </tr>
+          <tr>
+            <td>Theme, view and other settings</td>
             <td>In your browser's localStorage</td>
+            <td>On your account, so they follow you to other devices; the reminders setting stays on each device</td>
           </tr>
           <tr>
             <td>The app itself (HTML, scripts, styles)</td>
@@ -99,7 +105,7 @@
             <td>Cached by a service worker after your first visit</td>
           </tr>
           <tr>
-            <td>Your email address and password</td>
+            <td>Your email address and password, or the name, email address and picture Google shares if you sign in with Google</td>
             <td>Nothing is collected</td>
             <td>Held by Supabase Auth; Taskr stores no passwords itself</td>
           </tr>
@@ -123,15 +129,16 @@
 
       <h2>What changes when you sign in</h2>
       <p>
-        Signing in is optional and free. It takes an email address and a password. When you
-        create an account, the tasks you already have on this device come with you: they are
-        uploaded to your account and then kept in sync on every device where you sign in.
+        Signing in is optional and free. It takes an email address and a password, or a Google
+        account. When you create an account, the tasks you already have on this device come with
+        you: they are uploaded to your account and then kept in sync on every device where you sign in.
       </p>
-      <p>Three things need an account, because they need somewhere durable to store or fetch tasks:</p>
+      <p>Four things need an account, because they need somewhere durable to store or fetch tasks:</p>
       <ul>
-        <li><strong>Cross-device sync</strong>, so your phone and laptop show the same list.</li>
+        <li><strong>Cross-device sync</strong>, so your phone and laptop show the same list, and your lists, templates and settings come with it.</li>
         <li><strong>Import</strong> from Todoist or a CSV file. See <a href="https://taskr-todo.vercel.app/import-from-todoist.html">the import guide</a>.</li>
         <li><strong>Export</strong> to a Markdown file.</li>
+        <li><strong>Recently deleted</strong>, which keeps deleted tasks for 30 days so you can restore them. As a guest, you have the five-second undo instead.</li>
       </ul>
 
       <h2>Honest limits</h2>
@@ -154,8 +161,8 @@
       </p>
 
       <footer>
-        <p>Taskr is open source on <a href="https://github.com/theonlyanish/Taskr-Todo">GitHub</a>, so you can check every claim on this page against the code. Made by <a href="https://anishkapse.com">Anish Kapse</a>. Last updated 24 October 2026.</p>
-        <p><a href="https://taskr-todo.vercel.app/">Open Taskr</a> &middot; <a href="https://taskr-todo.vercel.app/import-from-todoist.html">Import from Todoist</a> &middot; <a href="https://taskr-todo.vercel.app/changelog.html">Changelog</a></p>
+        <p>Taskr is open source on <a href="https://github.com/theonlyanish/Taskr-Todo">GitHub</a>, so you can check every claim on this page against the code. Made by <a href="https://anishkapse.com">Anish Kapse</a>. Last updated 25 October 2026.</p>
+        <p><a href="https://taskr-todo.vercel.app/">Open Taskr</a> &middot; <a href="https://taskr-todo.vercel.app/import-from-todoist.html">Import from Todoist</a> &middot; <a href="https://taskr-todo.vercel.app/how-its-built.html">How it's built</a> &middot; <a href="https://taskr-todo.vercel.app/changelog.html">Changelog</a> &middot; <a href="https://taskr-todo.vercel.app/privacy.html">Privacy</a></p>
       </footer>
     </main>
   </body>

@@ -72,12 +72,17 @@
 
       <h2>Step 2: import into Taskr</h2>
       <ol>
-        <li>Open <a href="https://taskr-todo.vercel.app/">taskr-todo.vercel.app</a> and sign in. Import needs a free account, because imported tasks are saved to your account so they are not lost if your browser data is cleared. Creating one takes an email address and a password.</li>
+        <li>Open <a href="https://taskr-todo.vercel.app/">taskr-todo.vercel.app</a> and sign in. Import needs a free account, because imported tasks are saved to your account so they are not lost if your browser data is cleared. Creating one takes an email address and a password, or a Google account.</li>
         <li>Open the account menu in the top right and choose <strong>Import tasks</strong>. You can also press <strong>Ctrl+K</strong> and type <em>import</em>.</li>
         <li>Pick the CSV file you exported.</li>
         <li>Taskr shows a preview: how many tasks and subtasks it found and whether any dates could not be read. Click <strong>Import</strong> to add them to your list.</li>
       </ol>
-      <p>Imported tasks are added to the tasks you already have. Nothing is deleted or replaced.</p>
+      <p>
+        Imported tasks are added to the tasks you already have. Nothing is deleted or replaced. They go
+        into the list you have open at the time (Personal, unless you have switched), so to give a
+        Todoist project its own list in Taskr, create the list from the menu beside the logo, open it,
+        and then import.
+      </p>
 
       <h2>What each Todoist field becomes</h2>
       <p>Taskr reads the standard Todoist template columns. This is the exact mapping:</p>
@@ -91,7 +96,7 @@
           <tr><td><code>DESCRIPTION</code></td><td>The task description.</td></tr>
           <tr><td><code>INDENT</code></td><td>1 is a top-level task. 2 or more makes the row a subtask of the nearest top-level task above it. Taskr has one level of subtasks, so deeper levels are flattened onto that task.</td></tr>
           <tr><td><code>DATE</code></td><td>The due date, when it is a plain date such as <code>2026-11-03</code>, <code>Nov 3</code>, <code>3 November 2026</code>, <code>today</code> or <code>tomorrow</code>. Times are dropped, because Taskr stores dates only. A date without a year is taken as the next time it comes round.</td></tr>
-          <tr><td><code>TYPE</code> = section</td><td>Taskr has no sections. The section name is added to the description of each task in it as <code>Section: &lt;name&gt;</code>, so nothing is lost.</td></tr>
+          <tr><td><code>TYPE</code> = section</td><td>Taskr has lists rather than sections, and a whole Todoist project maps to one list (see above). The section name is added to the description of each task in it as <code>Section: &lt;name&gt;</code>, so nothing is lost.</td></tr>
           <tr><td><code>TYPE</code> = note</td><td>Comments are appended to the description of the task they belong to.</td></tr>
           <tr><td><code>PRIORITY</code>, labels, assignees</td><td>Not imported. Taskr does not have priorities, labels or assignees.</td></tr>
         </tbody>
@@ -126,7 +131,7 @@
         <li><strong>No account to get started.</strong> You can use Taskr without signing up, and your tasks stay in your browser. A free account is only needed for cross-device sync, import and export.</li>
         <li><strong>Works offline.</strong> Without an account, Taskr keeps working with no connection at all. Read more in <a href="https://taskr-todo.vercel.app/offline-todo-app.html">how Taskr works offline</a>.</li>
         <li><strong>Kanban and Calendar built in.</strong> The same tasks appear as a list, a board with To Do, In Progress and Done columns, or a month or week calendar with an Unscheduled tray.</li>
-        <li><strong>Simpler on purpose.</strong> There are no projects, labels, filters, priorities, reminders or shared workspaces. If you rely on those, Taskr may be too small for you.</li>
+        <li><strong>Simpler on purpose.</strong> Lists stand in for projects, and repeating tasks are covered, but there are no labels, filters, priorities or shared workspaces, and reminders only work while Taskr is open in a tab. If you rely on those, Taskr may be too small for you.</li>
         <li><strong>Your data leaves as easily as it arrived.</strong> Export everything to a Markdown file at any time from the account menu.</li>
       </ul>
 
@@ -139,8 +144,8 @@
         The file is read in your browser. Only the resulting tasks are saved to your account, in the same way as a task you type by hand.</p>
 
       <footer>
-        <p>Taskr is open source on <a href="https://github.com/theonlyanish/Taskr-Todo">GitHub</a> and made by <a href="https://anishkapse.com">Anish Kapse</a>. Last updated 17 October 2026.</p>
-        <p><a href="https://taskr-todo.vercel.app/">Open Taskr</a> &middot; <a href="https://taskr-todo.vercel.app/offline-todo-app.html">Offline and no-account guide</a> &middot; <a href="https://taskr-todo.vercel.app/changelog.html">Changelog</a></p>
+        <p>Taskr is open source on <a href="https://github.com/theonlyanish/Taskr-Todo">GitHub</a> and made by <a href="https://anishkapse.com">Anish Kapse</a>. Last updated 25 October 2026.</p>
+        <p><a href="https://taskr-todo.vercel.app/">Open Taskr</a> &middot; <a href="https://taskr-todo.vercel.app/offline-todo-app.html">Offline and no-account guide</a> &middot; <a href="https://taskr-todo.vercel.app/how-its-built.html">How it's built</a> &middot; <a href="https://taskr-todo.vercel.app/changelog.html">Changelog</a> &middot; <a href="https://taskr-todo.vercel.app/privacy.html">Privacy</a></p>
       </footer>
     </main>
   </body>
