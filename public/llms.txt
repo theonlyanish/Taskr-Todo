@@ -27,7 +27,6 @@ Switch between a Kanban board, a Calendar and a simple list to see the same task
 - Search box in the header that finds any task or subtask by title as you type
 - Calendar week view with an Unscheduled tray you can drag tasks from onto a day
 - Natural language due dates when typing a task, such as "pay rent fri" or "dentist 3 Nov"
-- A compact Add task box that adds a task from one line, with Add details for the description, status, due date and list, and a Coming up panel beside the list showing overdue tasks, today's and the rest of the week
 - Relative due dates on cards, such as Tomorrow, Friday or 3 days ago, with overdue tasks marked
 - Task reorder by dragging tasks into the order you want within a list or column; the order is kept on every device
 - Focus timer to work on one task for 25 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title

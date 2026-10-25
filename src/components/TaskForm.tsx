@@ -167,6 +167,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       key={formKey}
       onSubmit={handleSubmit}
       className={`task-form ${isEditing ? '' : 'task-form-compact'}`}
+      // What the form is doing, for code that waits for it (App's focusNewTaskTitle)
+      data-mode={isEditing ? 'edit' : parentId ? 'subtask' : 'new'}
       // Esc leaves the field, so the single-key shortcuts (j, k, x…) work again
       onKeyDown={event => {
         const field = event.target as HTMLElement;

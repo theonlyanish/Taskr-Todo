@@ -696,9 +696,10 @@ function App() {
   // subtask, which have a heading), keeping anything already typed there
   const focusNewTaskTitle = () =>
     retryUntil(() => {
-      const form = document.querySelector('.task-form');
-      const field = document.getElementById('task-title');
-      if (!form || !field || form.querySelector('h2')) return false;
+      // Wait until the form has switched to a new task (not an edit or a subtask)
+      const form = document.querySelector('.task-form[data-mode="new"]');
+      const field = form?.querySelector<HTMLInputElement>('#task-title');
+      if (!field) return false;
       field.focus();
       return document.activeElement === field;
     });
