@@ -20,15 +20,48 @@ const weekLabel = (start: Date) => start.toLocaleDateString(undefined, { day: 'n
 export const StatsDialog: React.FC<StatsDialogProps> = ({ tasks, isSignedIn, listCount = 1, onOpenTask, onClose }) => {
   const stats = useMemo(() => computeStats(tasks, new Date()), [tasks]);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const openingTaskRef = useRef(false);
 
   useEffect(() => {
+    const opener = document.activeElement;
+    // Menu commands can unmount their focused item as Stats opens.
+    const returnTarget = opener instanceof HTMLElement && opener !== document.body && opener.isConnected
+      ? opener
+      : document.querySelector<HTMLElement>('.account-menu-trigger, .palette-trigger');
+    const overlay = dialogRef.current?.parentElement;
+    const background = Array.from(overlay?.parentElement?.children ?? [])
+      .filter(element => element !== overlay && !element.hasAttribute('inert'));
+    background.forEach(element => element.setAttribute('inert', ''));
     closeRef.current?.focus();
+    return () => {
+      background.forEach(element => element.removeAttribute('inert'));
+      if (!openingTaskRef.current) {
+        const target = returnTarget?.isConnected
+          ? returnTarget
+          : document.querySelector<HTMLElement>('.account-menu-trigger, .palette-trigger');
+        target?.focus();
+      }
+    };
   }, []);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.stopPropagation();
       onClose();
+      return;
+    }
+    if (event.key === 'Tab' && dialogRef.current) {
+      const buttons = Array.from(dialogRef.current.querySelectorAll<HTMLButtonElement>('button:not([disabled])'));
+      const first = buttons[0];
+      const last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
     }
   };
 
@@ -44,6 +77,7 @@ export const StatsDialog: React.FC<StatsDialogProps> = ({ tasks, isSignedIn, lis
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
+        ref={dialogRef}
         className="modal-content stats-dialog"
         role="dialog"
         aria-modal="true"
@@ -131,6 +165,7 @@ export const StatsDialog: React.FC<StatsDialogProps> = ({ tasks, isSignedIn, lis
                   type="button"
                   className="stats-progress-task"
                   onClick={() => {
+                    openingTaskRef.current = true;
                     onClose();
                     onOpenTask(task);
                   }}
