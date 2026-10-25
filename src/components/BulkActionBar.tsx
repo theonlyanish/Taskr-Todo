@@ -1,5 +1,6 @@
 import React from 'react';
 import { TaskStatus } from '../types/Task';
+import { TaskList } from '../utils/taskLists';
 
 interface BulkActionBarProps {
   count: number;
@@ -8,13 +9,25 @@ interface BulkActionBarProps {
   onDelete: () => void;
   onSelectAll: () => void;
   onDone: () => void;
+  // The user's lists other than the one showing; a picker appears when there are any
+  otherLists?: TaskList[];
+  onMoveToList?: (listId: string) => void;
 }
 
 const STATUSES: TaskStatus[] = ['To Do', 'In Progress', 'Completed'];
 
 // Shown while tasks are selected (Ctrl/⌘-click, Shift-click, or "Select tasks"
 // in Ctrl+K): act on all of them at once
-export const BulkActionBar: React.FC<BulkActionBarProps> = ({ count, total, onMove, onDelete, onSelectAll, onDone }) => {
+export const BulkActionBar: React.FC<BulkActionBarProps> = ({
+  count,
+  total,
+  onMove,
+  onDelete,
+  onSelectAll,
+  onDone,
+  otherLists = [],
+  onMoveToList
+}) => {
   const none = count === 0;
 
   return (
@@ -34,6 +47,20 @@ export const BulkActionBar: React.FC<BulkActionBarProps> = ({ count, total, onMo
           <option key={status} value={status}>{status}</option>
         ))}
       </select>
+      {onMoveToList && otherLists.length > 0 && (
+        <select
+          className="bulk-move"
+          aria-label="Move selected tasks to another list"
+          value=""
+          disabled={none}
+          onChange={event => onMoveToList(event.target.value)}
+        >
+          <option value="" disabled>Move to list…</option>
+          {otherLists.map(list => (
+            <option key={list.id} value={list.id}>{list.name}</option>
+          ))}
+        </select>
+      )}
       <button type="button" className="bulk-btn" disabled={none} onClick={() => onMove('Completed')}>
         Complete
       </button>

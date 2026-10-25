@@ -39,3 +39,27 @@ describe('the bulk action bar', () => {
     expect(onDone).toHaveBeenCalled();
   });
 });
+
+describe('moving the selection to another list', () => {
+  const work = { id: 'work', name: 'Work', color: '#00a676', createdAt: '2026-10-20T00:00:00.000Z' };
+
+  it('offers the other lists and moves the selection to the one picked', () => {
+    const onMoveToList = jest.fn();
+    render(
+      <BulkActionBar count={2} total={5} onMove={jest.fn()} onDelete={jest.fn()} onSelectAll={jest.fn()} onDone={jest.fn()}
+        otherLists={[work]} onMoveToList={onMoveToList} />
+    );
+    const picker = screen.getByRole('combobox', { name: 'Move selected tasks to another list' });
+    expect(picker).toBeEnabled();
+    fireEvent.change(picker, { target: { value: 'work' } });
+    expect(onMoveToList).toHaveBeenCalledWith('work');
+  });
+
+  it('isn’t shown with only one list', () => {
+    render(
+      <BulkActionBar count={2} total={5} onMove={jest.fn()} onDelete={jest.fn()} onSelectAll={jest.fn()} onDone={jest.fn()}
+        otherLists={[]} onMoveToList={jest.fn()} />
+    );
+    expect(screen.queryByRole('combobox', { name: 'Move selected tasks to another list' })).not.toBeInTheDocument();
+  });
+});

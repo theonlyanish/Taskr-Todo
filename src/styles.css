@@ -4405,6 +4405,9 @@ button.kanban-subtask-item {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem;
+  /* Its own width up to the screen's; left: 50% alone would leave it only
+     half the screen and wrap it early */
+  width: max-content;
   max-width: calc(100vw - 2rem);
   padding: 0.5rem 0.5rem 0.5rem 1rem;
   border: 1px solid var(--border-color);
@@ -4534,6 +4537,8 @@ button.kanban-subtask-item {
     left: 1rem;
     right: 1rem;
     bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    /* Stretched between the two sides, wrapping onto a second row */
+    width: auto;
     max-width: none;
     transform: none;
     animation: none;

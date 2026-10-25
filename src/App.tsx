@@ -507,11 +507,27 @@ function App() {
     announceChange();
   };
 
+  // The undo bar for anything but deletes (which have their own): the next
+  // one of a repeating task, tasks moved to another list. Shown for the same
+  // time as a delete's.
+  const [actionUndo, setActionUndo] = useState<{ message: string; undo: () => void } | null>(null);
+  const actionUndoTimerRef = useRef<number | undefined>(undefined);
+  const offerUndo = (message: string, undo: () => void) => {
+    window.clearTimeout(actionUndoTimerRef.current);
+    setActionUndo({
+      message,
+      undo: () => {
+        window.clearTimeout(actionUndoTimerRef.current);
+        setActionUndo(null);
+        undo();
+      }
+    });
+    actionUndoTimerRef.current = window.setTimeout(() => setActionUndo(null), UNDO_WINDOW_MS);
+  };
+
   // A repeating task was just completed: add the next one (subtasks reset,
   // due on the next date) and offer to take it back. The completed one stops
   // repeating, so ticking it again later doesn't add another.
-  const [repeatUndo, setRepeatUndo] = useState<{ message: string; undo: () => void } | null>(null);
-  const repeatUndoTimerRef = useRef<number | undefined>(undefined);
 
   // Returns `after` with the repeat taken off tasks that were just completed,
   // so it's saved in the same change; the next ones are added straight after
@@ -557,16 +573,9 @@ function App() {
       }))
     };
     await addTaskTree(next);
-
-    window.clearTimeout(repeatUndoTimerRef.current);
-    setRepeatUndo({
-      message: `Next “${done.title}” is due ${describeDueDate(next.dueDate!).replace(/^T/, 't')}`,
-      undo: () => {
-        setRepeatUndo(null);
-        undoRepeat(next, done, statusBefore);
-      }
-    });
-    repeatUndoTimerRef.current = window.setTimeout(() => setRepeatUndo(null), UNDO_WINDOW_MS);
+    offerUndo(`Next “${done.title}” is due ${describeDueDate(next.dueDate!).replace(/^T/, 't')}`, () =>
+      undoRepeat(next, done, statusBefore)
+    );
   };
 
   // Undo: remove the next one and put the completed one back as it was
@@ -1283,6 +1292,19 @@ function App() {
     const ids = bulkSelectedIds;
     stopSelecting();
     handleBulkStatus(ids, status);
+  };
+
+  // The selected tasks leave this list, so say where they went, with undo
+  const handleBulkMoveToList = (listId: string) => {
+    const ids = bulkSelectedIds;
+    const from = currentListId;
+    const list = lists.find(entry => entry.id === listId);
+    if (ids.length === 0 || !list) return;
+    stopSelecting();
+    moveTasksToList(ids, listId);
+    offerUndo(`Moved ${ids.length === 1 ? '1 task' : `${ids.length} tasks`} to ${list.name}`, () =>
+      moveTasksToList(ids, from)
+    );
   };
 
   const handleBulkDelete = () => {
@@ -2342,8 +2364,10 @@ function App() {
         {selection && (
           <BulkActionBar
             count={bulkSelectedIds.length}
-            total={tasks.filter(task => !task.isSubtask).length}
+            total={tasksInDisplayOrder().length}
             onMove={handleBulkMove}
+            otherLists={lists.filter(list => list.id !== currentListId)}
+            onMoveToList={handleBulkMoveToList}
             onDelete={handleBulkDelete}
             onSelectAll={() => setSelection({ ids: tasksInDisplayOrder().map(task => task.id), sticky: true })}
             onDone={stopSelecting}
@@ -2373,13 +2397,13 @@ function App() {
           />
         )}
         {/* A delete's undo takes the spot if both are showing */}
-        {repeatUndo && !pendingDelete && (
+        {actionUndo && !pendingDelete && (
           <UndoToast
-            key={repeatUndo.message}
-            message={repeatUndo.message}
+            key={actionUndo.message}
+            message={actionUndo.message}
             durationMs={UNDO_WINDOW_MS}
-            onUndo={repeatUndo.undo}
-            onDismiss={() => setRepeatUndo(null)}
+            onUndo={actionUndo.undo}
+            onDismiss={() => setActionUndo(null)}
           />
         )}
       </div>
