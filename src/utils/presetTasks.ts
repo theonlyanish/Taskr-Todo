@@ -30,7 +30,7 @@ export const getPresetTasks = (): Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[]
     ),
     generatePresetTask(
       '✨ Break tasks into subtasks',
-      'Click “+ Add subtask” on any task to split it into smaller steps.',
+      'Click “+ Add subtask” on any task to split it into smaller steps. For a task you set up often, choose Save as template, then add it again with its subtasks from Templates.',
       'To Do',
       tomorrow,
       [
@@ -44,7 +44,7 @@ export const getPresetTasks = (): Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[]
     ),
     generatePresetTask(
       '🎯 Try the board and calendar views',
-      'Use the List, Board and Calendar switch above (or press 1, 2 or 3) to see your tasks in different ways.',
+      'Use the List, Board and Calendar switch above to see your tasks in different ways.',
       'In Progress',
       nextWeek
     ),
@@ -65,6 +65,18 @@ export const getPresetTasks = (): Omit<Task, 'id' | 'createdAt' | 'updatedAt'>[]
 // Earlier wording of the welcome tasks, still saved on returning visitors'
 // devices. Recognised too, so unedited ones aren't copied into an account.
 const LEGACY_PRESET_TASKS: Pick<Task, 'title' | 'description' | 'status'>[] = [
+  // Until October 2026
+  {
+    title: '✨ Break tasks into subtasks',
+    description: 'Click “+ Add subtask” on any task to split it into smaller steps.',
+    status: 'To Do'
+  },
+  {
+    title: '🎯 Try the board and calendar views',
+    description: 'Use the List, Board and Calendar switch above (or press 1, 2 or 3) to see your tasks in different ways.',
+    status: 'In Progress'
+  },
+  // The first wording
   {
     title: '👋 Welcome to Taskr!',
     description: 'This is a demo task to help you get started. You can click on any task to edit it, or click the checkbox to mark it as complete.',
