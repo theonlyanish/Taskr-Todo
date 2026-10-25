@@ -47,6 +47,7 @@ import { ShortcutsDialog } from './components/ShortcutsDialog';
 import { focusTaskById, moveTaskFocus, retryUntil, useKeyboardShortcuts } from './utils/keyboardShortcuts';
 import { exportFileName, parseImportFile, skipExisting, toMarkdown } from './utils/importExport';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from './utils/quickAdd';
+import { describeRepeat, nextDueDate, parseRepeatValue } from './utils/repeat';
 import { SupabaseTaskService } from './services/supabaseTaskService';
 import { AuthService, SignOutScope } from './services/authService';
 import { Task, TaskStatus } from './types/Task';
@@ -312,15 +313,18 @@ function App() {
     const cached = await offlineStorage.getAccountTasks(userId);
     if (!cached?.length) return fresh;
     const cachedById = new Map(cached.map(task => [task.id, task]));
-    // Until the task_lists migration runs, the server can't say which list a task is in
+    // Until the task_lists and task_repeat migrations run, the server can't
+    // say which list a task is in or how it repeats
     const listsFromCache = !SupabaseTaskService.storesListIds();
+    const repeatsFromCache = !SupabaseTaskService.storesRepeats();
     return fresh.map(task => {
       const copy = cachedById.get(task.id);
       if (!copy) return task;
       return {
         ...task,
         position: task.position === undefined ? copy.position : task.position,
-        listId: listsFromCache ? copy.listId : task.listId
+        listId: listsFromCache ? copy.listId : task.listId,
+        repeat: repeatsFromCache ? copy.repeat : task.repeat
       };
     });
   };
@@ -483,6 +487,14 @@ function App() {
       subtasks
     };
 
+    await addTaskTree(task);
+    setSubtasksExpanded(taskId, true);
+    jumpToTask(task);
+  };
+
+  // Add a new task with its subtasks (from a template, or the next one of a
+  // repeating task): to the account when signed in, queued if offline
+  const addTaskTree = async (task: Task) => {
     const userId = user?.id;
     if (userId) {
       try {
@@ -490,11 +502,11 @@ function App() {
       } catch (error) {
         // Offline part way: queue whatever didn't make it (parent first)
         const savedCount = (error as { savedCount?: number }).savedCount ?? 0;
-        const rows: Task[] = [{ ...task, subtasks: [] }, ...subtasks].slice(savedCount);
+        const rows: Task[] = [{ ...task, subtasks: [] }, ...(task.subtasks ?? [])].slice(savedCount);
         if (isSupabaseUnavailable(error)) {
           for (const row of rows) await queueIfOffline(error, userId, { type: 'add', task: row });
         } else {
-          console.error('Adding the template failed:', error);
+          console.error('Adding the task failed:', error);
           reportCloudError(error);
         }
       }
@@ -505,8 +517,87 @@ function App() {
     setTasks(nextTasks);
     await saveOnDevice(nextTasks, userId);
     announceChange();
-    setSubtasksExpanded(taskId, true);
-    jumpToTask(task);
+  };
+
+  // A repeating task was just completed: add the next one (subtasks reset,
+  // due on the next date) and offer to take it back. The completed one stops
+  // repeating, so ticking it again later doesn't add another.
+  const [repeatUndo, setRepeatUndo] = useState<{ message: string; undo: () => void } | null>(null);
+  const repeatUndoTimerRef = useRef<number | undefined>(undefined);
+
+  // Returns `after` with the repeat taken off tasks that were just completed,
+  // so it's saved in the same change; the next ones are added straight after
+  const continueRepeats = (before: Task[], after: Task[]): Task[] => {
+    const previousStatus = new Map(before.filter(task => !task.isSubtask).map(task => [task.id, task.status]));
+    const finished = after
+      .filter(task => !task.isSubtask && task.repeat && task.dueDate && task.status === 'Completed')
+      .filter(task => previousStatus.has(task.id) && previousStatus.get(task.id) !== 'Completed');
+    if (finished.length === 0) return after;
+    // Once the caller has put the completed tasks in place
+    window.setTimeout(() => finished.forEach(task => addNextRepeat(task, previousStatus.get(task.id)!)), 0);
+    const ids = new Set(finished.map(task => task.id));
+    return after.map(task => (ids.has(task.id) ? { ...task, repeat: null } : task));
+  };
+
+  const addNextRepeat = async (done: Task, statusBefore: TaskStatus) => {
+    const repeat = parseRepeatValue(done.repeat);
+    if (!repeat || !done.dueDate) return;
+    const now = Date.now();
+    const nextId = crypto.randomUUID();
+    const next: Task = {
+      id: nextId,
+      title: done.title,
+      description: done.description,
+      status: 'To Do',
+      dueDate: nextDueDate(new Date(done.dueDate), repeat),
+      repeat: done.repeat,
+      listId: done.listId,
+      createdAt: new Date(now),
+      updatedAt: new Date(now),
+      isSubtask: false,
+      subtasks: (done.subtasks ?? []).map((subtask, index) => ({
+        id: crypto.randomUUID(),
+        title: subtask.title,
+        description: subtask.description,
+        status: 'To Do' as TaskStatus,
+        dueDate: subtask.dueDate,
+        createdAt: new Date(now + index + 1),
+        updatedAt: new Date(now + index + 1),
+        parentId: nextId,
+        isSubtask: true,
+        subtasks: []
+      }))
+    };
+    await addTaskTree(next);
+
+    window.clearTimeout(repeatUndoTimerRef.current);
+    setRepeatUndo({
+      message: `Next “${done.title}” is due ${describeDueDate(next.dueDate!).replace(/^T/, 't')}`,
+      undo: () => {
+        setRepeatUndo(null);
+        undoRepeat(next, done, statusBefore);
+      }
+    });
+    repeatUndoTimerRef.current = window.setTimeout(() => setRepeatUndo(null), UNDO_WINDOW_MS);
+  };
+
+  // Undo: remove the next one and put the completed one back as it was
+  const undoRepeat = async (next: Task, done: Task, statusBefore: TaskStatus) => {
+    const nextTasks = withoutTask(tasksRef.current, next.id);
+    tasksRef.current = nextTasks;
+    setTasks(nextTasks);
+    const userId = user?.id;
+    if (userId) {
+      try {
+        await SupabaseTaskService.discardTaskOrThrow(next.id, userId);
+      } catch (error) {
+        if (!(await queueIfOffline(error, userId, { type: 'delete', taskId: next.id }))) {
+          console.error('Undoing the repeat failed:', error);
+        }
+      }
+    }
+    await saveOnDevice(nextTasks, userId);
+    await handleTaskUpdate(done.id, { status: statusBefore, repeat: done.repeat });
   };
 
   // Send queued changes, then load the account's tasks fresh from Supabase.
@@ -903,7 +994,7 @@ function App() {
         });
         
         // Update UI immediately, with the time of each status change (for the stats)
-        nextTasks = withStatusTimes(latest, updatedTasks, new Date());
+        nextTasks = continueRepeats(latest, withStatusTimes(latest, updatedTasks, new Date()));
         tasksRef.current = nextTasks;
         setTasks(nextTasks);
       } else {
@@ -1123,7 +1214,7 @@ function App() {
     });
     if (changed.length === 0) return;
     // With the time of each status change, for the stats
-    const stamped = withStatusTimes(tasksRef.current, nextTasks, now);
+    const stamped = continueRepeats(tasksRef.current, withStatusTimes(tasksRef.current, nextTasks, now));
     const toSave = changed.map(task => findTaskById(stamped, task.id) ?? task);
     tasksRef.current = stamped;
     setTasks(stamped);
@@ -1856,7 +1947,8 @@ function App() {
         title: quickAdd?.title ?? text,
         description: quickAdd?.timeText ? `Time: ${quickAdd.timeText}` : '',
         status: 'To Do',
-        dueDate: quickAdd?.dueDate
+        dueDate: quickAdd?.dueDate,
+        repeat: quickAdd?.repeat
       },
       null
     );
@@ -1864,9 +1956,14 @@ function App() {
 
   const previewPaletteCreate = (text: string) => {
     const quickAdd = parseQuickAdd(text);
-    return quickAdd
-      ? { title: quickAdd.title, hint: `Due ${describeDueDate(quickAdd.dueDate)}` }
-      : { title: text };
+    if (!quickAdd) return { title: text };
+    const repeat = parseRepeatValue(quickAdd.repeat);
+    return {
+      title: quickAdd.title,
+      hint: repeat
+        ? `${describeRepeat(repeat, quickAdd.dueDate)}, from ${describeDueDate(quickAdd.dueDate)}`
+        : `Due ${describeDueDate(quickAdd.dueDate)}`
+    };
   };
 
   return (
@@ -2042,7 +2139,6 @@ function App() {
                   focusTaskId={focus.session?.taskId}
                   onStartFocus={startFocus}
                   onSaveTemplate={handleSaveTemplate}
-                  onOpenTemplates={() => setShowTemplates(true)}
                   onSubmit={handleTaskSubmit}
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
@@ -2076,7 +2172,6 @@ function App() {
                   focusTaskId={focus.session?.taskId}
                   onStartFocus={startFocus}
                   onSaveTemplate={handleSaveTemplate}
-                  onOpenTemplates={() => setShowTemplates(true)}
                   onSubmit={handleTaskSubmit}
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
@@ -2108,7 +2203,6 @@ function App() {
                   focusTaskId={focus.session?.taskId}
                   onStartFocus={startFocus}
                   onSaveTemplate={handleSaveTemplate}
-                  onOpenTemplates={() => setShowTemplates(true)}
                   onSubmit={handleTaskSubmit}
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
@@ -2271,6 +2365,16 @@ function App() {
             durationMs={UNDO_WINDOW_MS}
             onUndo={handleUndoDelete}
             onDismiss={commitPendingDelete}
+          />
+        )}
+        {/* A delete's undo takes the spot if both are showing */}
+        {repeatUndo && !pendingDelete && (
+          <UndoToast
+            key={repeatUndo.message}
+            message={repeatUndo.message}
+            durationMs={UNDO_WINDOW_MS}
+            onUndo={repeatUndo.undo}
+            onDismiss={() => setRepeatUndo(null)}
           />
         )}
       </div>

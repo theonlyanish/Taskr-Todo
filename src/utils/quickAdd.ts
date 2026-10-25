@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { anchorRepeat, findRepeat, formatRepeat } from './repeat';
 
 // Natural-language quick add: "pay rent fri 5pm" becomes the title "pay rent"
-// due on Friday. chrono-node is loaded on demand so it stays out of the first
+// due on Friday, and "gym every friday" a task repeating every Friday. chrono-node is loaded on demand so it stays out of the first
 // page load.
 
 type ChronoEn = typeof import('chrono-node/en');
@@ -11,6 +12,7 @@ export interface QuickAddMatch {
   dueDate: Date; // midnight UTC, like every other due date in the app
   matchedText: string; // the phrase that was read as a date, e.g. "fri 5pm"
   timeText?: string; // "5:00 pm" when a time was given; Taskr stores dates only
+  repeat?: string; // "week:1" when the text says how it repeats (utils/repeat)
 }
 
 let chrono: ChronoEn | null = null;
@@ -40,6 +42,36 @@ const AMBIGUOUS_ALONE = ['sat', 'sun', 'wed'];
 
 export const parseQuickAdd = (input: string, now = new Date()): QuickAddMatch | null => {
   if (!chrono || !input.trim()) return null;
+
+  // "every friday" first, then any start date in what's left ("from 1 nov")
+  const repeatMatch = findRepeat(input, now);
+  if (repeatMatch) {
+    const before = input.slice(0, repeatMatch.index).trimEnd().replace(TRAILING_LINK_WORDS, '');
+    const after = input.slice(repeatMatch.index + repeatMatch.matchedText.length);
+    const rest = `${before} ${after}`.replace(/\s+/g, ' ').trim();
+    // "from 1 nov": chrono reads "from 1" as a time, so the date is looked
+    // for without the starting word, and only a day counts
+    const startWord = /\b(from|starting|beginning)\s+(?=\S)/i.exec(rest);
+    const start = rest ? findDate(startWord ? rest.replace(startWord[0], '') : rest, now, true) : null;
+    const title = start?.title ?? rest;
+    if (!title) return null;
+    const dueDate = start?.dueDate ?? repeatMatch.firstDue;
+    const startText = start && `${startWord ? `${startWord[1]} ` : ''}${start.matchedText}`;
+    return {
+      title,
+      dueDate,
+      matchedText: [repeatMatch.matchedText, startText].filter(Boolean).join(' '),
+      timeText: start?.timeText,
+      repeat: anchorRepeat(formatRepeat(repeatMatch.repeat), dueDate)
+    };
+  }
+  return findDate(input, now);
+};
+
+// The first date phrase in the text. dayOnly: a time alone ("at 5") doesn't
+// count, for the start of a repeat
+const findDate = (input: string, now: Date, dayOnly = false): QuickAddMatch | null => {
+  if (!chrono) return null;
   const parser = usesMonthFirst() ? chrono.casual : chrono.GB;
   const results = parser.parse(input, now, { forwardDate: true });
 
@@ -47,7 +79,8 @@ export const parseQuickAdd = (input: string, now = new Date()): QuickAddMatch | 
     const { start } = result;
     // A lone number, year or month ("chapter 3", "watch 1917", "March numbers")
     // isn't a due date; a day, weekday or time is
-    const meaningful = start.isCertain('day') || start.isCertain('weekday') || start.isCertain('hour');
+    const meaningful =
+      start.isCertain('day') || start.isCertain('weekday') || (!dayOnly && start.isCertain('hour'));
     if (!meaningful || AMBIGUOUS_ALONE.includes(result.text.trim().toLowerCase())) continue;
 
     const before = input.slice(0, result.index).trimEnd().replace(TRAILING_LINK_WORDS, '');

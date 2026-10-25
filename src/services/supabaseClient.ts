@@ -27,6 +27,7 @@ export interface TaskRow {
   started_at?: string | null; // these two need the task_status_times migration
   completed_at?: string | null;
   list_id?: string | null; // needs the task_lists migration
+  repeat?: string | null; // needs the task_repeat migration
 }
 
 // Helper functions to convert between our app's Task type and Supabase's format
@@ -44,5 +45,6 @@ export const toTask = (row: TaskRow): Task => ({
   position: row.position ?? undefined,
   startedAt: row.started_at ? new Date(row.started_at) : undefined,
   completedAt: row.completed_at ? new Date(row.completed_at) : undefined,
-  listId: row.list_id ?? undefined
+  listId: row.list_id ?? undefined,
+  repeat: row.repeat ?? undefined
 });

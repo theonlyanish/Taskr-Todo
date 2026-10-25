@@ -70,7 +70,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ state, onConfirm, on
               <>
                 {result.unreadDates > 0 && (
                   <p className="import-note">
-                    {plural(result.unreadDates, 'date')} couldn’t be read (for example recurring ones) and
+                    {plural(result.unreadDates, 'date')} couldn’t be read and
                     {result.unreadDates === 1 ? ' was' : ' were'} added to the task’s description instead.
                   </p>
                 )}

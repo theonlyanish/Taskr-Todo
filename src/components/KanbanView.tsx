@@ -129,7 +129,7 @@ const KanbanCardContent: React.FC<{
       <div className="kanban-task-title">{task.title}</div>
       {task.dueDate && (
         <div className="kanban-task-due-date">
-          <DueDate dueDate={task.dueDate} completed={task.status === 'Completed'} />
+          <DueDate dueDate={task.dueDate} completed={task.status === 'Completed'} repeat={task.repeat} />
         </div>
       )}
 

@@ -128,7 +128,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         </span>
         {task.dueDate && (
           <span className="task-meta">
-            <DueDate dueDate={task.dueDate} completed={isCompleted} className="due-date" />
+            <DueDate dueDate={task.dueDate} completed={isCompleted} className="due-date" repeat={task.repeat} />
           </span>
         )}
       </button>

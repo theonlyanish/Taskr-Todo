@@ -1,5 +1,12 @@
 import { Task, TaskStatus } from '../types/Task';
 import { TaskList, listOf, withPersonal } from './taskLists';
+import { anchorRepeat, describeRepeat, findRepeat, formatRepeat, parseRepeatValue } from './repeat';
+
+// "repeats every Friday", for the Markdown export
+const repeatNote = (task: Task) => {
+  const repeat = parseRepeatValue(task.repeat);
+  return repeat ? `repeats ${describeRepeat(repeat, task.dueDate).replace(/^E/, 'e')}` : undefined;
+};
 
 // Import from a Todoist CSV export or any CSV with a title column, and
 // export to Markdown. Kept free of React and storage so it can be tested alone.
@@ -157,6 +164,18 @@ const finish = (source: ImportSource, tasks: Task[], unreadDates: number): Impor
 };
 
 // Todoist "Export as CSV" (template) files: TYPE is task, section or note;
+// A date from an import: a plain date, or a recurring one ("every monday")
+// becoming a repeating task due on its first date. Subtasks can't repeat, so
+// for them (canRepeat false) a recurring date is left unread.
+const readImportDate = (rawDate: string, today: Date, canRepeat: boolean): { dueDate?: Date; repeat?: string } => {
+  if (!rawDate) return {};
+  const dueDate = parseDueDate(rawDate, today);
+  if (dueDate) return { dueDate };
+  const recurring = canRepeat ? findRepeat(rawDate, today) : null;
+  if (!recurring) return {};
+  return { dueDate: recurring.firstDue, repeat: anchorRepeat(formatRepeat(recurring.repeat), recurring.firstDue) };
+};
+
 // INDENT 1 is a task and 2+ a subtask. Taskr has one level of subtasks, so
 // deeper ones attach to the nearest top-level task.
 const fromTodoist = (header: string[], rows: string[][], today: Date): ImportResult => {
@@ -185,18 +204,18 @@ const fromTodoist = (header: string[], rows: string[][], today: Date): ImportRes
     if (type !== 'task' || !content) continue;
 
     let description = (row[descriptionCol] ?? '').trim();
+    const indent = parseInt(row[indentCol] ?? '1', 10) || 1;
+    const isSubtask = indent > 1 && !!currentParent;
     const rawDate = (row[dateCol] ?? '').trim();
-    const dueDate = rawDate ? parseDueDate(rawDate, today) : undefined;
+    const { dueDate, repeat } = readImportDate(rawDate, today, !isSubtask);
     if (rawDate && !dueDate) {
       unreadDates++;
       description = appendLine(description, `Todoist date: ${rawDate}`);
     }
-    const indent = parseInt(row[indentCol] ?? '1', 10) || 1;
-    const isSubtask = indent > 1 && !!currentParent;
     // Taskr has no sections; note it on top-level tasks (subtasks share their parent's)
     if (section && !isSubtask) description = appendLine(description, `Section: ${section}`);
 
-    const task = newTask(content, description, 'To Do', dueDate);
+    const task = { ...newTask(content, description, 'To Do', dueDate), ...(repeat ? { repeat } : {}) };
     if (isSubtask && currentParent) {
       addSubtask(currentParent, task);
     } else {
@@ -241,14 +260,18 @@ const fromGenericCsv = (header: string[], rows: string[][], today: Date): Import
 
     let description = descriptionCol >= 0 ? (row[descriptionCol] ?? '').trim() : '';
     const rawDate = dueCol >= 0 ? (row[dueCol] ?? '').trim() : '';
-    const dueDate = rawDate ? parseDueDate(rawDate, today) : undefined;
+    const parentTitle = parentCol >= 0 ? (row[parentCol] ?? '').trim() : '';
+    // A row naming a parent may become a subtask, and subtasks don't repeat
+    const { dueDate, repeat } = readImportDate(rawDate, today, !parentTitle);
     if (rawDate && !dueDate) {
       unreadDates++;
       description = appendLine(description, `Due: ${rawDate}`);
     }
 
-    const task = newTask(title, description, parseStatus(statusCol >= 0 ? row[statusCol] : ''), dueDate);
-    const parentTitle = parentCol >= 0 ? (row[parentCol] ?? '').trim() : '';
+    const task = {
+      ...newTask(title, description, parseStatus(statusCol >= 0 ? row[statusCol] : ''), dueDate),
+      ...(repeat ? { repeat } : {})
+    };
     if (parentTitle) {
       pendingSubtasks.push({ task, parentTitle });
     } else {
@@ -313,7 +336,8 @@ const markdownItem = (task: Task, indent: string): string[] => {
   const done = task.status === 'Completed';
   const notes = [
     task.status === 'In Progress' ? 'in progress' : undefined,
-    formatDate(task.dueDate) ? `due ${formatDate(task.dueDate)}` : undefined
+    formatDate(task.dueDate) ? `due ${formatDate(task.dueDate)}` : undefined,
+    repeatNote(task)
   ].filter(Boolean);
   const lines = [`${indent}- [${done ? 'x' : ' '}] ${task.title}${notes.length ? ` _(${notes.join(', ')})_` : ''}`];
   // Description lines sit inside the list item

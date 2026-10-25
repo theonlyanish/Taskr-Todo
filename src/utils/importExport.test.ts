@@ -133,3 +133,23 @@ describe('Markdown export', () => {
     expect(markdown).toContain('_Nothing here._');
   });
 });
+
+describe('importing recurring dates', () => {
+  const today = new Date(2026, 9, 25, 12); // Sunday 25 October 2026
+
+  it('turns a Todoist "every monday" into a repeating task', () => {
+    const csv = [
+      'TYPE,CONTENT,DESCRIPTION,PRIORITY,INDENT,AUTHOR,RESPONSIBLE,DATE,DATE_LANG,TIMEZONE',
+      'task,Team sync,,4,1,,,every monday,en,UTC',
+      'task,Book club,,4,1,,,every 2nd monday,en,UTC'
+    ].join('\n');
+    const result = parseImportFile(csv, today);
+    const [sync, club] = result.tasks;
+    expect(sync.repeat).toBe('week:1');
+    expect(sync.dueDate!.toISOString().slice(0, 10)).toBe('2026-10-26');
+    // A pattern Taskr can't repeat stays in the description, as before
+    expect(club.repeat).toBeUndefined();
+    expect(club.description).toContain('Todoist date: every 2nd monday');
+    expect(result.unreadDates).toBe(1);
+  });
+});

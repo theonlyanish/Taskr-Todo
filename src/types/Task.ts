@@ -19,6 +19,9 @@ export interface Task {
   // Which of the user's lists it's in (utils/taskLists); none means Personal.
   // Only top-level tasks have one: subtasks go wherever their parent is.
   listId?: string | null;
+  // How it repeats ("week:1"; see utils/repeat), always with a due date.
+  // Completing it adds the next one. Top-level tasks only.
+  repeat?: string | null;
   isSubtask?: boolean;
   subtasks?: Task[];
 }

@@ -3,6 +3,20 @@ import { Task, TaskStatus } from '../types/Task';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from '../utils/quickAdd';
 import { FOCUS_LENGTHS } from '../utils/focusTimer';
 import { DEFAULT_LIST_ID, TaskList, listOf, storedListId } from '../utils/taskLists';
+import { REPEAT_CHOICES, anchorRepeat, describeRepeat, parseRepeatValue } from '../utils/repeat';
+
+// A stored repeat without its day-of-the-month anchor ("month:1@31" is "month:1"),
+// to match the Repeat field's choices
+const repeatChoiceOf = (value: string | null | undefined) => (value ?? '').replace(/@\d+$/, '');
+
+// Today as a due date (midnight UTC of the local day)
+const todayAsDueDate = () => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+};
+
+// A due date as the date field's value ("2026-10-30"), or ''
+const dueDateValue = (date: Date | undefined) => (date ? new Date(date).toISOString().split('T')[0] : '');
 
 // Define the interface for TaskFormProps
 export interface TaskFormProps {
@@ -15,9 +29,8 @@ export interface TaskFormProps {
   // The task the focus timer is running for, if any
   focusTaskId?: string | null;
   onStartFocus?: (task: Task, minutes: number) => void;
-  // Templates: save this task as one, or open the picker to start from one
+  // Save this task as a template
   onSaveTemplate?: (task: Task) => Promise<'saved' | 'exists'>;
-  onOpenTemplates?: () => void;
   // The user's lists, and the one showing (where new tasks go by default)
   lists?: TaskList[];
   currentListId?: string;
@@ -45,7 +58,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   focusTaskId,
   onStartFocus,
   onSaveTemplate,
-  onOpenTemplates,
   lists = [],
   currentListId = DEFAULT_LIST_ID,
   onClose
@@ -77,6 +89,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   const [listId, setListId] = useState(currentListId);
   const isSubtaskForm = !!parentId || !!selectedTask?.isSubtask;
   const showListField = lists.length > 1 && !isSubtaskForm;
+  // How it repeats ('' for not at all); top-level tasks only
+  const [repeatChoice, setRepeatChoice] = useState('');
   const titleInputRef = useRef<HTMLInputElement>(null);
   const quickAddReady = useQuickAdd();
   // A date phrase the user chose to keep as plain text ("Keep as text")
@@ -101,12 +115,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       setStatus(selectedTask.status);
       setDueDate(selectedTask.dueDate ? new Date(selectedTask.dueDate).toISOString().split('T')[0] : '');
       setListId(listOf(selectedTask, new Set(lists.map(list => list.id))));
+      setRepeatChoice(repeatChoiceOf(selectedTask.repeat));
     } else {
       setTitle('');
       setDescription('');
       setStatus('To Do');
       setDueDate(initialDueDate ? new Date(initialDueDate).toISOString().split('T')[0] : '');
       setListId(currentListId);
+      setRepeatChoice('');
       // Focus the title input when creating a new task
       titleInputRef.current?.focus({ preventScroll: true });
     }
@@ -124,7 +140,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       status,
       dueDate: dueDate ? new Date(dueDate) : undefined,
       parentId: parentId || undefined,
-      ...(showListField ? { listId: storedListId(listId) } : {})
+      ...(showListField ? { listId: storedListId(listId) } : {}),
+      repeat: undefined as string | null | undefined
     };
 
     // Use the date read from the title; Taskr has no due times, so keep any
@@ -134,6 +151,21 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       formData.dueDate = quickAdd.dueDate;
       if (quickAdd.timeText) {
         formData.description = [description, `Time: ${quickAdd.timeText}`].filter(Boolean).join('\n');
+      }
+    }
+
+    // A repeat needs a due date to count from: today if none is set. The Repeat
+    // field wins over one read from the title ("every friday").
+    if (!isSubtaskForm) {
+      const unchanged =
+        !!selectedTask?.repeat &&
+        repeatChoice === repeatChoiceOf(selectedTask.repeat) &&
+        dueDate === dueDateValue(selectedTask.dueDate);
+      if (repeatChoice) {
+        formData.dueDate ??= todayAsDueDate();
+        formData.repeat = unchanged ? selectedTask!.repeat : anchorRepeat(repeatChoice, formData.dueDate);
+      } else {
+        formData.repeat = quickAdd?.repeat ?? null;
       }
     }
 
@@ -151,9 +183,19 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       setDescription('');
       setStatus('To Do');
       setDueDate('');
+      setRepeatChoice('');
       setKeptAsText(null);
     }
   };
+
+  // The Repeat field's choices, plus the task's own repeat when it isn't one
+  // of them ("every 3 days" from quick add)
+  const ownRepeat = parseRepeatValue(repeatChoice);
+  const repeatOptions =
+    ownRepeat && !REPEAT_CHOICES.some(choice => choice.value === repeatChoice)
+      ? [...REPEAT_CHOICES, { value: repeatChoice, label: describeRepeat(ownRepeat) }]
+      : REPEAT_CHOICES;
+  const quickAddRepeat = quickAdd?.repeat ? parseRepeatValue(quickAdd.repeat) : null;
 
   // Generate a unique key for the form to force re-render when switching between new task and edit mode
   const formKey = selectedTask ? `edit-${selectedTask.id}` : parentId ? `new-subtask-${parentId}` : 'new-task';
@@ -249,6 +291,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
               </svg>
               <span>
                 Due <strong>{describeDueDate(quickAdd.dueDate)}</strong>
+                {quickAddRepeat && <> · Repeats {describeRepeat(quickAddRepeat, quickAdd.dueDate).replace(/^E/, 'e')}</>}
                 {quickAdd.timeText && <> · {quickAdd.timeText} goes in the description</>}
               </span>
               <button type="button" className="quick-add-keep" onClick={() => setKeptAsText(quickAdd.matchedText)}>
@@ -274,15 +317,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
               <path d={detailsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
             </svg>
           </button>
-          {!parentId && onOpenTemplates && (
-            <button type="button" className="task-form-extra" onClick={onOpenTemplates}>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="4" y="3.5" width="16" height="17" rx="2" />
-                <path d="M8 8h8M8 12h8M8 16h5" />
-              </svg>
-              From a template
-            </button>
-          )}
         </div>
       )}
 
@@ -340,6 +374,28 @@ export const TaskForm: React.FC<TaskFormProps> = ({
             className="form-input"
           />
         </div>
+
+        {!isSubtaskForm && (
+          <div className="form-group">
+            <label htmlFor="task-repeat">Repeat</label>
+            <select
+              id="task-repeat"
+              value={repeatChoice}
+              onChange={(e) => setRepeatChoice(e.target.value)}
+              className="form-input"
+              aria-describedby={repeatChoice ? 'task-repeat-note' : undefined}
+            >
+              {repeatOptions.map(choice => (
+                <option key={choice.value} value={choice.value}>{choice.label}</option>
+              ))}
+            </select>
+            {repeatChoice && (
+              <p id="task-repeat-note" className="task-repeat-note">
+                {dueDate ? 'When it’s done, the next one is added' : 'Due today, then the next one is added when it’s done'}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="form-actions">

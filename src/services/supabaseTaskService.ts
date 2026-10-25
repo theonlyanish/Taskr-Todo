@@ -12,7 +12,8 @@ const OPTIONAL_COLUMNS: Record<string, string> = {
   position: 'Task order is saved on this device only until the task_position migration is run.',
   started_at: 'Stats are kept on this device only until the task_status_times migration is run.',
   completed_at: 'Stats are kept on this device only until the task_status_times migration is run.',
-  list_id: 'Which list each task is in is kept on this device only until the task_lists migration is run.'
+  list_id: 'Which list each task is in is kept on this device only until the task_lists migration is run.',
+  repeat: 'Repeating tasks repeat on this device only until the task_repeat migration is run.'
 };
 const missingColumns = new Set<string>();
 
@@ -56,7 +57,8 @@ const toRow = (task: Omit<Task, 'createdAt' | 'updatedAt'>, userId: string) => (
   subtasks: task.subtasks && task.subtasks.length > 0 ? task.subtasks : [],
   ...(task.startedAt ? { started_at: isoOrNull(task.startedAt) } : {}),
   ...(task.completedAt ? { completed_at: isoOrNull(task.completedAt) } : {}),
-  ...(task.listId ? { list_id: task.listId } : {})
+  ...(task.listId ? { list_id: task.listId } : {}),
+  ...(task.repeat ? { repeat: task.repeat } : {})
 });
 
 // Set once the server says the tasks table has no deleted_at column yet (the
@@ -95,6 +97,11 @@ export class SupabaseTaskService {
     return !missingColumns.has('list_id');
   }
 
+  // False until the task_repeat migration has run (this device's copy says)
+  static storesRepeats(): boolean {
+    return !missingColumns.has('repeat');
+  }
+
   // Save many new tasks (with nested subtasks) for the signed-in user, e.g. an
   // import. Parents go in before subtasks because parent_id references them.
   // Unlike saveTask this throws, so the caller can tell the user what failed;
@@ -131,6 +138,7 @@ export class SupabaseTaskService {
       if (error) throw Object.assign(error, { status });
       // Rows without a list_id key: the task_lists migration hasn't run
       if (data.length > 0 && !('list_id' in data[0])) missingColumns.add('list_id');
+      if (data.length > 0 && !('repeat' in data[0])) missingColumns.add('repeat');
 
       // Convert all tasks to our Task type
       // Leaving out tasks in Recently deleted
@@ -199,6 +207,7 @@ export class SupabaseTaskService {
     if (updates.startedAt !== undefined) updateData.started_at = isoOrNull(updates.startedAt);
     if (updates.completedAt !== undefined) updateData.completed_at = isoOrNull(updates.completedAt);
     if (updates.listId !== undefined) updateData.list_id = updates.listId || null;
+    if (updates.repeat !== undefined) updateData.repeat = updates.repeat || null;
     updateData.updated_at = new Date().toISOString();
 
     const send = (data: Record<string, any>) =>
@@ -235,6 +244,17 @@ export class SupabaseTaskService {
       .delete()
       .eq('id', taskId)
       .eq('user_id', userId); // Only delete if the task belongs to the user
+    if (error) throw Object.assign(error, { status });
+  }
+
+  // Removes a task for good without passing through Recently deleted, e.g. the
+  // next one of a repeating task when its completion is undone
+  static async discardTaskOrThrow(taskId: string, userId: string): Promise<void> {
+    const { error, status } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('user_id', userId)
+      .or(`id.eq.${taskId},parent_id.eq.${taskId}`);
     if (error) throw Object.assign(error, { status });
   }
 
