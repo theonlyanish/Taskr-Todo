@@ -19,6 +19,8 @@ import { useLiveSync } from './utils/liveSync';
 import { useOutboxSize } from './utils/useOutboxSize';
 import { useDueReminders } from './utils/reminders';
 import { initialStatusTimes, withStatusTimes } from './utils/statusTimes';
+import { useTaskLists } from './utils/useTaskLists';
+import { DEFAULT_LIST_ID, forgetLists, listOf, openTaskCounts, storedListId, tasksInList } from './utils/taskLists';
 import { TemplatePicker } from './components/TemplatePicker';
 import { TemplateService } from './services/templateService';
 import {
@@ -36,6 +38,8 @@ import { AccountMenu } from './components/AccountMenu';
 import { DeleteAccountDialog, DeleteAccountState } from './components/DeleteAccountDialog';
 import { DevicesDialog } from './components/DevicesDialog';
 import { StatsDialog } from './components/StatsDialog';
+import { ListMenu } from './components/ListMenu';
+import { ListsDialog } from './components/ListsDialog';
 import { RecentlyDeletedDialog } from './components/RecentlyDeletedDialog';
 import { BulkActionBar } from './components/BulkActionBar';
 import { ShortcutsDialog } from './components/ShortcutsDialog';
@@ -211,6 +215,7 @@ function App() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showDevices, setShowDevices] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [listsDialog, setListsDialog] = useState<'new' | 'manage' | null>(null);
   // The list view's Completed section folded away, remembered on this device
   const [completedCollapsed, setCompletedCollapsed] = useState(() => {
     try {
@@ -305,14 +310,18 @@ function App() {
     const fresh = await SupabaseTaskService.getTasks();
     const cached = await offlineStorage.getAccountTasks(userId);
     if (!cached?.length) return fresh;
-    const cachedPositions = new Map(
-      cached.filter(task => task.position !== undefined).map(task => [task.id, task.position])
-    );
-    return fresh.map(task =>
-      task.position === undefined && cachedPositions.has(task.id)
-        ? { ...task, position: cachedPositions.get(task.id) }
-        : task
-    );
+    const cachedById = new Map(cached.map(task => [task.id, task]));
+    // Until the task_lists migration runs, the server can't say which list a task is in
+    const listsFromCache = !SupabaseTaskService.storesListIds();
+    return fresh.map(task => {
+      const copy = cachedById.get(task.id);
+      if (!copy) return task;
+      return {
+        ...task,
+        position: task.position === undefined ? copy.position : task.position,
+        listId: listsFromCache ? copy.listId : task.listId
+      };
+    });
   };
 
   // A signed-in write that failed because Supabase couldn't be reached goes in
@@ -342,6 +351,7 @@ function App() {
     onTabChange: () => {
       reloadFromDevice().catch(error => console.error('Reading tasks saved by another tab failed:', error));
       setSavedTemplates(loadSavedTemplates(userRef.current?.id));
+      taskLists.reloadFromDevice();
     },
     onDeviceChange: () => {
       const signedIn = userRef.current;
@@ -351,8 +361,25 @@ function App() {
         reportCloudError(error);
       });
       refreshTemplatesRef.current(signedIn.id);
+      taskLists.refresh(signedIn.id);
     }
   });
+
+  // Lists (Work, Home, a trip) and the one showing; every view shows only its
+  // tasks, while search, stats and reminders cover all of them
+  const taskLists = useTaskLists({ userId: user?.id, queueIfOffline, announceChange });
+  const { lists, currentListId } = taskLists;
+  const listTasks = tasksInList(tasks, currentListId, lists);
+  // Switched to another list: close a task left open from the last one
+  useEffect(() => {
+    setSelectedTask(current => {
+      if (!current) return current;
+      const top = current.isSubtask ? findTaskById(tasksRef.current, current.parentId ?? '') ?? current : current;
+      return listOf(top, new Set(lists.map(list => list.id))) === currentListId ? current : null;
+    });
+    // Only on switching; the lists themselves change identity every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentListId]);
 
   // The account's saved templates from the server. Guest templates made before
   // signing in are added to the account once. Offline, or until the
@@ -451,6 +478,7 @@ function App() {
       createdAt: new Date(now),
       updatedAt: new Date(now),
       isSubtask: false,
+      listId: storedListId(currentListId),
       subtasks
     };
 
@@ -718,8 +746,13 @@ function App() {
       }
     }
     
+    const isSubtask = !!(subtaskParentId || taskData.parentId);
+    const listId = isSubtask ? undefined : taskData.listId !== undefined ? taskData.listId : storedListId(currentListId);
+    // Added to another list from the form: show that list
+    if (!isSubtask && (listId ?? DEFAULT_LIST_ID) !== currentListId) taskLists.switchTo(listId ?? DEFAULT_LIST_ID);
     const newTask: Task = {
       ...taskData,
+      listId,
       status,
       ...initialStatusTimes(status, now),
       id: crypto.randomUUID(),
@@ -781,6 +814,9 @@ function App() {
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
     offerReminders(updates.dueDate);
+    if (updates.listId !== undefined && (updates.listId ?? DEFAULT_LIST_ID) !== currentListId) {
+      taskLists.switchTo(updates.listId ?? DEFAULT_LIST_ID);
+    }
     try {
       // The latest list, not the `tasks` this render started with: a second
       // change made before React re-renders (two checkboxes ticked quickly)
@@ -1106,7 +1142,7 @@ function App() {
       ? (['To Do', 'In Progress'] as TaskStatus[])
       : (['To Do', 'In Progress', 'Completed'] as TaskStatus[])
     ).flatMap(status =>
-      sortByOrder(tasks.filter(task => !task.isSubtask && task.status === status))
+      sortByOrder(listTasks.filter(task => !task.isSubtask && task.status === status))
     );
 
   // Ctrl/⌘-click picks or unpicks a task, Shift-click picks everything between
@@ -1156,7 +1192,55 @@ function App() {
     deleteTasksWithUndo(ids);
   };
 
-  const completedTaskIds = tasks.filter(task => !task.isSubtask && task.status === 'Completed').map(task => task.id);
+  // Every top-level task in a list, done or not
+  const taskIdsInList = (listId: string) => {
+    const knownIds = new Set(lists.map(list => list.id));
+    return tasksRef.current.filter(task => !task.isSubtask && listOf(task, knownIds) === listId).map(task => task.id);
+  };
+  const taskCountsByList = Object.fromEntries(lists.map(list => [list.id, taskIdsInList(list.id).length]));
+
+  // Put tasks (with their subtasks, which follow them) in another list
+  const moveTasksToList = async (taskIds: string[], listId: string) => {
+    const ids = new Set(taskIds);
+    const listValue = storedListId(listId);
+    const now = new Date();
+    const moved: Task[] = [];
+    const nextTasks = tasksRef.current.map(task => {
+      if (!ids.has(task.id)) return task;
+      const updated = { ...task, listId: listValue, updatedAt: now };
+      moved.push(updated);
+      return updated;
+    });
+    if (moved.length === 0) return;
+    tasksRef.current = nextTasks;
+    setTasks(nextTasks);
+    const userId = user?.id;
+    if (userId) {
+      for (const task of moved) {
+        try {
+          await SupabaseTaskService.updateTask(task.id, task);
+        } catch (error) {
+          if (!(await queueIfOffline(error, userId, { type: 'update', task }))) {
+            console.error('Moving the task failed:', error);
+          }
+        }
+      }
+    }
+    await saveOnDevice(nextTasks, userId);
+    announceChange();
+  };
+
+  // Deleting a list moves its tasks to Personal, or deletes them (with undo)
+  const handleDeleteList = (listId: string, deleteTasks: boolean) => {
+    const ids = taskIdsInList(listId);
+    if (ids.length > 0) {
+      if (deleteTasks) deleteTasksWithUndo(ids);
+      else moveTasksToList(ids, DEFAULT_LIST_ID);
+    }
+    taskLists.deleteList(listId);
+  };
+
+  const completedTaskIds = listTasks.filter(task => !task.isSubtask && task.status === 'Completed').map(task => task.id);
   const handleClearCompleted = () => deleteTasksWithUndo(completedTaskIds);
 
   // What every section of the list view shares
@@ -1294,6 +1378,8 @@ function App() {
     if (waiting === 0) {
       await offlineStorage.clearAccountTasks(userId);
       await discardOutbox(userId);
+      // Kept with the tasks copy while changes wait, since tasks refer to them
+      forgetLists(userId);
     }
     forgetSavedTemplates(userId);
     setSavedTemplates(loadSavedTemplates());
@@ -1311,6 +1397,7 @@ function App() {
       if ((await outboxSize(userId)) === 0) {
         await offlineStorage.clearAccountTasks(userId);
         forgetSavedTemplates(userId);
+        forgetLists(userId);
       }
     }
   };
@@ -1376,6 +1463,7 @@ function App() {
       await offlineStorage.clearAccountTasks(account.id);
       await discardOutbox(account.id);
       forgetSavedTemplates(account.id);
+      forgetLists(account.id);
       setSavedTemplates(loadSavedTemplates());
     } catch (error) {
       console.error('Clearing the deleted account from this device failed:', error);
@@ -1398,6 +1486,8 @@ function App() {
     if (parent) setSubtasksExpanded(parent.id, true);
     // A completed task is hidden while that section is folded away
     if ((parent ?? task).status === 'Completed') setCompletedCollapsed(false);
+    const taskList = listOf(parent ?? task, new Set(lists.map(list => list.id)));
+    if (taskList !== currentListId) taskLists.switchTo(taskList);
     handleTaskSelect(task);
     // On narrow screens revealTaskForm already scrolls to the form instead
     if (window.matchMedia(STACKED_LAYOUT_QUERY).matches) return;
@@ -1444,7 +1534,7 @@ function App() {
           status: 'error',
           fileName: file.name,
           title: 'Nothing new to import',
-          message: 'Everything in this file is already in your list.'
+          message: 'Everything in this file is already in Taskr.'
         });
         return;
       }
@@ -1459,9 +1549,10 @@ function App() {
     if (importState?.status !== 'preview') return;
     const { fileName, result } = importState;
     setImportState({ status: 'saving', fileName, result });
+    const imported = result.tasks.map(task => ({ ...task, listId: storedListId(currentListId) }));
     try {
-      await SupabaseTaskService.saveTasks(result.tasks);
-      setTasks(current => [...current, ...result.tasks]);
+      await SupabaseTaskService.saveTasks(imported);
+      setTasks(current => [...current, ...imported]);
       setImportState({ status: 'done', fileName, result });
       announceChange();
     } catch (error) {
@@ -1483,7 +1574,7 @@ function App() {
       openAuth('Sign in to export your tasks as a Markdown file.');
       return;
     }
-    const blob = new Blob([toMarkdown(tasks)], { type: 'text/markdown;charset=utf-8' });
+    const blob = new Blob([toMarkdown(tasks, new Date(), lists)], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -1633,6 +1724,34 @@ function App() {
           run: () => setShowDevices(true)
         }]
       : []),
+    ...lists
+      .filter(list => list.id !== currentListId)
+      .map(list => ({
+        id: `list-${list.id}`,
+        group: 'Actions' as const,
+        label: `Switch to ${list.name}`,
+        hint: 'List',
+        keywords: 'list project go open change board',
+        run: () => taskLists.switchTo(list.id)
+      })),
+    {
+      id: 'new-list',
+      group: 'Actions',
+      label: 'New list',
+      hint: 'List',
+      keywords: 'create add project board folder',
+      run: () => setListsDialog('new')
+    },
+    ...(lists.length > 1
+      ? [{
+          id: 'manage-lists',
+          group: 'Actions' as const,
+          label: 'Rename or delete lists',
+          hint: 'List',
+          keywords: 'list project edit colour color remove',
+          run: () => setListsDialog('manage')
+        }]
+      : []),
     {
       id: 'stats',
       group: 'Actions',
@@ -1705,15 +1824,18 @@ function App() {
     // Every task and subtask, so the palette doubles as search
     ...tasks
       .filter(task => !task.isSubtask)
-      .flatMap(task => [task, ...(task.subtasks || [])])
-      .map(task => ({
-        id: `task-${task.id}`,
-        group: 'Tasks' as const,
-        label: task.title,
-        hint: task.isSubtask ? `Subtask · ${task.status}` : task.status,
-        keywords: task.description,
-        run: () => jumpToTask(task)
-      }))
+      .flatMap(parent => {
+        const knownIds = new Set(lists.map(list => list.id));
+        const listName = lists.length > 1 ? lists.find(list => list.id === listOf(parent, knownIds))?.name : undefined;
+        return [parent, ...(parent.subtasks || [])].map(task => ({
+          id: `task-${task.id}`,
+          group: 'Tasks' as const,
+          label: task.title,
+          hint: [listName, task.isSubtask ? `Subtask · ${task.status}` : task.status].filter(Boolean).join(' · '),
+          keywords: task.description,
+          run: () => jumpToTask(task)
+        }));
+      })
   ];
 
   // Tasks created from the palette are always top level and start in To Do
@@ -1745,6 +1867,14 @@ function App() {
           <div className="header">
             <img src="/Logo.png" alt="" />
             <h1>Taskr</h1>
+            <ListMenu
+              lists={lists}
+              currentListId={currentListId}
+              counts={openTaskCounts(tasks, lists)}
+              onSwitch={taskLists.switchTo}
+              onNewList={() => setListsDialog('new')}
+              onManage={() => setListsDialog('manage')}
+            />
           </div>
           <div className="header-controls">
             <button
@@ -1874,21 +2004,21 @@ function App() {
                 
                 <TaskSection
                   title="To Do"
-                  tasks={tasks.filter(task => task.status === 'To Do')}
+                  tasks={listTasks.filter(task => task.status === 'To Do')}
                   emptyText="Nothing waiting. New tasks start here."
                   {...listProps}
                 />
                 <TaskSection
                   title="In Progress"
                   className="in-progress-section"
-                  tasks={tasks.filter(task => task.status === 'In Progress')}
+                  tasks={listTasks.filter(task => task.status === 'In Progress')}
                   emptyText="Nothing in progress. Set a task to In Progress when you start it."
                   {...listProps}
                 />
                 <TaskSection
                   title="Completed"
                   className="completed-section"
-                  tasks={tasks.filter(task => task.status === 'Completed')}
+                  tasks={listTasks.filter(task => task.status === 'Completed')}
                   emptyText="Nothing done yet. Tick a task to complete it."
                   collapsed={completedCollapsed}
                   onToggleCollapsed={() => setCompletedCollapsed(collapsed => !collapsed)}
@@ -1908,6 +2038,8 @@ function App() {
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
                   parentId={newSubtaskParentId}
+                  lists={lists}
+                  currentListId={currentListId}
                 />
               </div>
             </>
@@ -1915,7 +2047,7 @@ function App() {
           {viewType === 'kanban' && (
             <>
               <KanbanView
-                tasks={tasks}
+                tasks={listTasks}
                 onTaskSelect={handleTaskSelect}
                 onTaskUpdate={handleTaskUpdate}
                 onReorder={handleTaskReorder}
@@ -1936,6 +2068,8 @@ function App() {
                   onUpdate={handleTaskUpdate}
                   onDelete={handleTaskDelete}
                   parentId={newSubtaskParentId}
+                  lists={lists}
+                  currentListId={currentListId}
                 />
               </div>
             </>
@@ -1943,7 +2077,7 @@ function App() {
           {viewType === 'calendar' && (
             <>
               <CalendarView
-                tasks={tasks}
+                tasks={listTasks}
                 onTaskSelect={handleTaskSelect}
                 onTaskUpdate={handleTaskUpdate}
                 selectedTaskId={selectedTask?.id}
@@ -1963,6 +2097,8 @@ function App() {
                   onDelete={handleTaskDelete}
                   initialDueDate={selectedDate}
                   parentId={newSubtaskParentId}
+                  lists={lists}
+                  currentListId={currentListId}
                 />
               </div>
             </>
@@ -2028,10 +2164,26 @@ function App() {
             onClose={() => setShowRecentlyDeleted(false)}
           />
         )}
+        {listsDialog && (
+          <ListsDialog
+            mode={listsDialog}
+            lists={lists}
+            taskCounts={taskCountsByList}
+            onCreate={(name, color) => {
+              taskLists.createList(name, color);
+              setListsDialog(null);
+            }}
+            onUpdate={taskLists.updateList}
+            onDelete={handleDeleteList}
+            onModeChange={setListsDialog}
+            onClose={() => setListsDialog(null)}
+          />
+        )}
         {showStats && (
           <StatsDialog
             tasks={tasks}
             isSignedIn={!!user}
+            listCount={lists.length}
             onOpenTask={jumpToTask}
             onClose={() => setShowStats(false)}
           />

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Task, TaskStatus } from '../types/Task';
 import { describeDueDate, parseQuickAdd, useQuickAdd } from '../utils/quickAdd';
 import { FOCUS_LENGTHS } from '../utils/focusTimer';
+import { DEFAULT_LIST_ID, TaskList, listOf, storedListId } from '../utils/taskLists';
 
 // Define the interface for TaskFormProps
 export interface TaskFormProps {
@@ -17,6 +18,9 @@ export interface TaskFormProps {
   // Templates: save this task as one, or open the picker to start from one
   onSaveTemplate?: (task: Task) => Promise<'saved' | 'exists'>;
   onOpenTemplates?: () => void;
+  // The user's lists, and the one showing (where new tasks go by default)
+  lists?: TaskList[];
+  currentListId?: string;
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({
@@ -29,7 +33,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   focusTaskId,
   onStartFocus,
   onSaveTemplate,
-  onOpenTemplates
+  onOpenTemplates,
+  lists = [],
+  currentListId = DEFAULT_LIST_ID
 }) => {
   // "Saved as a template" after saving, until another task is opened
   const [templateNotice, setTemplateNotice] = useState<string | null>(null);
@@ -38,6 +44,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('To Do');
   const [dueDate, setDueDate] = useState<string>('');
+  // Which list the task goes in; only asked once there's more than one, and
+  // only for top-level tasks (subtasks follow their parent)
+  const [listId, setListId] = useState(currentListId);
+  const isSubtaskForm = !!parentId || !!selectedTask?.isSubtask;
+  const showListField = lists.length > 1 && !isSubtaskForm;
   const titleInputRef = useRef<HTMLInputElement>(null);
   const quickAddReady = useQuickAdd();
   // A date phrase the user chose to keep as plain text ("Keep as text")
@@ -61,15 +72,19 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       setDescription(selectedTask.description || '');
       setStatus(selectedTask.status);
       setDueDate(selectedTask.dueDate ? new Date(selectedTask.dueDate).toISOString().split('T')[0] : '');
+      setListId(listOf(selectedTask, new Set(lists.map(list => list.id))));
     } else {
       setTitle('');
       setDescription('');
       setStatus('To Do');
       setDueDate(initialDueDate ? new Date(initialDueDate).toISOString().split('T')[0] : '');
+      setListId(currentListId);
       // Focus the title input when creating a new task
       titleInputRef.current?.focus({ preventScroll: true });
     }
-  }, [selectedTask, initialDueDate]);
+    // Lists only matter for which one is picked; a new list doesn't reset the form
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTask, initialDueDate, currentListId]);
 
   // Function to handle form submission
   const handleSubmit = (e: React.FormEvent) => {
@@ -80,7 +95,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       description,
       status,
       dueDate: dueDate ? new Date(dueDate) : undefined,
-      parentId: parentId || undefined
+      parentId: parentId || undefined,
+      ...(showListField ? { listId: storedListId(listId) } : {})
     };
 
     // Use the date read from the title; Taskr has no due times, so keep any
@@ -219,6 +235,22 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           <option value="Completed">Completed</option>
         </select>
       </div>
+
+      {showListField && (
+        <div className="form-group">
+          <label htmlFor="task-list">List</label>
+          <select
+            id="task-list"
+            value={listId}
+            onChange={(e) => setListId(e.target.value)}
+            className="form-input"
+          >
+            {lists.map(list => (
+              <option key={list.id} value={list.id}>{list.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="form-group">
         <label htmlFor="task-due-date">Due date</label>

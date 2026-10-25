@@ -1,6 +1,7 @@
 import { offlineStorage, OutboxChange } from '../utils/offlineStorage';
 import { SupabaseTaskService } from './supabaseTaskService';
 import { TemplateService } from './templateService';
+import { ListService } from './listService';
 import { isSupabaseUnavailable } from './supabaseErrors';
 
 // Signed-in changes that couldn't reach Supabase (offline, or the project
@@ -58,6 +59,10 @@ const apply = (change: OutboxChange, userId: string): Promise<unknown> => {
       return TemplateService.add(change.template, userId);
     case 'template-delete':
       return TemplateService.remove(change.templateId, userId);
+    case 'list-save':
+      return ListService.save(change.list, userId);
+    case 'list-delete':
+      return ListService.remove(change.listId, userId);
   }
 };
 

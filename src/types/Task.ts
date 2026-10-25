@@ -16,6 +16,9 @@ export interface Task {
   startedAt?: Date | null;
   completedAt?: Date | null;
   parentId?: string;
+  // Which of the user's lists it's in (utils/taskLists); none means Personal.
+  // Only top-level tasks have one: subtasks go wherever their parent is.
+  listId?: string | null;
   isSubtask?: boolean;
   subtasks?: Task[];
 }

@@ -11,7 +11,8 @@ const isoOrNull = (date: Date | null | undefined) => (date ? new Date(date).toIS
 const OPTIONAL_COLUMNS: Record<string, string> = {
   position: 'Task order is saved on this device only until the task_position migration is run.',
   started_at: 'Stats are kept on this device only until the task_status_times migration is run.',
-  completed_at: 'Stats are kept on this device only until the task_status_times migration is run.'
+  completed_at: 'Stats are kept on this device only until the task_status_times migration is run.',
+  list_id: 'Which list each task is in is kept on this device only until the task_lists migration is run.'
 };
 const missingColumns = new Set<string>();
 
@@ -54,7 +55,8 @@ const toRow = (task: Omit<Task, 'createdAt' | 'updatedAt'>, userId: string) => (
   is_subtask: task.isSubtask || false,
   subtasks: task.subtasks && task.subtasks.length > 0 ? task.subtasks : [],
   ...(task.startedAt ? { started_at: isoOrNull(task.startedAt) } : {}),
-  ...(task.completedAt ? { completed_at: isoOrNull(task.completedAt) } : {})
+  ...(task.completedAt ? { completed_at: isoOrNull(task.completedAt) } : {}),
+  ...(task.listId ? { list_id: task.listId } : {})
 });
 
 // Set once the server says the tasks table has no deleted_at column yet (the
@@ -87,6 +89,12 @@ export interface DeletedTask {
 const BULK_INSERT_SIZE = 200;
 
 export class SupabaseTaskService {
+  // False until the task_lists migration has run: the server can't say which
+  // list a task is in, so this device's copy does
+  static storesListIds(): boolean {
+    return !missingColumns.has('list_id');
+  }
+
   // Save many new tasks (with nested subtasks) for the signed-in user, e.g. an
   // import. Parents go in before subtasks because parent_id references them.
   // Unlike saveTask this throws, so the caller can tell the user what failed;
@@ -121,7 +129,9 @@ export class SupabaseTaskService {
         .order('created_at', { ascending: false });
 
       if (error) throw Object.assign(error, { status });
-      
+      // Rows without a list_id key: the task_lists migration hasn't run
+      if (data.length > 0 && !('list_id' in data[0])) missingColumns.add('list_id');
+
       // Convert all tasks to our Task type
       // Leaving out tasks in Recently deleted
       const allTasks = data.filter(row => !row.deleted_at).map(toTask);
@@ -188,6 +198,7 @@ export class SupabaseTaskService {
     if (updates.position !== undefined) updateData.position = updates.position;
     if (updates.startedAt !== undefined) updateData.started_at = isoOrNull(updates.startedAt);
     if (updates.completedAt !== undefined) updateData.completed_at = isoOrNull(updates.completedAt);
+    if (updates.listId !== undefined) updateData.list_id = updates.listId || null;
     updateData.updated_at = new Date().toISOString();
 
     const send = (data: Record<string, any>) =>

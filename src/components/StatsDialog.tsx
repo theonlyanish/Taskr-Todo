@@ -5,6 +5,8 @@ import { computeStats, formatDuration } from '../utils/stats';
 interface StatsDialogProps {
   tasks: Task[];
   isSignedIn: boolean;
+  // How many lists the tasks come from (the footnote says when it's all of them)
+  listCount?: number;
   onOpenTask: (task: Task) => void;
   onClose: () => void;
 }
@@ -15,7 +17,7 @@ const weekLabel = (start: Date) => start.toLocaleDateString(undefined, { day: 'n
 
 // Tasks done per week, the current streak and how long tasks take once
 // started, worked out from the task list (utils/stats)
-export const StatsDialog: React.FC<StatsDialogProps> = ({ tasks, isSignedIn, onOpenTask, onClose }) => {
+export const StatsDialog: React.FC<StatsDialogProps> = ({ tasks, isSignedIn, listCount = 1, onOpenTask, onClose }) => {
   const stats = useMemo(() => computeStats(tasks, new Date()), [tasks]);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -149,7 +151,7 @@ export const StatsDialog: React.FC<StatsDialogProps> = ({ tasks, isSignedIn, onO
         )}
 
         <p className="stats-footnote">
-          From the tasks {isSignedIn ? 'in your account' : 'on this device'}. Tasks count, not subtasks, and
+          From {listCount > 1 ? 'all your lists' : 'the tasks'} {isSignedIn ? 'in your account' : 'on this device'}. Tasks count, not subtasks, and
           deleted tasks are left out.
           {stats.approximate && ' Tasks finished before stats were added use the time they were last edited.'}
         </p>

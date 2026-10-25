@@ -1,5 +1,6 @@
 import { Task } from '../types/Task';
 import type { TaskTemplate } from './templates';
+import type { TaskList } from './taskLists';
 
 const DB_NAME = 'TaskrDB';
 // Version 2 added the account cache and outbox stores
@@ -22,7 +23,9 @@ export type OutboxChange =
   | { type: 'update'; task: Task }
   | { type: 'delete'; taskId: string }
   | { type: 'template-add'; template: TaskTemplate }
-  | { type: 'template-delete'; templateId: string };
+  | { type: 'template-delete'; templateId: string }
+  | { type: 'list-save'; list: TaskList }
+  | { type: 'list-delete'; listId: string };
 
 export interface OutboxEntry {
   seq?: number; // assigned by IndexedDB, keeps changes in the order they were made

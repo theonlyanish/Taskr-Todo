@@ -10,6 +10,7 @@ Switch between a Kanban board, a Calendar and a simple list to see the same task
 
 ## Features
 
+- Lists to keep separate sets of tasks (Work, Home, a trip), each with its own List, Board and Calendar views, switched from a menu beside the logo or Ctrl+K; works without an account
 - Kanban board with drag and drop between To Do, In Progress and Done
 - Calendar view to see tasks by due date
 - List view for a plain, fast checklist

@@ -1,4 +1,5 @@
 import { Task, TaskStatus } from '../types/Task';
+import { TaskList, listOf, withPersonal } from './taskLists';
 
 // Import from a Todoist CSV export or any CSV with a title column, and
 // export to Markdown. Kept free of React and storage so it can be tested alone.
@@ -325,20 +326,36 @@ const markdownItem = (task: Task, indent: string): string[] => {
   return lines;
 };
 
-// GitHub-style task lists, grouped by status
-export const toMarkdown = (tasks: Task[], exportedAt = new Date()): string => {
+const statusSections = (topLevel: Task[], heading: string): string[] => {
+  const lines: string[] = [];
+  for (const status of ['To Do', 'In Progress', 'Completed'] as TaskStatus[]) {
+    const inSection = topLevel.filter(task => task.status === status);
+    lines.push('', `${heading} ${status} (${inSection.length})`, '');
+    if (inSection.length === 0) lines.push('_Nothing here._');
+    for (const task of inSection) lines.push(...markdownItem(task, ''));
+  }
+  return lines;
+};
+
+// GitHub-style task lists, grouped by status, and first by list when there's
+// more than one (lists with no tasks are left out)
+export const toMarkdown = (tasks: Task[], exportedAt = new Date(), lists: TaskList[] = []): string => {
   const topLevel = tasks.filter(task => !task.isSubtask);
-  const sections: TaskStatus[] = ['To Do', 'In Progress', 'Completed'];
   const lines = [
     '# Taskr tasks',
     '',
     `Exported ${exportedAt.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}`
   ];
-  for (const status of sections) {
-    const inSection = topLevel.filter(task => task.status === status);
-    lines.push('', `## ${status} (${inSection.length})`, '');
-    if (inSection.length === 0) lines.push('_Nothing here._');
-    for (const task of inSection) lines.push(...markdownItem(task, ''));
+  const allLists = withPersonal(lists);
+  if (allLists.length === 1) {
+    lines.push(...statusSections(topLevel, '##'));
+  } else {
+    const knownIds = new Set(allLists.map(list => list.id));
+    for (const list of allLists) {
+      const inList = topLevel.filter(task => listOf(task, knownIds) === list.id);
+      if (inList.length === 0) continue;
+      lines.push('', `## ${list.name}`, ...statusSections(inList, '###'));
+    }
   }
   return `${lines.join('\n')}\n`;
 };
