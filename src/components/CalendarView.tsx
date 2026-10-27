@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Task } from '../types/Task';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -21,6 +21,13 @@ interface CalendarViewProps {
 const toUtcDate = (date: Date) =>
   new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
 
+const calendarDay = (date: Date) => toUtcDate(date).toISOString().slice(0, 10);
+const dueDay = (date: Date) => new Date(date).toISOString().slice(0, 10);
+const PHONE_QUERY = '(max-width: 600px)';
+// "Wednesday, 28 October 2026" in the user's own date format
+const longDate = (date: Date) =>
+  date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
 export const CalendarView: React.FC<CalendarViewProps> = ({
   tasks,
   onTaskSelect,
@@ -33,6 +40,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const calendarRef = useRef<any>(null);
   const selectedDateRef = useRef<string | null>(null);
   const unscheduledRef = useRef<HTMLDivElement>(null);
+  const [isPhone, setIsPhone] = useState(() => window.matchMedia?.(PHONE_QUERY).matches ?? false);
+  const [selectedDay, setSelectedDay] = useState(() => calendarDay(new Date()));
+  const mobileMonth = isPhone && layout === 'dayGridMonth';
+
+  useEffect(() => {
+    const media = window.matchMedia?.(PHONE_QUERY);
+    if (!media) return;
+    const update = () => setIsPhone(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   // The layout can also change from outside, when the account's saved setting arrives
   useEffect(() => {
@@ -53,6 +72,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     ({ task }) => !task.dueDate && task.status !== 'Completed'
   );
   const hasUnscheduled = unscheduledTasks.length > 0;
+  const dayTasks = allTasks.filter(({ task }) => task.dueDate && dueDay(task.dueDate) === selectedDay);
+  // The selected day ("2026-10-28") as words, for its heading and screen readers
+  const selectedDayText = new Date(`${selectedDay}T00:00:00Z`).toLocaleDateString(undefined, {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'
+  });
+  // Group once per render rather than scan every task for each date cell.
+  const tasksByDay = new Map<string, typeof allTasks>();
+  allTasks.forEach(item => {
+    if (!item.task.dueDate) return;
+    const key = dueDay(item.task.dueDate);
+    const group = tasksByDay.get(key) ?? [];
+    group.push(item);
+    tasksByDay.set(key, group);
+  });
 
   const events = allTasks
     .filter(({ task }) => task.dueDate)
@@ -125,6 +158,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const handleDateClick = (info: { date: Date; dayEl: HTMLElement }) => {
+    if (mobileMonth) {
+      setSelectedDay(calendarDay(info.date));
+      return;
+    }
     if (onDateSelect) {
       // Remove previous selection
       if (selectedDateRef.current) {
@@ -156,7 +193,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }, []);
 
   return (
-    <div className="calendar-container">
+    <div className={`calendar-container${mobileMonth ? ' calendar-mobile-month' : ''}`}>
       {hasUnscheduled && (
         <div className="calendar-unscheduled">
           <div className="calendar-unscheduled-header">
@@ -194,7 +231,42 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView={layout}
-          datesSet={arg => onLayoutChange?.(arg.view.type as CalendarLayout)}
+          datesSet={arg => {
+            onLayoutChange?.(arg.view.type as CalendarLayout);
+            // Keep the day details in the month/week reached by navigation.
+            const start = calendarDay(arg.view.currentStart);
+            const end = calendarDay(arg.view.currentEnd);
+            setSelectedDay(current => current < start || current >= end ? start : current);
+          }}
+          dayCellClassNames={arg => mobileMonth && calendarDay(arg.date) === selectedDay ? ['mobile-selected-date'] : []}
+          dayCellContent={arg => {
+            // Keep React owning the cell content across breakpoint changes;
+            // removing the renderer leaves FullCalendar's old portal behind.
+            if (!mobileMonth) return <>{arg.dayNumberText}</>;
+            const key = calendarDay(arg.date);
+            const items = tasksByDay.get(key) ?? [];
+            // FullCalendar always wraps this in its day-number <a>. It has no
+            // href, so browsers and screen readers treat it as a plain wrapper
+            // and this button is what's announced and pressed.
+            return (
+              <button
+                type="button"
+                className="calendar-mobile-day"
+                aria-pressed={key === selectedDay}
+                aria-label={`${longDate(arg.date)}, ${items.length} task${items.length === 1 ? '' : 's'}`}
+                onClick={event => {
+                  event.stopPropagation();
+                  setSelectedDay(key);
+                }}
+              >
+                <span>{arg.dayNumberText}</span>
+                <span className="calendar-mobile-marks" aria-hidden="true">
+                  {items.slice(0, 3).map(({ task }) => <span key={task.id} className="calendar-mobile-mark" data-status={task.status} />)}
+                  {items.length > 3 && <span className="calendar-mobile-extra">+{items.length - 3}</span>}
+                </span>
+              </button>
+            );
+          }}
           events={events}
           eventClick={handleEventClick}
           eventDidMount={handleEventDidMount}
@@ -213,11 +285,39 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           views={{ dayGridWeek: { dayMaxEvents: false } }}
           dayMaxEvents={3}
           eventDisplay="block"
-          height="100%"
+          height={mobileMonth ? 'auto' : '100%'}
           stickyHeaderDates={true}
           firstDay={0}
         />
       </div>
+      {mobileMonth && (
+        <section className="calendar-day-details" aria-labelledby="calendar-day-heading">
+          <div className="calendar-day-heading">
+            <h2 id="calendar-day-heading">{selectedDayText}</h2>
+            <span>{dayTasks.length} task{dayTasks.length === 1 ? '' : 's'}</span>
+          </div>
+          <div className="sr-only" role="status">{dayTasks.length} task{dayTasks.length === 1 ? '' : 's'} due on {selectedDayText}</div>
+          {dayTasks.length === 0 ? <p className="calendar-day-empty">No tasks due on this day.</p> : (
+            <ul className="calendar-day-tasks">
+              {dayTasks.map(({ task, parentTitle }) => (
+                <li key={task.id} className={`calendar-day-task${task.id === selectedTaskId ? ' selected' : ''}`} data-status={task.status}>
+                  <button type="button" role="checkbox" aria-checked={task.status === 'Completed'}
+                    aria-label={`${task.status === 'Completed' ? 'Reopen' : 'Complete'} “${task.title}”`}
+                    className={`task-checkbox${task.status === 'Completed' ? ' checked' : ''}`}
+                    onClick={() => onTaskUpdate(task.id, { status: task.status === 'Completed' ? 'To Do' : 'Completed' })}
+                  />
+                  <button type="button" className="calendar-day-task-content" onClick={() => onTaskSelect(task)}
+                    aria-current={task.id === selectedTaskId ? 'true' : undefined}>
+                    <span className="calendar-day-task-title">{task.title}</span>
+                    <span className="calendar-day-task-meta">{task.status}{parentTitle ? ` · Subtask of ${parentTitle}` : ''}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {onDateSelect && <button type="button" className="calendar-day-add" onClick={() => onDateSelect(new Date(`${selectedDay}T00:00:00Z`))}>+ Add task for this day</button>}
+        </section>
+      )}
     </div>
   );
 };

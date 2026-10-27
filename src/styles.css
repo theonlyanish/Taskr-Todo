@@ -2274,31 +2274,37 @@ flex: 0 0 auto;
 .calendar-container .fc-event.calendar-task-to-do {
   background-color: #f1c40f !important;
   border: 1px solid #f1c40f !important;
-  color: #000000 !important;
+  color: #18232b !important;
   margin: 2px 4px !important;
   padding: 2px 4px !important;
   border-radius: 4px !important;
 }
 
 .calendar-container .fc-event.calendar-task-in-progress {
-  background-color: #3498db !important;
-  border: 1px solid #3498db !important;
+  background-color: #246b99 !important;
+  border: 1px solid #246b99 !important;
   color: #ffffff !important;
   margin: 2px 4px !important;
   padding: 2px 4px !important;
   border-radius: 4px !important;
 }
 
-.calendar-container .fc-event.calendar-task-completed,
-.calendar-container .fc-event.calendar-task-completed .fc-event-title {
-  background-color: #2ecc71 !important;
-  border: 1px solid #2ecc71 !important;
+.calendar-container .fc-event.calendar-task-completed {
+  background-color: #19734a !important;
+  border: 1px solid #19734a !important;
   color: #ffffff !important;
   text-decoration: line-through !important;
-  opacity: 0.8 !important;
+  opacity: 1 !important;
   margin: 2px 4px !important;
   padding: 2px 4px !important;
   border-radius: 4px !important;
+}
+
+/* FullCalendar colours its inner text separately from the event container.
+   Inherit the status foreground in both themes, including subtasks. */
+.calendar-container .fc-event .fc-event-main,
+.calendar-container .fc-event .fc-event-title {
+  color: inherit !important;
 }
 
 .calendar-container .fc-event.calendar-task-to-do.selected,
@@ -2308,22 +2314,7 @@ flex: 0 0 auto;
   opacity: 1 !important;
 }
 
-/* Dark theme adjustments */
-.dark-theme .calendar-task-to-do {
-  background-color: #f1c40f !important;
-  color: #000000 !important;
-}
-
-.dark-theme .calendar-task-in-progress {
-  background-color: #3498db !important;
-  color: #ffffff !important;
-}
-
-.dark-theme .calendar-task-completed {
-  background-color: #2ecc71 !important;
-  color: #ffffff !important;
-}
-
+/* Status label colours above pass contrast in both themes. */
 .dark-theme .calendar-container .fc-day-today {
   background-color: rgba(61, 113, 153, 0.2) !important;
 }
@@ -2337,6 +2328,142 @@ flex: 0 0 auto;
 /* Event time formatting */
 .calendar-container .fc-event-time {
   display: none;
+}
+
+/* Mobile month calendar */
+.calendar-mobile-month .calendar-grid {
+  flex: none;
+  height: auto;
+  min-height: 0;
+}
+
+/* Phone month cells show task markers; the full titles live below the grid. */
+.calendar-mobile-month .fc-daygrid-day-events,
+.calendar-mobile-month .fc-daygrid-day-bottom {
+  display: none;
+}
+
+.calendar-mobile-month .fc-daygrid-day-top {
+  display: block;
+}
+
+.calendar-mobile-month .fc-daygrid-day-number {
+  display: block;
+  width: 100%;
+  padding: 0 !important;
+}
+
+.calendar-mobile-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 52px;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.fc-day-other .calendar-mobile-day {
+  color: var(--text-secondary);
+}
+
+.calendar-mobile-day[aria-pressed="true"] {
+  background: rgba(9, 132, 227, 0.12);
+  box-shadow: inset 0 0 0 2px var(--accent-color);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.dark-theme .calendar-mobile-day[aria-pressed="true"] {
+  background: rgba(61, 113, 153, 0.25);
+}
+
+.calendar-mobile-marks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-height: 4px;
+}
+
+.calendar-mobile-mark {
+  width: 7px;
+  height: 3px;
+  border-radius: 2px;
+  background: #c8a20c;
+}
+
+.calendar-mobile-mark[data-status="In Progress"] { background: #3498db; }
+.calendar-mobile-mark[data-status="Completed"] { background: #2ecc71; }
+.calendar-mobile-extra { font-size: 0.7rem; color: var(--text-secondary); }
+
+.calendar-day-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendar-day-heading h2 { font-size: 1rem; font-weight: 600; }
+.calendar-day-heading > span,
+.calendar-day-empty { color: var(--text-secondary); font-size: 0.85rem; }
+.calendar-day-empty { padding: 0.75rem 0; }
+.calendar-day-tasks { list-style: none; margin: 0; padding: 0; }
+
+.calendar-day-task {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background: var(--card-bg);
+}
+
+.calendar-day-task.selected { border-color: var(--accent-color); }
+.calendar-day-task-content {
+  min-width: 0;
+  flex: 1;
+  min-height: 44px;
+  text-align: left;
+  font: inherit;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.calendar-day-task-title { display: block; overflow-wrap: anywhere; }
+.calendar-day-task[data-status="Completed"] .calendar-day-task-title { text-decoration: line-through; }
+.calendar-day-task-meta { display: block; color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.2rem; overflow-wrap: anywhere; }
+.calendar-day-add {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.calendar-mobile-day:focus-visible,
+.calendar-day-task-content:focus-visible,
+.calendar-day-add:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
 }
 
 /* Subtask styles */
