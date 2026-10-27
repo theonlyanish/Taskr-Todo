@@ -290,6 +290,22 @@ export const TaskForm: React.FC<TaskFormProps> = ({
               </button>
             </>
           )}
+          {/* A date picked on the calendar (or earlier in Add details), while
+              the date field is folded away: say what it is, and let it go */}
+          {!quickAdd && !isEditing && !detailsOpen && dueDate && (
+            <>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="16" rx="2" />
+                <path d="M3 10h18M8 3v4M16 3v4" />
+              </svg>
+              <span>
+                Due <strong>{describeDueDate(new Date(`${dueDate}T00:00:00Z`))}</strong>
+              </span>
+              <button type="button" className="quick-add-keep" onClick={() => setDueDate('')}>
+                Remove date
+              </button>
+            </>
+          )}
         </div>
       </div>
 
