@@ -248,11 +248,17 @@ margin-top: 1rem;
   --bg-primary: #F5F5F5;
   --bg-secondary: #FFFFFF;
   --card-bg: #FFFFFF;
+  --task-card-bg: var(--card-bg);
+  --task-card-border: var(--border-color);
+  --task-card-hover: var(--bg-secondary);
   --text-primary: #2d3436;
   --text-secondary: #636e72;
   --border-color: #E0E0E0;
   --shadow-color: rgba(0, 0, 0, 0.06);
   --accent-color: #0984e3;
+  --task-selection-bg: #eaf4fc;
+  --task-focus-ring: #0066cc;
+  --calendar-selected-bg: #0874c4;
   --scrollbar-thumb: #D4D4D4;
   --scrollbar-track: #F5F5F5;
 }
@@ -262,11 +268,17 @@ margin-top: 1rem;
 --bg-primary: #040406;
 --bg-secondary: #0a0a0d;
 --card-bg: #0d0d11;
+--task-card-bg: #17171d;
+--task-card-border: #292932;
+--task-card-hover: #1e1e26;
 --text-primary: #e4e9ed;
 --text-secondary: #a3acb9;
 --border-color: #1a1a1f;
 --shadow-color: rgba(0, 0, 0, 0.4);
 --accent-color: #3d7199;
+--task-selection-bg: #182a3b;
+--task-focus-ring: #83baff;
+--calendar-selected-bg: var(--accent-color);
 --scrollbar-thumb: #2D2D2D;
 --scrollbar-track: #1a1a1f;
 }
@@ -442,6 +454,7 @@ color: var(--text-primary);
 /* Task list styles */
 .task-item {
 padding: 0.75rem;
+background-color: var(--task-card-bg);
 border: none;
 border-radius: 4px;
 margin-bottom: 0.5rem;
@@ -452,7 +465,7 @@ gap: 1rem;
 }
 
 .task-item.selected {
-background-color: var(--bg-secondary);
+background-color: var(--task-selection-bg);
 }
 
 .task-checkbox {
@@ -586,7 +599,8 @@ background-color: #ffc107;
 
 /* Placeholder styles */
 .form-input::placeholder {
-color: #999;
+color: var(--text-secondary);
+opacity: 1;
 }
 
 /* Input focus state */
@@ -609,7 +623,7 @@ color: var(--text-primary);
 
 /* Empty date input */
 input[type="date"]:invalid::-webkit-datetime-edit {
-color: #999;
+color: var(--text-secondary);
 }
 
 /* Form actions */
@@ -742,11 +756,11 @@ color: var(--accent-color);
 
 /* Task item hover state */
 .task-item:hover {
-background-color: var(--bg-secondary);
+background-color: var(--task-card-hover);
 }
 
 .task-item.selected {
-background-color: var(--bg-secondary);
+background-color: var(--task-selection-bg);
 }
 
 
@@ -830,14 +844,6 @@ background-color: #c82333;
 /* Completed task styles */
 .completed-section .task-item {
 cursor: pointer;
-}
-
-.completed-section .task-item:hover {
-background-color: rgba(220, 53, 69, 0.1);
-}
-
-.completed-section .task-item:hover .task-title {
-color: #dc3545;
 }
 
 /* Animation for modal */
@@ -1323,6 +1329,23 @@ flex: 0 0 auto;
   background-color: #0052a3;
 }
 
+/* Account entry is secondary to the workspace's yellow task actions. */
+.app-header .sign-in-btn {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.app-header .sign-in-btn:hover {
+  background-color: var(--bg-primary);
+  border-color: var(--text-secondary);
+}
+
+.app-header .sign-in-btn:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
 /* Banner shown when Supabase is unreachable (paused project, network error) */
 .cloud-notice {
   display: flex;
@@ -1662,7 +1685,7 @@ flex: 0 0 auto;
 
 .auth-field input::placeholder {
   color: var(--text-secondary);
-  opacity: 0.7;
+  opacity: 1;
 }
 
 .auth-field input:focus {
@@ -1949,8 +1972,8 @@ flex: 0 0 auto;
 }
 
 .kanban-task-card {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
+  background-color: var(--task-card-bg);
+  border: 1px solid var(--task-card-border);
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 0.5rem;
@@ -1961,6 +1984,7 @@ flex: 0 0 auto;
 }
 
 .kanban-task-card:hover {
+  background-color: var(--task-card-hover);
   transform: translateY(-2px);
   box-shadow: 0 2px 4px var(--shadow-color);
 }
@@ -1976,7 +2000,7 @@ flex: 0 0 auto;
 }
 
 .kanban-task-card.selected {
-  border: 2px solid var(--accent-color);
+  background-color: var(--task-selection-bg);
 }
 
 /* Color indicators for cards */
@@ -2227,10 +2251,11 @@ flex: 0 0 auto;
   background: var(--border-color) !important;
 }
 
-.calendar-container .fc-button-active {
-  background: var(--accent-color) !important;
+/* Keep selected buttons readable on hover as well as at rest. */
+.calendar-container .fc-button.fc-button-active {
+  background: var(--calendar-selected-bg) !important;
   color: white !important;
-  border-color: var(--accent-color) !important;
+  border-color: var(--calendar-selected-bg) !important;
 }
 
 .calendar-container .fc-day {
@@ -2643,7 +2668,7 @@ button.subtask-progress:focus-visible {
 }
 
 .kanban-subtask-item.selected {
-  background-color: var(--bg-selected);
+  background-color: var(--task-selection-bg);
 }
 
 .kanban-subtask-item.completed .kanban-subtask-title {
@@ -2787,8 +2812,20 @@ button.kanban-subtask-item {
 .kanban-subtask-item:focus-visible,
 .calendar-unscheduled-item:focus-visible,
 .calendar-container .fc-event:focus-visible {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
+  outline: 2px solid var(--task-focus-ring);
+  outline-offset: 3px;
+}
+
+/* The row carries title-button focus; other controls keep their own ring. */
+@supports selector(:has(*)) {
+  .task-item:has(> .task-content:focus-visible) {
+    outline: 2px solid var(--task-focus-ring);
+    outline-offset: 3px;
+  }
+
+  .task-content:focus-visible {
+    outline: none;
+  }
 }
 
 /* An "Add subtask" button only shown on hover must also show on focus */
@@ -4568,15 +4605,7 @@ button.kanban-subtask-item {
 /* Bulk actions: picked rows and cards, the bar, and Clear completed */
 .task-item.bulk-selected,
 .kanban-task-card.bulk-selected {
-  outline: 2px solid var(--accent-color);
-  outline-offset: -2px;
-  background-color: rgba(9, 132, 227, 0.08);
-}
-
-.dark-theme .task-item.bulk-selected,
-.dark-theme .kanban-task-card.bulk-selected {
-  outline-color: #5b93c2;
-  background-color: rgba(61, 113, 153, 0.22);
+  background-color: var(--task-selection-bg);
 }
 
 .bulk-bar {
@@ -5343,10 +5372,15 @@ button.kanban-subtask-item {
 }
 
 .lists-btn-primary {
-  border-color: var(--accent-color);
-  background-color: var(--accent-color);
-  color: #fff;
+  border-color: #ffd60a;
+  background-color: #ffd60a;
+  color: #000000;
   font-weight: 500;
+}
+
+.lists-btn-primary:hover {
+  border-color: #ffc107;
+  background-color: #ffc107;
 }
 
 .lists-btn-danger {
