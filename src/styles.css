@@ -5935,6 +5935,86 @@ button.kanban-subtask-item {
   }
 }
 
+/* A compact mobile list without reducing the 44px action targets. Keep
+   title/date together and reserve a column for the subtask action so it
+   doesn't wrap onto its own line. Board and desktop spacing stay separate. */
+@media (max-width: 900px) {
+  .tasks-column .task-section {
+    margin: 1rem 0;
+  }
+
+  .tasks-column .task-section + .task-section {
+    margin-top: 1.25rem;
+  }
+
+  .tasks-column .section-header {
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .tasks-column .task-list {
+    margin-top: 0;
+  }
+
+  .tasks-column .task-item {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+    padding: 0.5rem 0.5rem 0.5rem calc(0.5rem - 3px);
+    margin-bottom: 0.5rem;
+  }
+
+  .tasks-column .task-item + .task-item:not(.subtask) {
+    margin-top: 0.5rem;
+  }
+
+  .tasks-column .task-item > .task-checkbox {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  .tasks-column .task-item > .task-content {
+    grid-column: 2;
+    grid-row: 1;
+    overflow-wrap: anywhere;
+  }
+
+  .tasks-column .task-meta {
+    margin: 0.2rem 0 0;
+  }
+
+  .tasks-column .task-item > .add-subtask-btn {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+    margin-left: 0;
+    padding: 0;
+  }
+
+  .tasks-column .add-subtask-btn .btn-text {
+    display: none;
+  }
+
+  .tasks-column .task-item > .subtask-progress {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .tasks-column .task-item > .subtasks-container {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    min-width: 0;
+  }
+
+  .tasks-column .task-item.subtask {
+    grid-template-columns: 44px minmax(0, 1fr);
+    margin-left: 0.5rem;
+  }
+}
+
 @media (max-width: 600px) {
   .app-header {
     flex-wrap: wrap;
