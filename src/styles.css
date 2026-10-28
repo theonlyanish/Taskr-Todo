@@ -5895,3 +5895,59 @@ button.kanban-subtask-item {
 .dark-theme .auth-divider::after {
   background-color: rgba(255, 255, 255, 0.12);
 }
+
+/* Larger hit areas belong to the stacked/mobile layout only. Icon artwork
+   keeps its existing size; desktop controls above 900px are unchanged. */
+@media (max-width: 900px) {
+  .app-header button,
+  .view-switcher-option,
+  .templates-button,
+  button.subtask-progress,
+  .add-subtask-btn,
+  button.task-content,
+  .section-toggle,
+  .clear-completed-btn,
+  .coming-up-task,
+  .mobile-task-dialog button,
+  .calendar-container .fc-button,
+  .calendar-unscheduled-item,
+  .calendar-day-task-content,
+  .calendar-day-add {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .app-header .theme-toggle,
+  .app-header .sync-indicator,
+  .app-header .palette-trigger {
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .add-subtask-btn {
+    flex-shrink: 0;
+    justify-content: center;
+    opacity: 1;
+  }
+
+  .mobile-task-dialog .focus-start {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-header {
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+  }
+
+  .app-header .header {
+    flex: 1 1 8rem;
+    margin-right: 0;
+  }
+
+  .app-header .header-controls {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+}
