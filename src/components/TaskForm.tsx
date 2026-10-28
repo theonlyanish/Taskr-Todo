@@ -21,8 +21,8 @@ const dueDateValue = (date: Date | undefined) => (date ? new Date(date).toISOStr
 // Define the interface for TaskFormProps
 export interface TaskFormProps {
   selectedTask: Task | null;
-  onSubmit: (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  onUpdate?: (taskId: string, updates: Partial<Task>) => void;
+  onSubmit: (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void | boolean | Promise<void | boolean>;
+  onUpdate?: (taskId: string, updates: Partial<Task>) => void | boolean | Promise<void | boolean>;
   onDelete: (taskId: string) => void;
   initialDueDate?: Date | null;
   parentId?: string | null;
@@ -40,6 +40,7 @@ export interface TaskFormProps {
   // syncs it with the account). Without these the form keeps its own.
   detailsOpen?: boolean;
   onDetailsOpenChange?: (open: boolean) => void;
+  mobilePanel?: boolean;
 }
 
 export const TaskForm: React.FC<TaskFormProps> = ({
@@ -56,7 +57,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   currentListId = DEFAULT_LIST_ID,
   onClose,
   detailsOpen: detailsOpenProp,
-  onDetailsOpenChange
+  onDetailsOpenChange,
+  mobilePanel = false
 }) => {
   // Adding a task: a title line, with the other fields behind "Add details".
   // Editing one shows every field.
@@ -72,6 +74,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   const [templateNotice, setTemplateNotice] = useState<string | null>(null);
   useEffect(() => setTemplateNotice(null), [selectedTask?.id]);
   const [title, setTitle] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('To Do');
   const [dueDate, setDueDate] = useState<string>('');
@@ -122,8 +126,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   }, [selectedTask, initialDueDate, currentListId]);
 
   // Function to handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     
     const formData = {
       title,
@@ -160,22 +165,32 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       }
     }
 
-    if (selectedTask && selectedTask.id && onUpdate) {
-      // If we have a selected task with a valid ID, use onUpdate
-      onUpdate(selectedTask.id, formData);
-    } else {
-      // If no selected task or empty ID, use onSubmit for new task
-      onSubmit(formData);
-    }
-    
-    // Clear form if no task was selected
-    if (!selectedTask) {
-      setTitle('');
-      setDescription('');
-      setStatus('To Do');
-      setDueDate('');
-      setRepeatChoice('');
-      setKeptAsText(null);
+    setSaving(true);
+    setSaveError(null);
+    try {
+      let result: void | boolean;
+      if (selectedTask && selectedTask.id && onUpdate) {
+        result = await onUpdate(selectedTask.id, formData);
+      } else {
+        result = await onSubmit(formData);
+      }
+      if (result === false) {
+        setSaveError('Couldn’t save this task. Your changes are still here. Please try again.');
+        return;
+      }
+
+      if (!selectedTask) {
+        setTitle('');
+        setDescription('');
+        setStatus('To Do');
+        setDueDate('');
+        setRepeatChoice('');
+        setKeptAsText(null);
+      }
+    } catch {
+      setSaveError('Couldn’t save this task. Your changes are still here. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -202,6 +217,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       className={`task-form ${isEditing ? '' : 'task-form-compact'}`}
       // What the form is doing, for code that waits for it (App's focusNewTaskTitle)
       data-mode={isEditing ? 'edit' : parentId ? 'subtask' : 'new'}
+      aria-busy={saving}
       // Esc leaves the field, so the single-key shortcuts (j, k, x…) work again
       onKeyDown={event => {
         const field = event.target as HTMLElement;
@@ -209,212 +225,225 @@ export const TaskForm: React.FC<TaskFormProps> = ({
       }}
     >
       <div className="task-form-header">
-        <h2>{formTitle}</h2>
-        {(isEditing || parentId) && onClose && (
+        <h2 id="task-form-title">{formTitle}</h2>
+        {(isEditing || parentId || mobilePanel) && onClose && (
           <button
             type="button"
             className="task-form-close"
             onClick={onClose}
-            aria-label={isEditing ? 'Close task' : 'Cancel subtask'}
+            aria-label={isEditing ? 'Close task' : parentId ? 'Cancel subtask' : 'Cancel task'}
             title={isEditing ? 'Close' : 'Cancel'}
+            disabled={saving}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
           </button>
         )}
       </div>
-      {selectedTask && onStartFocus && selectedTask.status !== 'Completed' && (
-        <div className="focus-start" role="group" aria-label="Focus timer">
-          <svg className="focus-start-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="13" r="8" />
-            <path d="M12 9v4l2.5 2.5M9.5 2.5h5" />
-          </svg>
-          {focusTaskId === selectedTask.id ? (
-            <span className="focus-start-label">Focusing on this task</span>
-          ) : (
-            <>
-              <span className="focus-start-label">Focus</span>
-              {FOCUS_LENGTHS.map(minutes => (
-                <button
-                  key={minutes}
-                  type="button"
-                  className="focus-start-btn"
-                  onClick={() => onStartFocus(selectedTask, minutes)}
-                  aria-label={`Focus on this task for ${minutes} minutes`}
-                >
-                  {minutes} min
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      )}
-      <div className="form-group task-title-group">
-        <label htmlFor="task-title" className={isEditing ? undefined : 'sr-only'}>Title</label>
-        <div className="task-title-row">
-          <input
-            ref={titleInputRef}
-            id="task-title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            placeholder={
-              selectedTask ? 'Enter task title'
-                : parentId ? 'Subtask title, e.g. “Book hotel tomorrow”'
-                  : 'Task title, e.g. “Pay rent friday”'
-            }
-            className="form-input"
-            aria-describedby={quickAdd ? 'quick-add-hint' : undefined}
-          />
-          {!isEditing && (
-            <button type="submit" className="add-task-btn add-task-inline">
-              Add
-            </button>
-          )}
-        </div>
-        {/* Always rendered so screen readers hear the date when it appears */}
-        <div id="quick-add-hint" className="quick-add-hint" aria-live="polite">
-          {quickAdd && (
-            <>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="16" rx="2" />
-                <path d="M3 10h18M8 3v4M16 3v4" />
-              </svg>
-              <span>
-                Due <strong>{describeDueDate(quickAdd.dueDate)}</strong>
-                {quickAddRepeat && <> · Repeats {describeRepeat(quickAddRepeat, quickAdd.dueDate).replace(/^E/, 'e')}</>}
-                {quickAdd.timeText && <> · {quickAdd.timeText} goes in the description</>}
-              </span>
-              <button type="button" className="quick-add-keep" onClick={() => setKeptAsText(quickAdd.matchedText)}>
-                Keep “{quickAdd.matchedText}” as text
-              </button>
-            </>
-          )}
-          {/* A date picked on the calendar (or earlier in Add details), while
-              the date field is folded away: say what it is, and let it go */}
-          {!quickAdd && !isEditing && !detailsOpen && dueDate && (
-            <>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="16" rx="2" />
-                <path d="M3 10h18M8 3v4M16 3v4" />
-              </svg>
-              <span>
-                Due <strong>{describeDueDate(new Date(`${dueDate}T00:00:00Z`))}</strong>
-              </span>
-              <button type="button" className="quick-add-keep" onClick={() => setDueDate('')}>
-                Remove date
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {!isEditing && (
-        <div className="task-form-extras">
-          <button
-            type="button"
-            className="task-form-extra"
-            aria-expanded={detailsOpen}
-            aria-controls="task-form-details"
-            onClick={toggleDetails}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7" /></svg>
-            {detailsOpen ? 'Fewer details' : 'Add details'}
-            <svg className="task-form-extra-caret" viewBox="0 0 24 24" aria-hidden="true">
-              <path d={detailsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
+      <div className="task-form-body">
+        {selectedTask && onStartFocus && selectedTask.status !== 'Completed' && (
+          <div className="focus-start" role="group" aria-label="Focus timer">
+            <svg className="focus-start-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="13" r="8" />
+              <path d="M12 9v4l2.5 2.5M9.5 2.5h5" />
             </svg>
-          </button>
-        </div>
-      )}
-
-      <div id="task-form-details" hidden={!showDetails}>
-        <div className="form-group">
-          <label htmlFor="task-description">Description</label>
-          <textarea
-            id="task-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter task description (optional)"
-            className="form-input description-input"
-            rows={isEditing ? 4 : 3}
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="task-status">Status</label>
-          <select
-            id="task-status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as TaskStatus)}
-            required
-            className="form-input status-select"
-          >
-            <option value="To Do">To Do</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-          </select>
-        </div>
-
-        {showListField && (
-          <div className="form-group">
-            <label htmlFor="task-list">List</label>
-            <select
-              id="task-list"
-              value={listId}
-              onChange={(e) => setListId(e.target.value)}
-              className="form-input"
-            >
-              {lists.map(list => (
-                <option key={list.id} value={list.id}>{list.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="form-group">
-          <label htmlFor="task-due-date">Due date</label>
-          <input
-            id="task-due-date"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="form-input"
-          />
-        </div>
-
-        {!isSubtaskForm && (
-          <div className="form-group">
-            <label htmlFor="task-repeat">Repeat</label>
-            <select
-              id="task-repeat"
-              value={repeatChoice}
-              onChange={(e) => setRepeatChoice(e.target.value)}
-              className="form-input"
-              aria-describedby={repeatChoice ? 'task-repeat-note' : undefined}
-            >
-              {repeatOptions.map(choice => (
-                <option key={choice.value} value={choice.value}>{choice.label}</option>
-              ))}
-            </select>
-            {repeatChoice && (
-              <p id="task-repeat-note" className="task-repeat-note">
-                {dueDate ? 'When it’s done, the next one is added' : 'Due today, then the next one is added when it’s done'}
-              </p>
+            {focusTaskId === selectedTask.id ? (
+              <span className="focus-start-label">Focusing on this task</span>
+            ) : (
+              <>
+                <span className="focus-start-label">Focus</span>
+                {FOCUS_LENGTHS.map(minutes => (
+                  <button
+                    key={minutes}
+                    type="button"
+                    className="focus-start-btn"
+                    onClick={() => onStartFocus(selectedTask, minutes)}
+                    aria-label={`Focus on this task for ${minutes} minutes`}
+                  >
+                    {minutes} min
+                  </button>
+                ))}
+              </>
             )}
           </div>
         )}
-      </div>
+        <div className="form-group task-title-group">
+          <label htmlFor="task-title" className={isEditing ? undefined : 'sr-only'}>Title</label>
+          <div className="task-title-row">
+            <input
+              disabled={saving}
+              ref={titleInputRef}
+              id="task-title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              placeholder={
+                selectedTask ? 'Enter task title'
+                  : parentId ? 'Subtask title, e.g. “Book hotel tomorrow”'
+                    : 'Task title, e.g. “Pay rent friday”'
+              }
+              className="form-input"
+              aria-describedby={quickAdd ? 'quick-add-hint' : undefined}
+            />
+            {!isEditing && !mobilePanel && (
+              <button type="submit" className="add-task-btn add-task-inline" disabled={saving}>
+                {saving ? 'Saving…' : 'Add'}
+              </button>
+            )}
+          </div>
+          {/* Always rendered so screen readers hear the date when it appears */}
+          <div id="quick-add-hint" className="quick-add-hint" aria-live="polite">
+            {quickAdd && (
+              <>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M3 10h18M8 3v4M16 3v4" />
+                </svg>
+                <span>
+                  Due <strong>{describeDueDate(quickAdd.dueDate)}</strong>
+                  {quickAddRepeat && <> · Repeats {describeRepeat(quickAddRepeat, quickAdd.dueDate).replace(/^E/, 'e')}</>}
+                  {quickAdd.timeText && <> · {quickAdd.timeText} goes in the description</>}
+                </span>
+                <button type="button" className="quick-add-keep" onClick={() => setKeptAsText(quickAdd.matchedText)}>
+                  Keep “{quickAdd.matchedText}” as text
+                </button>
+              </>
+            )}
+            {/* A date picked on the calendar (or earlier in Add details), while
+                the date field is folded away: say what it is, and let it go */}
+            {!quickAdd && !isEditing && !detailsOpen && dueDate && (
+              <>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M3 10h18M8 3v4M16 3v4" />
+                </svg>
+                <span>
+                  Due <strong>{describeDueDate(new Date(`${dueDate}T00:00:00Z`))}</strong>
+                </span>
+                <button type="button" className="quick-add-keep" onClick={() => setDueDate('')}>
+                  Remove date
+                </button>
+              </>
+            )}
+          </div>
+        </div>
 
+        {!isEditing && (
+          <div className="task-form-extras">
+            <button
+              type="button"
+              className="task-form-extra"
+              disabled={saving}
+              aria-expanded={detailsOpen}
+              aria-controls="task-form-details"
+              onClick={toggleDetails}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7" /></svg>
+              {detailsOpen ? 'Fewer details' : 'Add details'}
+              <svg className="task-form-extra-caret" viewBox="0 0 24 24" aria-hidden="true">
+                <path d={detailsOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        <div id="task-form-details" hidden={!showDetails}>
+          <div className="form-group">
+            <label htmlFor="task-description">Description</label>
+            <textarea
+              disabled={saving}
+              id="task-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter task description (optional)"
+              className="form-input description-input"
+              rows={isEditing ? 4 : 3}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="task-status">Status</label>
+            <select
+              disabled={saving}
+              id="task-status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as TaskStatus)}
+              required
+              className="form-input status-select"
+            >
+              <option value="To Do">To Do</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
+          {showListField && (
+            <div className="form-group">
+              <label htmlFor="task-list">List</label>
+              <select
+                disabled={saving}
+                id="task-list"
+                value={listId}
+                onChange={(e) => setListId(e.target.value)}
+                className="form-input"
+              >
+                {lists.map(list => (
+                  <option key={list.id} value={list.id}>{list.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label htmlFor="task-due-date">Due date</label>
+            <input
+              disabled={saving}
+              id="task-due-date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="form-input"
+            />
+          </div>
+
+          {!isSubtaskForm && (
+            <div className="form-group">
+              <label htmlFor="task-repeat">Repeat</label>
+              <select
+                disabled={saving}
+                id="task-repeat"
+                value={repeatChoice}
+                onChange={(e) => setRepeatChoice(e.target.value)}
+                className="form-input"
+                aria-describedby={repeatChoice ? 'task-repeat-note' : undefined}
+              >
+                {repeatOptions.map(choice => (
+                  <option key={choice.value} value={choice.value}>{choice.label}</option>
+                ))}
+              </select>
+              {repeatChoice && (
+                <p id="task-repeat-note" className="task-repeat-note">
+                  {dueDate ? 'When it’s done, the next one is added' : 'Due today, then the next one is added when it’s done'}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <p className="template-notice" role="status">{templateNotice}</p>
+      </div>
       <div className="form-actions">
-        {isEditing && (
-          <button type="submit" className="add-task-btn">
-            Save changes
+        {saveError && <p className="task-save-error" role="alert">{saveError}</p>}
+        {(isEditing || mobilePanel) && (
+          <button type="submit" className="add-task-btn" disabled={saving}>
+            {saving ? 'Saving…' : isEditing ? 'Save changes' : parentId ? 'Add subtask' : 'Add task'}
           </button>
         )}
         {selectedTask && !selectedTask.isSubtask && onSaveTemplate && (
           <button
             type="button"
             className="template-save-btn"
+            disabled={saving}
             onClick={async () => {
               const result = await onSaveTemplate(selectedTask);
               setTemplateNotice(result === 'saved' ? 'Saved as a template' : 'Already saved as a template');
@@ -427,6 +456,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           <button 
             type="button"
             className="delete-task-btn"
+            disabled={saving}
             onClick={() => onDelete(selectedTask.id)}
           >
             <svg className="delete-task-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -436,7 +466,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           </button>
         )}
       </div>
-      <p className="template-notice" role="status">{templateNotice}</p>
     </form>
   );
 };

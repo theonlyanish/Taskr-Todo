@@ -123,6 +123,18 @@ describe('keyboard shortcuts', () => {
     expect(onSearch).not.toHaveBeenCalled();
   });
 
+  it('keeps shortcuts inside a native task dialog, and resumes after it closes', () => {
+    const { onNewTask } = setup();
+    const dialog = document.createElement('dialog');
+    dialog.setAttribute('open', '');
+    document.body.appendChild(dialog);
+    press('n');
+    expect(onNewTask).not.toHaveBeenCalled();
+    dialog.remove();
+    press('n');
+    expect(onNewTask).toHaveBeenCalledTimes(1);
+  });
+
   it('puts focus back on a task by id, after it moves', () => {
     setup();
     expect(focusTaskById('Charlie')).toBe(true);

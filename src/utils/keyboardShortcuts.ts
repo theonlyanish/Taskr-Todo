@@ -78,7 +78,7 @@ export const useKeyboardShortcuts = (handlers: ShortcutHandlers) => {
       if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
       if (isTyping(event.target)) return;
       // Dialogs (the palette, sign-in, templates…) keep their own keys
-      if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+      if (document.querySelector('dialog[open], [role="dialog"], [role="alertdialog"]')) return;
 
       const { onToggle, onEdit, onNewTask, onSearch, onHelp } = handlersRef.current;
       const taskId = focusedTaskId();

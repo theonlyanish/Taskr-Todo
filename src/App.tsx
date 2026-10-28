@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TaskSection } from './components/TaskSection';
 import { TaskForm } from './components/TaskForm';
+import { TaskPanel } from './components/TaskPanel';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Auth, AuthMode } from './components/Auth';
 import { SyncIndicator } from './components/SyncIndicator';
@@ -172,7 +173,17 @@ function App() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [newSubtaskParentId, setNewSubtaskParentId] = useState<string | null>(null);
   const [cloudNotice, setCloudNotice] = useState<string | null>(null);
-  const taskFormRef = useRef<HTMLDivElement>(null);
+  const [mobileTaskPanelOpen, setMobileTaskPanelOpen] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(() => window.matchMedia(STACKED_LAYOUT_QUERY).matches);
+  useEffect(() => {
+    const query = window.matchMedia(STACKED_LAYOUT_QUERY);
+    const update = () => {
+      setIsMobileLayout(query.matches);
+      setMobileTaskPanelOpen(false);
+    };
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   // Countdown for working on one task, shown in a bar and the browser tab
   const focus = useFocusTimer();
@@ -234,7 +245,7 @@ function App() {
     if (!selection) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      if ((event.target as Element | null)?.closest?.('[role="dialog"]')) return;
+      if ((event.target as Element | null)?.closest?.('dialog, [role="dialog"]')) return;
       setSelection(null);
       selectionAnchorRef.current = null;
     };
@@ -264,13 +275,10 @@ function App() {
     return () => window.removeEventListener('pagehide', commitPendingDelete);
   }, [commitPendingDelete]);
 
-  // On narrow screens the form sits below the tasks, so bring it into view
-  // whenever a task is picked or a new one is started.
+  // On narrow screens, open the editor over the list without changing its place.
   const revealTaskForm = () => {
     if (!window.matchMedia(STACKED_LAYOUT_QUERY).matches) return;
-    requestAnimationFrame(() => {
-      taskFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    setMobileTaskPanelOpen(true);
   };
 
   const handleTaskSelect = (task: Task) => {
@@ -825,15 +833,18 @@ function App() {
   const handleAddNewTask = () => {
     setSelectedTask(null);
     setNewSubtaskParentId(null);
+    setSelectedDate(null);
     revealTaskForm();
-    focusNewTaskTitle();
+    if (!isMobileLayout) focusNewTaskTitle();
   };
 
   // The × on the task being edited (or a new subtask): back to adding a task
   const closeTaskPanel = () => {
+    setMobileTaskPanelOpen(false);
     setSelectedTask(null);
     setNewSubtaskParentId(null);
-    focusNewTaskTitle();
+    setSelectedDate(null);
+    if (!isMobileLayout) focusNewTaskTitle();
   };
 
   const handleAddSubtask = async (parentId: string) => {
@@ -929,11 +940,12 @@ function App() {
       announceChange();
     } catch (error) {
       console.error('Error saving task:', error);
-      // Handle the error (e.g., show a notification)
+      return false;
     }
     
-      setSelectedTask(null);
+    setSelectedTask(null);
     setNewSubtaskParentId(null); // Reset the parent ID
+    return true;
   };
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<Task>) => {
@@ -950,7 +962,7 @@ function App() {
       const taskToUpdate = findTaskById(latest, taskId);
       if (!taskToUpdate) {
         console.error('Task not found:', taskId);
-        return;
+        return false;
       }
       
       // The task list after this update, including any status cascade
@@ -1063,10 +1075,24 @@ function App() {
       setSelectedTask(current =>
         current?.id === taskId ? { ...current, ...updates } : current
       );
+      return true;
 
     } catch (error) {
       console.error('Error updating task:', error);
+      return false;
     }
+  };
+
+  const handlePanelSubmit = async (data: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const saved = await handleTaskSubmit(data);
+    if (saved && isMobileLayout) closeTaskPanel();
+    return saved;
+  };
+
+  const handlePanelUpdate = async (id: string, updates: Partial<Task>) => {
+    const saved = await handleTaskUpdate(id, updates);
+    if (saved && isMobileLayout) closeTaskPanel();
+    return saved;
   };
 
   // The checkbox: completes a task (and its subtasks; a subtask completed under
@@ -1212,6 +1238,7 @@ function App() {
       return;
     }
     deleteTasksWithUndo([taskId]);
+    if (mobileTaskPanelOpen) closeTaskPanel();
   };
 
   // Moves several tasks to one status in one go. Completing a task completes
@@ -1617,6 +1644,7 @@ function App() {
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setSelectedTask(null); // Clear selected task when selecting a new date
+    setNewSubtaskParentId(null);
     revealTaskForm();
   };
 
@@ -1630,7 +1658,7 @@ function App() {
     const taskList = listOf(parent ?? task, new Set(lists.map(list => list.id)));
     if (taskList !== currentListId) taskLists.switchTo(taskList);
     handleTaskSelect(task);
-    // On narrow screens revealTaskForm already scrolls to the form instead
+    // On narrow screens revealTaskForm opens the editor over the list instead
     if (window.matchMedia(STACKED_LAYOUT_QUERY).matches) return;
     requestAnimationFrame(() => {
       document.querySelector(`[data-task-id="${task.id}"]`)?.scrollIntoView({ block: 'nearest' });
@@ -2129,6 +2157,14 @@ function App() {
           <ViewSwitcher value={viewType} onChange={setViewType} />
         </div>
 
+        {isMobileLayout && (
+          <div className="mobile-task-toolbar">
+            <button type="button" className="add-task-btn" onClick={handleAddNewTask}>
+              + Add task
+            </button>
+          </div>
+        )}
+
         <div className={`main-content ${
           viewType === 'kanban' ? 'kanban-layout' : 
           viewType === 'calendar' ? 'calendar-layout' : ''
@@ -2174,26 +2210,29 @@ function App() {
                 />
               </div>
 
-              <div className="task-detail-column" ref={taskFormRef}>
+              <TaskPanel
+                mobile={isMobileLayout}
+                open={mobileTaskPanelOpen}
+                onClose={closeTaskPanel}
+                summary={!selectedTask && !newSubtaskParentId ? <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} /> : undefined}
+              >
                 <TaskForm
                   selectedTask={selectedTask}
                   focusTaskId={focus.session?.taskId}
                   onStartFocus={startFocus}
                   onSaveTemplate={handleSaveTemplate}
-                  onSubmit={handleTaskSubmit}
-                  onUpdate={handleTaskUpdate}
+                  onSubmit={handlePanelSubmit}
+                  onUpdate={handlePanelUpdate}
                   onDelete={handleTaskDelete}
                   parentId={newSubtaskParentId}
                   lists={lists}
                   currentListId={currentListId}
                   onClose={closeTaskPanel}
+                  mobilePanel={isMobileLayout}
                   detailsOpen={addDetailsOpen}
                   onDetailsOpenChange={setAddDetailsOpen}
                 />
-                {!selectedTask && !newSubtaskParentId && (
-                  <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} />
-                )}
-              </div>
+              </TaskPanel>
             </>
           )}
           {viewType === 'kanban' && (
@@ -2209,26 +2248,29 @@ function App() {
                 onSelectClick={handleSelectClick}
                 onClearCompleted={handleClearCompleted}
               />
-              <div className="task-detail-column" ref={taskFormRef}>
+              <TaskPanel
+                mobile={isMobileLayout}
+                open={mobileTaskPanelOpen}
+                onClose={closeTaskPanel}
+                summary={!selectedTask && !newSubtaskParentId ? <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} /> : undefined}
+              >
                 <TaskForm
                   selectedTask={selectedTask}
                   focusTaskId={focus.session?.taskId}
                   onStartFocus={startFocus}
                   onSaveTemplate={handleSaveTemplate}
-                  onSubmit={handleTaskSubmit}
-                  onUpdate={handleTaskUpdate}
+                  onSubmit={handlePanelSubmit}
+                  onUpdate={handlePanelUpdate}
                   onDelete={handleTaskDelete}
                   parentId={newSubtaskParentId}
                   lists={lists}
                   currentListId={currentListId}
                   onClose={closeTaskPanel}
+                  mobilePanel={isMobileLayout}
                   detailsOpen={addDetailsOpen}
                   onDetailsOpenChange={setAddDetailsOpen}
                 />
-                {!selectedTask && !newSubtaskParentId && (
-                  <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} />
-                )}
-              </div>
+              </TaskPanel>
             </>
           )}
           {viewType === 'calendar' && (
@@ -2242,27 +2284,30 @@ function App() {
                 layout={calendarLayout}
                 onLayoutChange={setCalendarLayout}
               />
-              <div className="task-detail-column" ref={taskFormRef}>
+              <TaskPanel
+                mobile={isMobileLayout}
+                open={mobileTaskPanelOpen}
+                onClose={closeTaskPanel}
+                summary={!selectedTask && !newSubtaskParentId ? <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} /> : undefined}
+              >
                 <TaskForm
                   selectedTask={selectedTask}
                   focusTaskId={focus.session?.taskId}
                   onStartFocus={startFocus}
                   onSaveTemplate={handleSaveTemplate}
-                  onSubmit={handleTaskSubmit}
-                  onUpdate={handleTaskUpdate}
+                  onSubmit={handlePanelSubmit}
+                  onUpdate={handlePanelUpdate}
                   onDelete={handleTaskDelete}
                   initialDueDate={selectedDate}
                   parentId={newSubtaskParentId}
                   lists={lists}
                   currentListId={currentListId}
                   onClose={closeTaskPanel}
+                  mobilePanel={isMobileLayout}
                   detailsOpen={addDetailsOpen}
                   onDetailsOpenChange={setAddDetailsOpen}
                 />
-                {!selectedTask && !newSubtaskParentId && (
-                  <ComingUp tasks={listTasks} onTaskSelect={jumpToTask} />
-                )}
-              </div>
+              </TaskPanel>
             </>
           )}
         </div>

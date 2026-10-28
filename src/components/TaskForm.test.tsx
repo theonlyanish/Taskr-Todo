@@ -1,6 +1,11 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { TaskForm } from './TaskForm';
+
+jest.mock('../utils/quickAdd', () => ({
+  ...jest.requireActual('../utils/quickAdd'),
+  useQuickAdd: () => false
+}));
 
 const renderForm = (props: Partial<React.ComponentProps<typeof TaskForm>> = {}) => {
   const onSubmit = jest.fn();
@@ -22,24 +27,40 @@ describe('adding a task for a day picked on the calendar', () => {
     jest.useRealTimers();
   });
 
-  it('adds the task on that day', () => {
+  it('adds the task on that day', async () => {
     const { onSubmit } = renderForm({ initialDueDate: picked });
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Dentist' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ title: 'Dentist', dueDate: picked }));
+    await waitFor(() => expect(screen.getByLabelText('Title')).toHaveValue(''));
   });
 
-  it('lets the date go', () => {
+  it('lets the date go', async () => {
     const { onSubmit } = renderForm({ initialDueDate: picked });
     fireEvent.click(screen.getByRole('button', { name: 'Remove date' }));
     expect(screen.queryByRole('button', { name: 'Remove date' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Dentist' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ dueDate: undefined }));
+    await waitFor(() => expect(screen.getByLabelText('Title')).toHaveValue(''));
   });
 
   it('doesn’t repeat the date when the date field is showing', () => {
     renderForm({ initialDueDate: picked, detailsOpen: true, onDetailsOpenChange: jest.fn() });
     expect(screen.queryByRole('button', { name: 'Remove date' })).not.toBeInTheDocument();
+  });
+});
+
+describe('mobile task editing', () => {
+  it('retains the draft and offers a retry when saving fails', async () => {
+    const save = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    renderForm({ mobilePanel: true, onSubmit: save, onClose: jest.fn() });
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Book dentist' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your changes are still here');
+    expect(screen.getByLabelText('Title')).toHaveValue('Book dentist');
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }));
+    await waitFor(() => expect(screen.getByLabelText('Title')).toHaveValue(''));
+    expect(save).toHaveBeenCalledTimes(2);
   });
 });
