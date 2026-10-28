@@ -28,6 +28,7 @@ Live Demo: [https://taskr-todo.vercel.app/](https://taskr-todo.vercel.app/)
 - Ctrl+K command palette to switch views, add tasks, import, export or jump to a task
 - Search box in the header that finds any task or subtask by title as you type
 - Calendar week view with an Unscheduled tray you can drag tasks from onto a day
+- Calendar on your phone fits the month to a small screen; tap a day and its tasks are listed underneath, where you can tick them off or open them
 - Natural language due dates when typing a task, such as "pay rent fri" or "dentist 3 Nov"
 - Repeating tasks from typing "gym every friday", "pay rent every month" or "standup every weekday", or picking a Repeat option; completing one adds the next, with undo
 - Due-date reminders you can turn on, shown as a browser notification at 9am on the day a task is due while Taskr is open in a tab
@@ -36,7 +37,7 @@ Live Demo: [https://taskr-todo.vercel.app/](https://taskr-todo.vercel.app/)
 - Coming up beside the list, showing overdue tasks, today's and the rest of the week
 - Section counts on every list section and board column, a Completed section you can fold away, and a short hint when a section is empty
 - Task reorder by dragging tasks into the order you want within a list or column; the order is kept on every device
-- Focus timer to work on one task for 25 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title
+- Focus timer to work on one task for 15, 25 or 50 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title
 - Stats showing tasks done this week and per week for the last eight weeks, your current and best streak, the typical time from In Progress to done, and what has been in progress longest
 - Task templates to add a task with its subtasks in one click, from a built-in template or one you saved from any task
 - Bulk actions to select several tasks with Ctrl-click, Shift-click or Select tasks in Ctrl+K, then move, complete or delete them together, or move them to another list

@@ -117,6 +117,11 @@
       "changelog": "Wider calendar, a week view, and an Unscheduled tray you can drag tasks from onto a day"
     },
     {
+      "name": "Calendar on your phone",
+      "description": "fits the month to a small screen; tap a day and its tasks are listed underneath, where you can tick them off or open them",
+      "shipped": "2026-10-28"
+    },
+    {
       "name": "Natural language due dates",
       "description": "when typing a task, such as \"pay rent fri\" or \"dentist 3 Nov\"",
       "shipped": "2026-10-17"
@@ -159,7 +164,7 @@
     },
     {
       "name": "Focus timer",
-      "description": "to work on one task for 25 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title",
+      "description": "to work on one task for 15, 25 or 50 minutes, with pause, extend and a chime when time is up; it keeps going after a reload and shows the time left in the tab title",
       "shipped": "2026-10-18"
     },
     {
@@ -277,6 +282,10 @@
   ],
 
   "changelog": [
+    { "date": "2026-10-28", "text": "On phones, editing a task opens over the list instead of beside it, with the buttons kept above the on-screen keyboard" },
+    { "date": "2026-10-28", "text": "Typography and colour pass across the app" },
+    { "date": "2026-10-26", "text": "Keyboard focus fixes in the stats dialog and clearer checkbox outlines" },
+    { "date": "2026-10-25", "text": "The guide pages and the 404 page follow dark mode, and the welcome tasks mention templates" },
     { "date": "2026-10-25", "text": "Sign in with Google, and a privacy policy page" },
     { "date": "2026-10-25", "text": "Account preferences also keep the list you had open, a folded Completed section and Add details open or closed on every device" },
     { "date": "2026-10-25", "text": "Bulk actions can move the selected tasks to another list, with undo" },
